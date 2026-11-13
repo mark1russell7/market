@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/package",
+  "name": "@market/crawler",
+  "version": "0.1.0",
+  "description": "The crawler of the market: the transport, the keys and the live read command of the clients of @mark1russell7/market-sources.",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "read": "node src/bin.ts read",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
+  },
+  "dependencies": {
+    "@mark1russell7/market-sources": "workspace:*",
+    "@procedures/http": "^0.55.1",
+    "polite-crawler": "^0.6.0"
+  },
+  "devDependencies": {
+    "@mark1russell7/cue": "^2.0.0",
+    "@types/node": "^26.6.5",
+    "@vitest/coverage-v8": "^5.0.3",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}
