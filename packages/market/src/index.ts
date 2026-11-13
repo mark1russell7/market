@@ -31,8 +31,10 @@ export {
   type PriceBreak,
   type PriceReading,
   type Product,
+  type Rating,
   type Seller,
   type Shipping,
+  type Spec,
 } from "./records.ts";
 export {
   isKept,

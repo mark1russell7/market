@@ -1,13 +1,28 @@
-import { valueIn } from "@mark1russell7/quantity";
+import { valueIn, type Quantity } from "@mark1russell7/quantity";
 import { quantitySchema } from "@mark1russell7/quantity/schema";
 import { z } from "zod";
 import { sourceSchema, textSchema } from "./records.ts";
+
+/** The storage rule of a source, from its terms. */
+export type Retention =
+  | { readonly kind: "keep" }
+  | { readonly kind: "max-age"; readonly age: Quantity }
+  | { readonly kind: "no-store" };
+
+/** The rules of the terms of one source. */
+export interface SourceTerms {
+  readonly source: string;
+  readonly retention: Retention;
+  readonly deleteWhenEnded: boolean;
+  readonly priceModel: boolean;
+  readonly clause: string;
+}
 
 /**
  * This schema accepts the storage rule of a source, from its terms. With `keep`, the terms set no limit on the
  * time. With `max-age`, a store keeps a reading for `age` at most. With `no-store`, a reading serves one request.
  */
-export const retentionSchema = z.discriminatedUnion("kind", [
+export const retentionSchema: z.ZodType<Retention> = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("keep") }),
   z.strictObject({ kind: z.literal("max-age"), age: quantitySchema("time", { positive: true }) }),
   z.strictObject({ kind: z.literal("no-store") }),
@@ -17,18 +32,13 @@ export const retentionSchema = z.discriminatedUnion("kind", [
  * This schema accepts the rules of the terms of one source. `deleteWhenEnded` deletes the readings of an offer
  * when the offer ends. `priceModel` permits a trend or a forecast of prices. `clause` names the text of the terms.
  */
-export const sourceTermsSchema = z.strictObject({
+export const sourceTermsSchema: z.ZodType<SourceTerms> = z.strictObject({
   source: sourceSchema,
   retention: retentionSchema,
   deleteWhenEnded: z.boolean(),
   priceModel: z.boolean(),
   clause: textSchema,
 });
-
-/** The storage rule of a source. */
-export type Retention = z.infer<typeof retentionSchema>;
-/** The rules of the terms of one source. */
-export type SourceTerms = z.infer<typeof sourceTermsSchema>;
 
 /**
  * This function gives the last instant at which a store keeps a reading, or null when the terms set no
