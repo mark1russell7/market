@@ -1,4 +1,4 @@
-import { checkName, checkSecret, formBody, instantOf, readAnswer, send, type Pace, type Signal, type Transport } from "./client.ts";
+import { checkName, checkSecret, formBody, instantOf, readAnswer, redact, send, type Pace, type Signal, type Transport } from "./client.ts";
 import { parseBestBuyOpenBox, parseBestBuyProduct, parseBestBuyProducts } from "./bestbuy.ts";
 import type { ParseResult } from "./parse.ts";
 
@@ -68,7 +68,7 @@ export function createBestBuyClient<S extends Signal>(options: BestBuyClientOpti
       headers: { accept: "application/json" },
       body: null,
     };
-    const input = { source: SOURCE, host: BEST_BUY_HOST, minIntervalMs: BEST_BUY_PACE_MS, what, secrets, exchange };
+    const input = { source: SOURCE, host: BEST_BUY_HOST, minIntervalMs: BEST_BUY_PACE_MS, what, secrets, redact, exchange };
     const answer = await send(pace, transport, input, signal);
     return readAnswer(answer, input, parse, instantOf(pace.now()));
   };

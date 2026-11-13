@@ -5,6 +5,7 @@ import {
   instantOf,
   readAnswer,
   readGrant,
+  redact,
   send,
   sendWithToken,
   tokenStore,
@@ -76,7 +77,7 @@ export function createDigiKeyClient<S extends Signal>(options: DigiKeyClientOpti
   const base = `https://${host}`;
   const locale = options.locale ?? DIGIKEY_US;
   const secrets = [clientId, clientSecret];
-  const context = { source: SOURCE, host, minIntervalMs: DIGIKEY_PACE_MS, secrets };
+  const context = { source: SOURCE, host, minIntervalMs: DIGIKEY_PACE_MS, secrets, redact };
 
   const tokens = tokenStore<S>(async (signal) => {
     const issuedAt = pace.now();
@@ -87,7 +88,7 @@ export function createDigiKeyClient<S extends Signal>(options: DigiKeyClientOpti
       body: formBody({ client_id: clientId, client_secret: clientSecret, grant_type: "client_credentials" }),
     };
     const { reply } = await send(pace, transport, { ...context, what: "the token", exchange }, signal);
-    return readGrant(reply, SOURCE, issuedAt, secrets);
+    return readGrant(reply, SOURCE, issuedAt, secrets, redact);
   }, pace.now);
 
   const headers = (token: string): Readonly<Record<string, string>> => ({

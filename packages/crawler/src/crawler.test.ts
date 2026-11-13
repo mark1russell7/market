@@ -123,6 +123,12 @@ describe("the transport", () => {
     await expect(transport(exchange("http://api.bestbuy.com/v1/products/1.json"), undefined)).rejects.toThrow("not an API host");
     await expect(transport(exchange("https://api.bestbuy.com:8443/v1/products/1.json"), undefined)).rejects.toThrow("not an API host");
   });
+
+  it("refuses a method that it does not send, before a request", async () => {
+    const transport = apiTransport(["api.bestbuy.com"]);
+    const exchange: Exchange = { method: "TRACE", url: "https://api.bestbuy.com/v1/products/1.json", headers: {}, body: null };
+    await expect(transport(exchange, undefined)).rejects.toThrow("The exchange has the method TRACE, and the transport does not send it.");
+  });
 });
 
 describe("the command", () => {

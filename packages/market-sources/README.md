@@ -108,21 +108,21 @@ const result = await digiKey.productDetails("P5555-ND");
 The package uses no type of a platform. Thus the host gives each port:
 
 - **The transport** sends one exchange: a method, a URL, headers with lowercase names, and a body. It gives the status, the headers and the body of the answer. It does not follow a redirect.
-- **The pace** is a scheduler of `polite-crawler` and its clock. Give one pace to the clients of one process, thus each host keeps one pace.
+- **The pace** is a `HostScheduler` of `polite-crawler` and its clock. Give one pace to the clients of one process, thus each host keeps one pace.
 - **The eBay client** also takes a `base64` function for the Basic header.
 
 ### The rules of the clients
 
 - **Pace.** Before each request, the scheduler waits the rest of its host. After each answer, the host rests for the pace of the table, or for a longer `Retry-After`.
-- **Answers to wait.** A 429, 502, 503 or 504 parks the host for a backoff with jitter, or for a longer `Retry-After`. A `Retry-After` above 1 hour stops the host.
-- **Stops.** A 401 or a 403 stops the host for 1 hour. A 402 and a bot challenge stop it for 24 hours. A request to a stopped host throws a `SourceError`.
+- **Answers to wait.** A 429, 502, 503 or 504 parks the host for its `Retry-After`, or for a backoff with jitter. A `Retry-After` above 1 hour stops the host.
+- **Stops.** A 401 or a 403 stops the host for 1 hour. A 402 and a bot challenge stop it for 24 hours. A request to a stopped host throws an `ApiError` of `polite-crawler/api`.
 - **Failures.** An error 5xx and a request with no answer are failures. After 5 failures in sequence, the host stops for 1 hour.
 - **Tokens.** A client keeps its token until 1 minute before its end. After a 401, it gets a new token and sends the request one more time.
 - **Answers.** An answer that is not a 2xx gives `{ ok: false, problems }` with its status line. The problem has no part of the body.
-- **Secrets.** No message of a client has a key, a secret or a token. The text `[secret]` is in the place of each one, also in its URL form and its Basic form.
+- **Secrets.** No message of a client has a key, a secret or a token. The text `[secret]` is in the place of each one, also in its URL form, its form-body form and its Basic form. `redact` uses `redactSecrets` of `@mark1russell7/text`.
 - **Inputs.** A client refuses a bad key, a bad product number, a bad SKU and a limit out of range with a `RangeError`, before a request.
 
-The clients send each request through the scheduler and the classifier of `polite-crawler`, but not through its `Crawler`. The crawler keeps a copy of each page, and the terms of Digi-Key permit no store. The crawler also sends only `GET`, and a token request is a `POST`.
+The clients send each request with `send` of `polite-crawler/api`. It has the scheduler, the classifier and the reaction of the crawler to an answer, with no page store. The entry also gives the token store and the grant. The clients do not use the `Crawler`. The crawler keeps a copy of each page, and the terms of Digi-Key permit no store. The crawler also sends only `GET`, and a token request is a `POST`.
 
 ## The terms of each source
 
@@ -141,5 +141,5 @@ Each source has its terms as a `SourceTerms` record of `@mark1russell7/market`, 
 - Each parser has a test of the documented answer of its API, and tests of each rule above.
 - Property tests with `fast-check` mutate each documented answer: they delete fields, and put edge values and random JSON in their place. Each result has only valid records, and each reading belongs to its offer.
 - A property test gives each parser random JSON values. No parser throws.
-- The tests of the clients use a fake transport and a real scheduler of `polite-crawler` on a fake clock. They hold each rule of the clients: the pace, the waits, the stops, the tokens and the secrets.
+- The tests of the clients use a fake transport and a real scheduler of `polite-crawler` on a fake clock. They hold each rule of the clients: the pace, the waits, the stops, the tokens and the secrets. `polite-crawler/api` has the tests of the send and of the token store.
 - A property test puts a random secret in random texts. No text that `redact` gives has the secret.

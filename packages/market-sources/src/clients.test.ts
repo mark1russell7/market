@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import { describe, expect, it } from "vitest";
 import { createBestBuyClient } from "./bestbuy-client.ts";
 import { parseBestBuyOpenBox, parseBestBuyProduct, parseBestBuyProducts } from "./bestbuy.ts";
-import { SECRET_MARK, SourceError, instantOf, type Exchange, type Reply } from "./client.ts";
+import { SECRET_MARK, ApiError, instantOf, type Exchange, type Reply } from "./client.ts";
 import { createDigiKeyClient, DIGIKEY_PACE_MS } from "./digikey-client.ts";
 import { parseDigiKeyKeywordSearch, parseDigiKeyProductDetails } from "./digikey.ts";
 import { createEbayClient } from "./ebay-client.ts";
@@ -142,7 +142,7 @@ describe("the Digi-Key client", () => {
     const errors: Error[] = [];
     const refused = setup(() => reply(401, { error: CLIENT_SECRET }, {}, "Unauthorized"));
     errors.push(await failure(refused.client.productDetails("P5555-ND")));
-    expect(errors[0]).toBeInstanceOf(SourceError);
+    expect(errors[0]).toBeInstanceOf(ApiError);
     expect(errors[0]!.message).toBe("Digi-Key refused the token: 401 Unauthorized.");
     const broken = setup((exchange) => new Error(`socket closed after ${exchange.body ?? ""}`));
     errors.push(await failure(broken.client.productDetails("P5555-ND")));
@@ -269,8 +269,8 @@ describe("the Best Buy client", () => {
       problems: ["Best Buy answered 403 Forbidden to the product 6534613."],
     });
     const error = await failure(client.product("6534613"));
-    expect(error).toBeInstanceOf(SourceError);
-    expect(error.message).toContain("Best Buy refused the access (403)");
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error.message).toBe("The client of Best Buy did not send the product 6534613: api.bestbuy.com stopped: blocked");
     expect(sent).toHaveLength(1);
     expect(error.message).not.toContain(API_KEY);
   });
