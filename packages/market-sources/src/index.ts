@@ -4,7 +4,7 @@
  * and it sends no request. Each source also has the terms of its API.
  *
  * Each client sends the requests of one API through a transport that its host gives. The scheduler of
- * `polite-crawler` keeps the pace of each host. A client keeps no store, and no message of a client has a key.
+ * `polite-crawler/api` keeps the pace of each host. A client keeps no store, and no message of a client has a key.
  */
 import type { SourceTerms } from "@mark1russell7/market";
 import { BEST_BUY_TERMS } from "./bestbuy.ts";
@@ -28,8 +28,8 @@ export {
 } from "./digikey.ts";
 export { EBAY_SOURCE, EBAY_TERMS, ebayCondition, parseEbayItem, parseEbaySearch } from "./ebay.ts";
 export type { Observation, ParseResult } from "./parse.ts";
-export { SECRET_MARK, SourceError, redact } from "./client.ts";
-export type { Exchange, Pace, Reply, Scheduler, Signal, Transport } from "./client.ts";
+export { ApiError, SECRET_MARK, redact } from "./client.ts";
+export type { ApiScheduler, Exchange, Pace, Reply, Signal, Transport } from "./client.ts";
 export {
   DIGIKEY_HOST,
   DIGIKEY_PACE_MS,

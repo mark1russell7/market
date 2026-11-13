@@ -5,6 +5,7 @@ import {
   instantOf,
   readAnswer,
   readGrant,
+  redact,
   send,
   sendWithToken,
   tokenStore,
@@ -82,7 +83,7 @@ export function createEbayClient<S extends Signal>(options: EbayClientOptions<S>
   const base = `https://${host}`;
   const basic = options.base64(`${clientId}:${clientSecret}`);
   const secrets = [clientId, clientSecret, basic];
-  const context = { source: SOURCE, host, minIntervalMs: EBAY_PACE_MS, secrets };
+  const context = { source: SOURCE, host, minIntervalMs: EBAY_PACE_MS, secrets, redact };
 
   const tokens = tokenStore<S>(async (signal) => {
     const issuedAt = pace.now();
@@ -97,7 +98,7 @@ export function createEbayClient<S extends Signal>(options: EbayClientOptions<S>
       body: formBody({ grant_type: "client_credentials", scope: EBAY_SCOPE }),
     };
     const { reply } = await send(pace, transport, { ...context, what: "the token", exchange }, signal);
-    return readGrant(reply, SOURCE, issuedAt, secrets);
+    return readGrant(reply, SOURCE, issuedAt, secrets, redact);
   }, pace.now);
 
   const headers = (token: string): Readonly<Record<string, string>> => ({

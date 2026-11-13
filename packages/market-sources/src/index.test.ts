@@ -6,6 +6,7 @@ import { BEST_BUY_TERMS, DIGIKEY_TERMS, EBAY_TERMS, SOURCE_TERMS } from "./index
 describe("the entry", () => {
   it("exports the parsers, the terms and the clients", () => {
     expect(Object.keys(entry).sort()).toEqual([
+      "ApiError",
       "BEST_BUY_HOST",
       "BEST_BUY_PACE_MS",
       "BEST_BUY_PAGE_LIMIT",
@@ -29,7 +30,6 @@ describe("the entry", () => {
       "EBAY_US",
       "SECRET_MARK",
       "SOURCE_TERMS",
-      "SourceError",
       "bestBuyCondition",
       "createBestBuyClient",
       "createDigiKeyClient",

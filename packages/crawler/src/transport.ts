@@ -1,6 +1,13 @@
 import type { Reply, Transport } from "@mark1russell7/market-sources";
 import { httpRequest, httpSettings, type HttpSettings } from "@procedures/http";
 
+/** The methods that the transport sends. */
+const METHODS = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] as const;
+
+type Method = (typeof METHODS)[number];
+
+const isMethod = (method: string): method is Method => (METHODS as readonly string[]).includes(method);
+
 /** The longest time of one exchange with an API, in milliseconds. */
 export const EXCHANGE_TIMEOUT_MS = 30_000;
 
@@ -37,9 +44,11 @@ export function apiTransport(hosts: readonly string[]): Transport<AbortSignal> {
     if (url.protocol !== "https:" || url.port !== "" || !allowed.has(url.hostname)) {
       throw new Error(`The exchange goes to ${url.hostname}, and it is not an API host on https.`);
     }
+    const method = exchange.method;
+    if (!isMethod(method)) throw new Error(`The exchange has the method ${method.slice(0, 20)}, and the transport does not send it.`);
     const reply = await httpRequest(
       {
-        method: exchange.method,
+        method,
         url: exchange.url,
         headers: { ...exchange.headers },
         body: exchange.body ?? undefined,

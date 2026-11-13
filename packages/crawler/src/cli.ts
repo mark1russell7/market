@@ -6,7 +6,7 @@ import {
   DIGIKEY_SANDBOX_HOST,
   EBAY_HOST,
   EBAY_SANDBOX_HOST,
-  SourceError,
+  ApiError,
   createBestBuyClient,
   createDigiKeyClient,
   createEbayClient,
@@ -186,7 +186,7 @@ export async function main(argv: readonly string[], io: Io): Promise<number> {
       io.err(`${message}\n\n${USAGE}`);
       return 2;
     }
-    io.err(`problem: ${error instanceof SourceError ? message : `${error instanceof Error ? error.name : "Error"}: ${message}`}`);
+    io.err(`problem: ${error instanceof ApiError ? message : `${error instanceof Error ? error.name : "Error"}: ${message}`}`);
     return 1;
   }
 }
