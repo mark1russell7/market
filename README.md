@@ -2,7 +2,7 @@
 
 A live catalog of products. The catalog has the offers of many sellers, and the price of each offer over time.
 
-This repository is new. Its first package is not written yet. [`docs/ROADMAP.md`](docs/ROADMAP.md) has the plan.
+The first package, `@mark1russell7/market`, has the records and their checks. [`docs/ROADMAP.md`](docs/ROADMAP.md) has the plan, and [`docs/HAND-CRAWL.md`](docs/HAND-CRAWL.md) has the record of the sellers.
 
 ## The model
 
@@ -14,11 +14,11 @@ This repository is new. Its first package is not written yet. [`docs/ROADMAP.md`
 
 ## The packages
 
-These packages are the plan. They do not exist yet.
+The first package exists. The second package is the plan.
 
 | Package | What it has |
 | --- | --- |
-| `@mark1russell7/market` | The records of a product, an offer and a price reading, their checks, the history of a price and its trend. |
+| [`@mark1russell7/market`](packages/market/README.md) | The records of a product, an offer and a price reading, their checks, and the storage rules of a source. The history of a price and its trend come later. |
 | `@mark1russell7/market-sources` | One adapter for each seller. |
 
 Other packages give the general parts:
