@@ -19,7 +19,7 @@ The first package exists. The second package is the plan.
 | Package | What it has |
 | --- | --- |
 | [`@mark1russell7/market`](packages/market/README.md) | The records of a product, an offer and a price reading, their checks, and the storage rules of a source. The history of a price and its trend come later. |
-| `@mark1russell7/market-sources` | One adapter for each seller. |
+| [`@mark1russell7/market-sources`](packages/market-sources/README.md) | One adapter for each seller: the parsers of the answers of eBay, Best Buy and Digi-Key, and the terms of each source. |
 
 Other packages give the general parts:
 
