@@ -4,17 +4,36 @@ import * as entry from "./index.ts";
 import { BEST_BUY_TERMS, DIGIKEY_TERMS, EBAY_TERMS, SOURCE_TERMS } from "./index.ts";
 
 describe("the entry", () => {
-  it("exports the parsers and the terms", () => {
+  it("exports the parsers, the terms and the clients", () => {
     expect(Object.keys(entry).sort()).toEqual([
+      "BEST_BUY_HOST",
+      "BEST_BUY_PACE_MS",
+      "BEST_BUY_PAGE_LIMIT",
       "BEST_BUY_SOURCE",
       "BEST_BUY_TERMS",
+      "DIGIKEY_HOST",
+      "DIGIKEY_PACE_MS",
+      "DIGIKEY_SANDBOX_HOST",
+      "DIGIKEY_SEARCH_LIMIT",
       "DIGIKEY_SELLER",
       "DIGIKEY_SOURCE",
       "DIGIKEY_TERMS",
+      "DIGIKEY_US",
+      "EBAY_HOST",
+      "EBAY_PACE_MS",
+      "EBAY_SANDBOX_HOST",
+      "EBAY_SCOPE",
+      "EBAY_SEARCH_LIMIT",
       "EBAY_SOURCE",
       "EBAY_TERMS",
+      "EBAY_US",
+      "SECRET_MARK",
       "SOURCE_TERMS",
+      "SourceError",
       "bestBuyCondition",
+      "createBestBuyClient",
+      "createDigiKeyClient",
+      "createEbayClient",
       "ebayCondition",
       "parseBestBuyOpenBox",
       "parseBestBuyProduct",
@@ -23,6 +42,7 @@ describe("the entry", () => {
       "parseDigiKeyProductDetails",
       "parseEbayItem",
       "parseEbaySearch",
+      "redact",
     ]);
   });
 });
