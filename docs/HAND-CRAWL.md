@@ -121,4 +121,4 @@ Each source of R3 needs an account or a key. The owner makes each account.
 
 - The terms of Micro Center and Mouser, and their `robots.txt` files. The sites refused or timed out.
 - The site terms of Amazon, Newegg, Walmart and B&H.
-- The terms of Keepa on reuse and display.
+- The terms of Keepa on reuse and on a public page.
