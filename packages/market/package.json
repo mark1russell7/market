@@ -16,7 +16,7 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
   },
   "dependencies": {
-    "@mark1russell7/quantity": "^0.3.5",
+    "@mark1russell7/quantity": "^0.4.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
