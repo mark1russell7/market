@@ -2,7 +2,9 @@
 
 The adapters of the sellers of a market. Each parser reads the answer of an official API at one instant. It gives the current offers and their price readings as records of [`@mark1russell7/market`](../market/README.md).
 
-A parser is a pure function. It sends no request, it keeps no store, and it reads no key. The clients of the APIs come in a later step (R3 of [`docs/ROADMAP.md`](../../docs/ROADMAP.md)).
+A parser is a pure function. It sends no request, it keeps no store, and it reads no key.
+
+A client sends the requests of one API, and gives the result of a parser. Its host gives the transport, the keys and the clock. The scheduler of [`polite-crawler`](https://www.npmjs.com/package/polite-crawler) keeps the pace of each host.
 
 ## Usage
 
@@ -82,6 +84,46 @@ The US APIs of Best Buy give each price in US dollars.
 
 The API has no GTIN and no shipping cost. The shipping of a reading is `unknown`.
 
+## The clients
+
+| Client | Methods | Pace | Access |
+| --- | --- | --- | --- |
+| `createDigiKeyClient` | `productDetails(productNumber)`, `keywordSearch(keywords, limit)` | 500 ms | OAuth 2.0 client credentials, the client id in a header |
+| `createEbayClient` | `item(itemId)`, `search(words, limit)` | 1 s | OAuth 2.0 client credentials with Basic, the scope `api_scope` |
+| `createBestBuyClient` | `product(sku)`, `search(words, pageSize)`, `openBox(sku)` | 1 s | the API key in the query |
+
+```ts
+import { HostScheduler, realClock } from "polite-crawler/politeness";
+import { createDigiKeyClient, type Transport } from "@mark1russell7/market-sources";
+
+const transport: Transport<AbortSignal> = async (exchange, signal) => {
+  const answer = await fetch(exchange.url, { ...exchange, redirect: "manual", signal });
+  return { status: answer.status, statusText: answer.statusText, headers: Object.fromEntries(answer.headers), body: await answer.text() };
+};
+const pace = { scheduler: new HostScheduler(realClock, 4), now: realClock.now };
+const digiKey = createDigiKeyClient({ clientId, clientSecret, transport, pace });
+const result = await digiKey.productDetails("P5555-ND");
+```
+
+The package uses no type of a platform. Thus the host gives each port:
+
+- **The transport** sends one exchange: a method, a URL, headers with lowercase names, and a body. It gives the status, the headers and the body of the answer. It does not follow a redirect.
+- **The pace** is a scheduler of `polite-crawler` and its clock. Give one pace to the clients of one process, thus each host keeps one pace.
+- **The eBay client** also takes a `base64` function for the Basic header.
+
+### The rules of the clients
+
+- **Pace.** Before each request, the scheduler waits the rest of its host. After each answer, the host rests for the pace of the table, or for a longer `Retry-After`.
+- **Answers to wait.** A 429, 502, 503 or 504 parks the host for a backoff with jitter, or for a longer `Retry-After`. A `Retry-After` above 1 hour stops the host.
+- **Stops.** A 401 or a 403 stops the host for 1 hour. A 402 and a bot challenge stop it for 24 hours. A request to a stopped host throws a `SourceError`.
+- **Failures.** An error 5xx and a request with no answer are failures. After 5 failures in sequence, the host stops for 1 hour.
+- **Tokens.** A client keeps its token until 1 minute before its end. After a 401, it gets a new token and sends the request one more time.
+- **Answers.** An answer that is not a 2xx gives `{ ok: false, problems }` with its status line. The problem has no part of the body.
+- **Secrets.** No message of a client has a key, a secret or a token. The text `[secret]` is in the place of each one, also in its URL form and its Basic form.
+- **Inputs.** A client refuses a bad key, a bad product number, a bad SKU and a limit out of range with a `RangeError`, before a request.
+
+The clients send each request through the scheduler and the classifier of `polite-crawler`, but not through its `Crawler`. The crawler keeps a copy of each page, and the terms of Digi-Key permit no store. The crawler also sends only `GET`, and a token request is a `POST`.
+
 ## The terms of each source
 
 Each source has its terms as a `SourceTerms` record of `@mark1russell7/market`, from the hand crawl ([`docs/HAND-CRAWL.md`](../../docs/HAND-CRAWL.md)). A store examines a reading with `isKept` before it keeps or shows the reading.
@@ -99,3 +141,5 @@ Each source has its terms as a `SourceTerms` record of `@mark1russell7/market`, 
 - Each parser has a test of the documented answer of its API, and tests of each rule above.
 - Property tests with `fast-check` mutate each documented answer: they delete fields, and put edge values and random JSON in their place. Each result has only valid records, and each reading belongs to its offer.
 - A property test gives each parser random JSON values. No parser throws.
+- The tests of the clients use a fake transport and a real scheduler of `polite-crawler` on a fake clock. They hold each rule of the clients: the pace, the waits, the stops, the tokens and the secrets.
+- A property test puts a random secret in random texts. No text that `redact` gives has the secret.
