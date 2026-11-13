@@ -100,7 +100,7 @@ describe("the keys", () => {
       "EBAY_CLIENT_SECRET",
       "BESTBUY_API_KEY",
     ]);
-    expect(keyFile("/home/someone")).toBe(join("/home/someone", ".market", "seller-keys.env"));
+    expect(keyFile("<home>")).toBe(join("<home>", ".market", "seller-keys.env"));
   });
 
   it("gives a problem with the code when the key file does not exist", () => {
