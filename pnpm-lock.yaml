@@ -210,7 +210,7 @@ importers:
         version: link:../market-sources
       '@procedures/http':
         specifier: ^0.55.1
-        version: 0.55.1
+        version: 0.55.2
       polite-crawler:
         specifier: ^0.6.1
         version: 0.6.1
@@ -658,8 +658,8 @@ packages:
   '@oxc-project/types@0.156.0':
     resolution: {integrity: sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw==}
 
-  '@procedures/client@0.55.1':
-    resolution: {integrity: sha512-MMR96vk3VUK5r4bkDzaoxYHl6CE2UHTn7B6Uw2tOa/R6thQeVLPfHvLDT8m+mDR1vbTZj6XM4FNGEOFlC3c8PA==}
+  '@procedures/client@0.55.2':
+    resolution: {integrity: sha512-yzT4KH/WZe9yx8YICr83jE+UYZJFuzFwmsEYGx32hxRKCTgrx6xKg9RE9laxJMeKiXS9DQNq/33Zjx1ku7Em3Q==}
     engines: {node: '>=22'}
     peerDependencies:
       express: ^4.0.0 || ^5.0.0
@@ -667,8 +667,8 @@ packages:
       express:
         optional: true
 
-  '@procedures/http@0.55.1':
-    resolution: {integrity: sha512-vx/ajWU5yLGywEoWNKX4Jc+TmJBcjQsQBvmDCLrjyVzXpTpQWs1Q34PwhIs1S4emiX4v2kIBEVMrb+1z2oeuvw==}
+  '@procedures/http@0.55.2':
+    resolution: {integrity: sha512-T56sz6OJP4lIO8OaV3GERIOFVYvjSHxGtfOLEe/UQKiy9nLJdLywbCUSH4AorFW12p2CN+gXxj/raxtEKtjqbw==}
     engines: {node: '>=22'}
 
   '@publint/pack@0.1.7':
@@ -1852,7 +1852,7 @@ snapshots:
 
   '@oxc-project/types@0.156.0': {}
 
-  '@procedures/client@0.55.1':
+  '@procedures/client@0.55.2':
     dependencies:
       '@mark1russell7/algebra': 0.8.4(zod@4.6.7)
       '@mark1russell7/coeval': 0.29.0(zod@4.6.7)
@@ -1872,9 +1872,9 @@ snapshots:
       - pg
       - utf-8-validate
 
-  '@procedures/http@0.55.1':
+  '@procedures/http@0.55.2':
     dependencies:
-      '@procedures/client': 0.55.1
+      '@procedures/client': 0.55.2
       zod: 4.6.7
     transitivePeerDependencies:
       - '@grpc/grpc-js'
