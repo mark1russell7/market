@@ -277,7 +277,7 @@ describe("the run of a plan", () => {
     const result = await run(["run", "plans/prep.json"], answer, undefined, files);
     expect(result.code).toBe(1);
     expect(result.sent.filter(({ url }) => url.endsWith(TOKEN))).toHaveLength(1);
-    expect(result.sent.map(({ url }) => url.split("?")[0]).filter((url) => !url.endsWith(TOKEN))).toEqual([
+    expect(result.sent.filter(({ url }) => !url.endsWith(TOKEN)).map(({ url }) => new URL(url).origin + new URL(url).pathname)).toEqual([
       "https://api.digikey.com/products/v4/search/P5555-ND/productdetails",
       "https://api.bestbuy.com/v1/products/1234567.json",
       "https://api.digikey.com/products/v4/search/P5556-ND/productdetails",
@@ -307,7 +307,7 @@ describe("the run of a plan", () => {
         : readKeys("bestbuy", `BESTBUY_API_KEY=${API_KEY}\n`);
     const result = await run(["run", "prep.json", "--out", "o.jsonl", "--record", "r.json"], answer, keys, files);
     expect(result.code).toBe(1);
-    expect(result.sent.map(({ url }) => url.split("?")[0])).toEqual(["https://api.bestbuy.com/v1/products/1234567.json"]);
+    expect(result.sent.map(({ url }) => new URL(url).origin + new URL(url).pathname)).toEqual(["https://api.bestbuy.com/v1/products/1234567.json"]);
     expect(recordOf(files, "r.json").map(({ observations, problems }) => ({ observations, problems }))).toEqual([
       { observations: 0, problems: ["The key file has no value for EBAY_CLIENT_ID."] },
       { observations: 1, problems: [] },
