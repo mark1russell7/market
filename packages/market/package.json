@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/package",
   "name": "@mark1russell7/market",
-  "version": "0.1.1",
-  "description": "The records of a market: a product, an offer of a seller and a price reading, with their checks, the GTIN check, match keys, the cost of an order, the storage rules of a source, and the best offer of a part.",
+  "version": "0.1.2",
+  "description": "The records of a market: a product, an offer of a seller and a price reading, with their checks, the GTIN check, match keys, the cost of an order, the storage rules of a source, the best offer of a part, and a board of current prices within the terms of each source.",
   "license": "MIT",
   "repository": {
     "type": "git",

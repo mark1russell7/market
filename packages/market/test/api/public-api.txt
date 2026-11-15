@@ -8,13 +8,20 @@
 
 AVAILABILITIES: build/index.d.ts#AVAILABILITIES
 type Availability: build/index.d.ts#Availability
+BOARD_FORMAT: build/index.d.ts#BOARD_FORMAT
 type BestOffer: build/index.d.ts#BestOffer
 type BestOfferOptions: build/index.d.ts#BestOfferOptions
+type Board: build/index.d.ts#Board
+type BoardDrop: build/index.d.ts#BoardDrop
+type BoardRead: build/index.d.ts#BoardRead
 CONDITIONS: build/index.d.ts#CONDITIONS
 type Condition: build/index.d.ts#Condition
+type Dropped: build/index.d.ts#Dropped
 FORMATS: build/index.d.ts#FORMATS
 type Format: build/index.d.ts#Format
 type Identifiers: build/index.d.ts#Identifiers
+type KeepOptions: build/index.d.ts#KeepOptions
+type Kept: build/index.d.ts#Kept
 type Observation: build/index.d.ts#Observation
 type Offer: build/index.d.ts#Offer
 type OfferChoice: build/index.d.ts#OfferChoice
@@ -24,22 +31,34 @@ type PriceBreak: build/index.d.ts#PriceBreak
 type PriceReading: build/index.d.ts#PriceReading
 type Product: build/index.d.ts#Product
 type Rating: build/index.d.ts#Rating
+type ReadInterval: build/index.d.ts#ReadInterval
+type ReadPlan: build/index.d.ts#ReadPlan
 type Retention: build/index.d.ts#Retention
+type ScheduleOptions: build/index.d.ts#ScheduleOptions
 type Seller: build/index.d.ts#Seller
+type SettleOptions: build/index.d.ts#SettleOptions
+type Settled: build/index.d.ts#Settled
 type Shipping: build/index.d.ts#Shipping
 type SourceTerms: build/index.d.ts#SourceTerms
 type Spec: build/index.d.ts#Spec
+type WatchEntry: build/index.d.ts#WatchEntry
 bestOffer: build/index.d.ts#bestOffer
+boardObservations: build/index.d.ts#boardObservations
+boardReadSchema: build/index.d.ts#boardReadSchema
+boardSchema: build/index.d.ts#boardSchema
 costOf: build/index.d.ts#costOf
 foldCode: build/index.d.ts#foldCode
 gtinCheckDigit: build/index.d.ts#gtinCheckDigit
 gtinSchema: build/index.d.ts#gtinSchema
 instantSchema: build/index.d.ts#instantSchema
 isKept: build/index.d.ts#isKept
+keepObservations: build/index.d.ts#keepObservations
 keepUntil: build/index.d.ts#keepUntil
+lastReads: build/index.d.ts#lastReads
 latestObservations: build/index.d.ts#latestObservations
 matchKeys: build/index.d.ts#matchKeys
 moneySchema: build/index.d.ts#moneySchema
+observationSchema: build/index.d.ts#observationSchema
 offerId: build/index.d.ts#offerId
 offerSchema: build/index.d.ts#offerSchema
 offersOfPart: build/index.d.ts#offersOfPart
@@ -48,11 +67,14 @@ parseGtin: build/index.d.ts#parseGtin
 partNumberSchema: build/index.d.ts#partNumberSchema
 permitsHistory: build/index.d.ts#permitsHistory
 permitsTrend: build/index.d.ts#permitsTrend
+planReads: build/index.d.ts#planReads
 priceBreakSchema: build/index.d.ts#priceBreakSchema
 priceReadingSchema: build/index.d.ts#priceReadingSchema
 productSchema: build/index.d.ts#productSchema
+readInterval: build/index.d.ts#readInterval
 retentionSchema: build/index.d.ts#retentionSchema
 sellerSchema: build/index.d.ts#sellerSchema
+settleBoard: build/index.d.ts#settleBoard
 shippingSchema: build/index.d.ts#shippingSchema
 sourceOfOffer: build/index.d.ts#sourceOfOffer
 sourceSchema: build/index.d.ts#sourceSchema
@@ -60,6 +82,8 @@ sourceTermsSchema: build/index.d.ts#sourceTermsSchema
 specSchema: build/index.d.ts#specSchema
 textSchema: build/index.d.ts#textSchema
 unitPriceFor: build/index.d.ts#unitPriceFor
+watchEntrySchema: build/index.d.ts#watchEntrySchema
+watchProblems: build/index.d.ts#watchProblems
 
 ## Declarations
 
@@ -68,6 +92,9 @@ export declare const AVAILABILITIES: readonly ["in-stock", "low-stock", "out-of-
 
 ### build/index.d.ts#Availability
 type Availability = (typeof AVAILABILITIES)[number];
+
+### build/index.d.ts#BOARD_FORMAT
+export declare const BOARD_FORMAT = "price-board/1";
 
 ### build/index.d.ts#BestOffer
 interface BestOffer {
@@ -86,11 +113,36 @@ interface BestOfferOptions {
   readonly conditions?: readonly Condition[];
 }
 
+### build/index.d.ts#Board
+interface Board {
+  readonly format: typeof BOARD_FORMAT;
+  readonly at: string;
+  readonly reads: readonly BoardRead[];
+}
+
+### build/index.d.ts#BoardDrop
+interface BoardDrop extends Dropped {
+  readonly entry: string;
+}
+
+### build/index.d.ts#BoardRead
+interface BoardRead {
+  readonly name: string;
+  readonly at: string;
+  readonly observations: readonly Observation[];
+}
+
 ### build/index.d.ts#CONDITIONS
 export declare const CONDITIONS: readonly ["new", "open-box", "refurbished", "used", "for-parts", "unknown"];
 
 ### build/index.d.ts#Condition
 type Condition = (typeof CONDITIONS)[number];
+
+### build/index.d.ts#Dropped
+interface Dropped {
+  readonly offerId: string;
+  readonly why: string;
+}
 
 ### build/index.d.ts#FORMATS
 export declare const FORMATS: readonly ["fixed-price", "auction"];
@@ -102,6 +154,19 @@ type Format = (typeof FORMATS)[number];
 interface Identifiers {
   readonly gtins: readonly string[];
   readonly partNumbers: readonly PartNumber[];
+}
+
+### build/index.d.ts#KeepOptions
+interface KeepOptions {
+  readonly terms: readonly SourceTerms[];
+  readonly now: string;
+  readonly ended?: readonly string[] | undefined;
+}
+
+### build/index.d.ts#Kept
+interface Kept {
+  readonly kept: readonly Observation[];
+  readonly dropped: readonly Dropped[];
 }
 
 ### build/index.d.ts#Observation
@@ -184,6 +249,21 @@ interface Rating {
   readonly count: number;
 }
 
+### build/index.d.ts#ReadInterval
+type ReadInterval = {
+  readonly ok: true;
+  readonly ms: number;
+} | {
+  readonly ok: false;
+  readonly why: string;
+};
+
+### build/index.d.ts#ReadPlan
+interface ReadPlan {
+  readonly due: readonly string[];
+  readonly next: string | null;
+}
+
 ### build/index.d.ts#Retention
 type Retention = {
   readonly kind: "keep";
@@ -194,11 +274,28 @@ type Retention = {
   readonly kind: "no-store";
 };
 
+### build/index.d.ts#ScheduleOptions
+interface ScheduleOptions {
+  readonly terms: readonly SourceTerms[];
+  readonly slack: Quantity;
+}
+
 ### build/index.d.ts#Seller
 interface Seller {
   readonly id?: string | undefined;
   readonly name?: string | undefined;
   readonly rating?: Rating | undefined;
+}
+
+### build/index.d.ts#SettleOptions
+interface SettleOptions extends KeepOptions {
+  readonly names?: readonly string[] | undefined;
+}
+
+### build/index.d.ts#Settled
+interface Settled {
+  readonly board: Board;
+  readonly dropped: readonly BoardDrop[];
 }
 
 ### build/index.d.ts#Shipping
@@ -228,8 +325,24 @@ interface Spec {
   readonly value: string;
 }
 
+### build/index.d.ts#WatchEntry
+interface WatchEntry {
+  readonly name: string;
+  readonly source: string;
+  readonly every: Quantity;
+}
+
 ### build/index.d.ts#bestOffer
 export declare function bestOffer(observations: readonly Observation[], options: BestOfferOptions): BestOffer;
+
+### build/index.d.ts#boardObservations
+export declare function boardObservations(board: Board, options: KeepOptions): Observation[];
+
+### build/index.d.ts#boardReadSchema
+export declare const boardReadSchema: z.ZodType<BoardRead>;
+
+### build/index.d.ts#boardSchema
+export declare const boardSchema: z.ZodType<Board>;
 
 ### build/index.d.ts#costOf
 export declare function costOf(reading: PriceReading, count: number): Quantity | null;
@@ -251,10 +364,16 @@ export declare function isKept(terms: SourceTerms, reading: {
   readonly at: string;
 }, now: string, ended?: boolean): boolean;
 
+### build/index.d.ts#keepObservations
+export declare function keepObservations(observations: readonly Observation[], options: KeepOptions): Kept;
+
 ### build/index.d.ts#keepUntil
 export declare function keepUntil(terms: SourceTerms, reading: {
   readonly at: string;
 }): string | null;
+
+### build/index.d.ts#lastReads
+export declare function lastReads(board: Board): Record<string, string>;
 
 ### build/index.d.ts#latestObservations
 export declare function latestObservations(observations: readonly Observation[]): Observation[];
@@ -264,6 +383,9 @@ export declare function matchKeys(identifiers: Identifiers): string[];
 
 ### build/index.d.ts#moneySchema
 export declare const moneySchema: z.ZodType<Quantity, Quantity>;
+
+### build/index.d.ts#observationSchema
+export declare const observationSchema: z.ZodType<Observation>;
 
 ### build/index.d.ts#offerId
 export declare function offerId(source: string, sourceId: string): string;
@@ -289,6 +411,9 @@ export declare function permitsHistory(terms: SourceTerms): boolean;
 ### build/index.d.ts#permitsTrend
 export declare function permitsTrend(terms: SourceTerms): boolean;
 
+### build/index.d.ts#planReads
+export declare function planReads(entries: readonly WatchEntry[], last: Readonly<Record<string, string>>, now: string, options: ScheduleOptions): ReadPlan;
+
 ### build/index.d.ts#priceBreakSchema
 export declare const priceBreakSchema: z.ZodType<PriceBreak>;
 
@@ -298,11 +423,17 @@ export declare const priceReadingSchema: z.ZodType<PriceReading>;
 ### build/index.d.ts#productSchema
 export declare const productSchema: z.ZodType<Product>;
 
+### build/index.d.ts#readInterval
+export declare function readInterval(entry: WatchEntry, options: ScheduleOptions): ReadInterval;
+
 ### build/index.d.ts#retentionSchema
 export declare const retentionSchema: z.ZodType<Retention>;
 
 ### build/index.d.ts#sellerSchema
 export declare const sellerSchema: z.ZodType<Seller>;
+
+### build/index.d.ts#settleBoard
+export declare function settleBoard(board: Board, options: SettleOptions, read?: BoardRead): Settled;
 
 ### build/index.d.ts#shippingSchema
 export declare const shippingSchema: z.ZodType<Shipping>;
@@ -324,3 +455,9 @@ export declare const textSchema: z.ZodType<string>;
 
 ### build/index.d.ts#unitPriceFor
 export declare function unitPriceFor(reading: PriceReading, count: number): Quantity;
+
+### build/index.d.ts#watchEntrySchema
+export declare const watchEntrySchema: z.ZodType<WatchEntry>;
+
+### build/index.d.ts#watchProblems
+export declare function watchProblems(entries: readonly WatchEntry[], options: ScheduleOptions): string[];
