@@ -1,6 +1,6 @@
 # @mark1russell7/market
 
-The records of a market: a product, an offer of a seller and a price reading, with their checks. The package also has the GTIN check, the match keys of a record, the cost of an order and the storage rules of a source. The offers of a part and the best offer join the observations of the sources to the parts that a buyer wants.
+The records of a market: a product, an offer of a seller and a price reading, with their checks. The package also has the GTIN check, the match keys of a record, the cost of an order and the storage rules of a source. The offers of a part and the best offer join the observations of the sources to the parts that a buyer wants. The board keeps the current prices within the terms of each source, and plans the reads of a watch.
 
 ```sh
 pnpm add @mark1russell7/market
@@ -54,6 +54,27 @@ chosen.best?.goods; // { value: 89.99, unit: "USD" }
 chosen.skipped; // [{ offerId: "ebay:1234", why: "The condition used is not a condition that the buyer accepts." }]
 ```
 
+## The board of current prices
+
+A watch reads its sources on a schedule and keeps the latest price of each offer on a board. The terms of each source limit the board. The functions of the board are calculations with no effect. A host does the reads, and it writes the board.
+
+- `keepObservations(observations, { terms, now, ended })` gives the latest observation of each offer that a store keeps at `now`, and each dropped offer with its reason. The board drops a reading of a source with `no-store` or with no terms. It also drops a reading past its limit, and an ended offer.
+- `readInterval(entry, { terms, slack })` gives the time from one read of a watch entry to the next. It is the shorter of `every` and the limit of the terms less the slack of the loop. Thus the board has a current reading of the entry at each instant after its first read.
+- `watchProblems(entries, { terms, slack })` gives each entry with no interval, and each name that two entries have. A source with `no-store` has no interval: a program reads it for each request.
+- `planReads(entries, last, now, { terms, slack })` gives the due entries at `now`, and the instant of the next due read.
+- `boardSchema`, `observationSchema` and `watchEntrySchema` examine a board file, an observation and a watch entry.
+
+Give the board and the new observations together to `keepObservations`. Then write its `kept` list as the new board. To read the board at an instant, give the board alone. A reading can pass its limit after the last change of the board.
+
+```ts
+import { bestOffer, keepObservations, offersOfPart, planReads } from "@mark1russell7/market";
+
+const plan = planReads(entries, lastReads, now, { terms, slack: { value: 2, unit: "min" } });
+// Read each entry of plan.due, then keep the board within the terms.
+const { kept, dropped } = keepObservations([...board.observations, ...read], { terms, now });
+const chosen = bestOffer(offersOfPart(kept, want), { currency: "USD" });
+```
+
 ## Example
 
 ```ts
@@ -84,3 +105,4 @@ isKept(terms, reading, "2026-11-16T00:00:00Z"); // false
 - A part number of a want matches each longer part number that starts with it. A want gives the full part number of the maker.
 - The money of the quantity package has one currency: the US dollar.
 - The package has no history of prices yet. Roadmap item R5 adds it, after the owner chooses its source.
+- The board keeps one reading of each offer. A search that does not find an offer again does not end the offer: its reading stays until the limit of its terms.
