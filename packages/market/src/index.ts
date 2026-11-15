@@ -1,9 +1,21 @@
 /**
  * The records of the market: a product, an offer of a seller and a price reading, with their checks. The module
  * also has the GTIN check, the match keys of a record, the cost of an order and the storage rules of a source.
+ * The offers of a part and the best offer join the observations of the sources to the parts that a buyer wants.
  */
 export { gtinCheckDigit, parseGtin } from "./gtin.ts";
 export { foldCode, matchKeys, type Identifiers, type PartNumber } from "./identifiers.ts";
+export {
+  bestOffer,
+  latestObservations,
+  offersOfPart,
+  offersPart,
+  type BestOffer,
+  type BestOfferOptions,
+  type Observation,
+  type OfferChoice,
+  type PartWant,
+} from "./offers.ts";
 export { costOf, unitPriceFor } from "./price.ts";
 export {
   AVAILABILITIES,

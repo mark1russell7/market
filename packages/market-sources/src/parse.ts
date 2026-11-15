@@ -3,17 +3,15 @@ import {
   moneySchema,
   offerSchema,
   priceReadingSchema,
+  type Observation,
   type Offer,
   type PriceReading,
 } from "@mark1russell7/market";
 import type { Quantity } from "@mark1russell7/quantity";
 import { z } from "zod";
 
-/** One offer of a source, and its price reading at the instant of the answer. */
-export interface Observation {
-  readonly offer: Offer;
-  readonly reading: PriceReading;
-}
+/** One offer of a source, and its price reading at the instant of the answer. `@mark1russell7/market` has the type. */
+export type { Observation };
 
 /**
  * The result of a parser. With `ok`, the answer has the documented shape. Each observation is valid under the
