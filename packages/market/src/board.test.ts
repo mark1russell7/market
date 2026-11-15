@@ -256,14 +256,23 @@ describe("planReads", () => {
   const entries = [entry("a", "bids", hours(1)), entry("b", "shop", hours(24)), entry("c", "parts", hours(1))];
 
   it("reads each entry with no read, and gives the next due instant", () => {
-    expect(planReads(entries, {}, NOW, SCHEDULE)).toEqual({ due: ["a", "b"], next: "2026-11-15T13:00:00.000Z" });
+    expect(planReads(entries, {}, NOW, SCHEDULE)).toEqual({ due: ["a", "b"], queue: ["a", "b"], next: "2026-11-15T13:00:00.000Z" });
   });
 
   it("reads an entry when its interval has passed, and not before", () => {
     const last = { a: "2026-11-15T11:00:00.000Z", b: "2026-11-15T11:30:00.000Z" };
-    expect(planReads(entries, last, NOW, SCHEDULE)).toEqual({ due: ["a"], next: "2026-11-15T13:00:00.000Z" });
-    expect(planReads(entries, last, "2026-11-15T11:59:59.999Z", SCHEDULE)).toEqual({ due: [], next: NOW });
-    expect(planReads([entries[2] as WatchEntry], {}, NOW, SCHEDULE)).toEqual({ due: [], next: null });
+    expect(planReads(entries, last, NOW, SCHEDULE)).toEqual({ due: ["a"], queue: ["a"], next: "2026-11-15T13:00:00.000Z" });
+    expect(planReads(entries, last, "2026-11-15T11:59:59.999Z", SCHEDULE)).toEqual({ due: [], queue: [], next: NOW });
+    expect(planReads([entries[2] as WatchEntry], {}, NOW, SCHEDULE)).toEqual({ due: [], queue: [], next: null });
+  });
+
+  it("queues the entry that is due for the longest time first, and an entry with no read before it", () => {
+    const four = [entry("a", "bids", hours(1)), entry("b", "bids", hours(2)), entry("d", "bids", hours(1)), entry("e", "bids", hours(1))];
+    // a is due since 11:00, b since 10:30, d has no read, and e is due since 11:00 as a.
+    const last = { a: "2026-11-15T10:00:00.000Z", b: "2026-11-15T08:30:00.000Z", e: "2026-11-15T10:00:00.000Z" };
+    const plan = planReads(four, last, NOW, SCHEDULE);
+    expect(plan.due).toEqual(["a", "b", "d", "e"]);
+    expect(plan.queue).toEqual(["d", "b", "a", "e"]);
   });
 
   it("refuses an instant that is not an instant", () => {
@@ -279,7 +288,8 @@ describe("planReads", () => {
           every: fc.integer({ min: 1, max: 1_500 }),
           tick: fc.integer({ min: 60, max: 900 }),
           pass: fc.integer({ min: 0, max: 300 }),
-          delays: fc.array(fc.double({ min: 0, max: 1, noNaN: true }), { minLength: 1, maxLength: 20 }),
+          // A delay in thousandths of the pass: an integer is uniform by value, and a double of fc is dense near 0.
+          delays: fc.array(fc.integer({ min: 0, max: 1000 }), { minLength: 1, maxLength: 20 }),
         }),
         ({ limit, every, tick, pass, delays }) => {
           const source = terms("watched", { kind: "max-age", age: hours(limit) });
@@ -295,7 +305,7 @@ describe("planReads", () => {
             const plan = planReads([watched], last, new Date(now).toISOString(), options);
             if (!plan.due.includes("w")) continue;
             // The pass takes `pass` seconds at most. The source answers at an instant inside the pass.
-            const share = delays[k % delays.length] ?? 0;
+            const share = (delays[k % delays.length] ?? 0) / 1000;
             landings.push({ at: now + share * pass * 1000, on: now + pass * 1000 });
             last = { w: new Date(now).toISOString() };
           }

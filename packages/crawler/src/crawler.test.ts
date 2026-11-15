@@ -3,7 +3,8 @@ import { tmpdir } from "node:os";
 import { BEST_BUY_HOST, type Exchange, type Pace, type Reply, type Transport } from "@mark1russell7/market-sources";
 import { HostScheduler, type Clock } from "polite-crawler/politeness";
 import { describe, expect, it } from "vitest";
-import { USAGE, main, parseCommand, parsePlan, type Io, type ReadRecord } from "./cli.ts";
+import { USAGE, parseCommand, parsePlan, type Io, type ReadRecord } from "./cli.ts";
+import { main } from "./main.ts";
 import { KEY_VARIABLES, keyFile, loadKeys, readKeys, type KeysResult } from "./keys.ts";
 import { apiTransport, flatHeaders } from "./transport.ts";
 import * as entry from "./index.ts";
@@ -81,6 +82,9 @@ async function run(
         return text;
       },
       write: (path, text) => {
+        files.set(path, text);
+      },
+      replace: (path, text) => {
         files.set(path, text);
       },
     },
@@ -327,23 +331,41 @@ describe("the run of a plan", () => {
 });
 
 describe("the entry", () => {
-  it("exports the transport, the keys and the command", () => {
+  it("exports the transport, the keys, the commands and the watch", () => {
     expect(Object.keys(entry).sort()).toEqual([
       "EXCHANGE_TIMEOUT_MS",
       "KEY_VARIABLES",
+      "READ_BOUND_MS",
+      "READ_FIELDS",
       "SOURCE_NAMES",
       "USAGE",
+      "WATCH_LOOP",
+      "WATCH_PROFILE",
+      "WATCH_PROGRESS",
       "apiSettings",
       "apiTransport",
+      "checkRead",
+      "declareWatch",
+      "emptyBoard",
       "flatHeaders",
       "keyFile",
       "loadKeys",
       "main",
       "nodeIo",
+      "parseBoard",
       "parseCommand",
       "parsePlan",
+      "parseWatch",
+      "passLines",
       "read",
       "readKeys",
+      "readOrRun",
+      "readerFor",
+      "runWatch",
+      "stepLines",
+      "watchLint",
+      "watchPass",
+      "watchStep",
     ]);
   });
 });

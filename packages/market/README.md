@@ -63,7 +63,7 @@ A watch reads its sources on a schedule. A board keeps the last read of each ent
 - `keepObservations(observations, { terms, now, ended })` gives the latest observation of each offer that a store keeps at `now`, and each dropped offer with its reason. The board drops a reading of a source with `no-store` or with no terms. It also drops a reading past its limit, and an ended offer.
 - `readInterval(entry, { terms, slack })` gives the time from one read of a watch entry to the next. It is the shorter of `every` and the limit of the terms less the slack of the loop. Thus the board has a current reading of the entry at each instant after its first read.
 - `watchProblems(entries, { terms, slack })` gives each entry with no interval, and each name that two entries have. A source with `no-store` has no interval: a program reads it for each request.
-- `planReads(entries, last, now, { terms, slack })` gives the due entries at `now`, and the instant of the next due read. `lastReads(board)` gives `last`.
+- `planReads(entries, last, now, { terms, slack })` gives the due entries at `now`, and the instant of the next due read. `lastReads(board)` gives `last`. Its `queue` puts the entry that is due for the longest time first. Read the entries in that order.
 - `boardSchema`, `boardReadSchema`, `observationSchema` and `watchEntrySchema` examine a board file, a read, an observation and a watch entry.
 
 Settle the board after each read, and also when no read is due: a reading can pass its limit between two reads. Write each new board in place of the old board.

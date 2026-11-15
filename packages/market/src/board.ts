@@ -245,6 +245,12 @@ export function watchProblems(entries: readonly WatchEntry[], options: ScheduleO
 export interface ReadPlan {
   /** The names of the due entries, in the order of the entries. An entry with no read is due. */
   readonly due: readonly string[];
+  /**
+   * The names of the due entries, the entry that is due for the longest time first. An entry with no read comes
+   * first. Entries that became due at the same instant keep the order of the entries. Read the entries in this order.
+   * Then each due entry comes before the next read of a later due entry.
+   */
+  readonly queue: readonly string[];
   /** The first instant after `now` that an entry is due, or null when no entry has an interval. */
   readonly next: string | null;
 }
@@ -260,6 +266,7 @@ export function planReads(entries: readonly WatchEntry[], last: Readonly<Record<
   const at = Date.parse(now);
   if (Number.isNaN(at)) throw new RangeError(`The instant ${JSON.stringify(now)} is not an instant.`);
   const due: string[] = [];
+  const since: { readonly name: string; readonly at: number }[] = [];
   let next = Number.POSITIVE_INFINITY;
   for (const entry of entries) {
     const interval = readInterval(entry, options);
@@ -268,9 +275,14 @@ export function planReads(entries: readonly WatchEntry[], last: Readonly<Record<
     const read = before === undefined ? Number.NaN : Date.parse(before);
     if (before !== undefined && Number.isNaN(read)) throw new RangeError(`The last read ${JSON.stringify(before)} of the entry ${entry.name} is not an instant.`);
     const isDue = Number.isNaN(read) || read + interval.ms <= at;
-    if (isDue) due.push(entry.name);
+    if (isDue) {
+      due.push(entry.name);
+      since.push({ name: entry.name, at: Number.isNaN(read) ? Number.NEGATIVE_INFINITY : read + interval.ms });
+    }
     // A planned read happens at `now`, so the next read of a due entry is one interval after `now`.
     next = Math.min(next, (isDue ? at : read) + interval.ms);
   }
-  return { due, next: Number.isFinite(next) ? new Date(next).toISOString() : null };
+  // The sort of an array is stable, so equal instants keep the order of the entries.
+  const queue = since.sort((a, b) => a.at - b.at).map((each) => each.name);
+  return { due, queue, next: Number.isFinite(next) ? new Date(next).toISOString() : null };
 }
