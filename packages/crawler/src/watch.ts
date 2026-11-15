@@ -455,15 +455,20 @@ function isMissing(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
 }
 
+/** The result of `prepareWatch`: an exit code, or the service of the watch that the entry starts. */
+export type WatchStart = { readonly kind: "exit"; readonly code: number } | { readonly kind: "service"; readonly builder: ServiceBuilder };
+
 /**
- * This function is the command `watch`. It reads the watch file and the board file, loads the keys of each source of
- * the watch, and starts the steps. It gives the exit code.
+ * This function prepares the command `watch`. It reads the watch file and the board file, and loads the keys of each
+ * source of the watch.
  *
- * - A bad command or a bad watch gives 2, and a problem of the keys or of the board file gives 1, before a request.
- * - With `--once`, it does one pass. The exit code is 1 when a read has a problem.
- * - Without it, the service operates until its shutdown, and its exit code is the code of the command.
+ * - A bad command or a bad watch gives the exit code 2. A problem of the keys or of the board file gives 1.
+ * - With `--once`, it does one pass, and gives its exit code. The code is 1 when a read has a problem.
+ * - Without it, it gives the service of the watch. The entry `main` starts it, and the service operates until its
+ *   shutdown.
  */
-export async function runWatch(argv: readonly string[], io: Io): Promise<number> {
+export async function prepareWatch(argv: readonly string[], io: Io): Promise<WatchStart> {
+  const exit = (code: number): WatchStart => ({ kind: "exit", code });
   let flags: { values: { board?: string | undefined; once?: boolean | undefined; help?: boolean | undefined }; positionals: string[] };
   try {
     flags = parseArgs({
@@ -474,28 +479,28 @@ export async function runWatch(argv: readonly string[], io: Io): Promise<number>
     });
   } catch (error) {
     io.err(`${errorMessage(error)}\n\n${USAGE}`);
-    return 2;
+    return exit(2);
   }
   if (flags.values.help === true) {
     io.out(USAGE);
-    return 0;
+    return exit(0);
   }
   const [watchPath, ...extra] = flags.positionals;
   if (watchPath === undefined || extra.length > 0) {
     io.err(`Give one watch file.\n\n${USAGE}`);
-    return 2;
+    return exit(2);
   }
   let text: string;
   try {
     text = io.files.read(watchPath);
   } catch (error) {
     io.err(`problem: The watch file ${watchPath} does not read: ${errorMessage(error)}`);
-    return 2;
+    return exit(2);
   }
   const parsed = parseWatch(text);
   if (!parsed.ok) {
     for (const problem of parsed.problems) io.err(`problem: ${problem}`);
-    return 2;
+    return exit(2);
   }
   const { watch } = parsed;
   const boardPath = flags.values.board ?? `${join(dirname(watchPath), basename(watchPath, extname(watchPath)))}.board.json`;
@@ -504,13 +509,13 @@ export async function runWatch(argv: readonly string[], io: Io): Promise<number>
     const loaded = parseBoard(io.files.read(boardPath));
     if (!loaded.ok) {
       io.err(`problem: The board file ${boardPath} stays as it is. ${loaded.problem}`);
-      return 1;
+      return exit(1);
     }
     board = loaded.board;
   } catch (error) {
     if (!isMissing(error)) {
       io.err(`problem: The board file ${boardPath} does not read: ${errorMessage(error)}`);
-      return 1;
+      return exit(1);
     }
     board = emptyBoard(iso(io.now()));
     io.err(`board: ${boardPath} does not exist, so the watch starts an empty board.`);
@@ -520,7 +525,7 @@ export async function runWatch(argv: readonly string[], io: Io): Promise<number>
   const missing = [...keys.values()].flatMap((loaded) => (loaded.ok ? [] : loaded.problems));
   if (missing.length > 0) {
     for (const problem of missing) io.err(`problem: ${problem}`);
-    return 1;
+    return exit(1);
   }
   const secrets = [...keys.values()].flatMap((loaded) => (loaded.ok ? Object.values(loaded.keys) : []));
   const pace = io.pace();
@@ -544,10 +549,10 @@ export async function runWatch(argv: readonly string[], io: Io): Promise<number>
     try {
       const report = await watchPass(watch, state, ports, io.signal);
       for (const line of passLines(report)) io.err(line);
-      return report.reads.some((read) => read.problems.length > 0) ? 1 : 0;
+      return exit(report.reads.some((read) => read.problems.length > 0) ? 1 : 0);
     } catch (error) {
       io.err(`problem: ${redact(errorMessage(error), secrets)}`);
-      return 1;
+      return exit(1);
     }
   }
   const builder = declareWatch({
@@ -563,12 +568,8 @@ export async function runWatch(argv: readonly string[], io: Io): Promise<number>
   const violations = watchLint(builder);
   if (violations.length > 0) {
     for (const problem of violations) io.err(`problem: ${problem}`);
-    return 1;
+    return exit(1);
   }
   io.err(`watch: ${String(watch.reads.length)} entries, board ${boardPath}. Ctrl+C stops the watch.`);
-  const life = await builder.run({
-    ...(io.service?.clock === undefined ? {} : { clock: io.service.clock }),
-    ...(io.service?.process === undefined ? {} : { process: io.service.process }),
-  });
-  return life.done;
+  return { kind: "service", builder };
 }

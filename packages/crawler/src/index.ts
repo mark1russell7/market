@@ -18,10 +18,10 @@ export {
   parseBoard,
   parseWatch,
   passLines,
-  runWatch,
+  prepareWatch,
   stepLines,
   watchLint,
   watchPass,
   watchStep,
 } from "./watch.ts";
-export type { BoardResult, EntryReport, PassPorts, PassReport, StepReport, Watch, WatchRead, WatchResult, WatchServiceOptions, WatchState } from "./watch.ts";
+export type { BoardResult, EntryReport, PassPorts, PassReport, StepReport, Watch, WatchRead, WatchResult, WatchServiceOptions, WatchStart, WatchState } from "./watch.ts";
