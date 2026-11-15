@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>market</title>
-<meta name="description" content="A live catalog of products: the offers of many sellers, and the price of each offer over time.">
+<meta name="description" content="The records of a market and the choice of an offer: the offers of many sellers for one part, and the best offer with each reason.">
 <script>
   // The theme before the first paint: the choice of the visitor, else the theme of the system.
   try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}
@@ -24,15 +24,118 @@
 </header>
 
 <main>
-  <h1>market</h1>
-  <p class="lead">A live catalog of products: the offers of many sellers, and the price of each offer over time.</p>
+  <section class="intro">
+    <h1>market</h1>
+    <p class="lead">The records of a market, and the choice of an offer. Sellers write one part in many forms. The package finds the offers of the part, and it chooses the offer to buy, with a reason for each offer that it skips.</p>
+  </section>
 
-  <h2>Install</h2>
-  <div class="command">
-    <code id="install">pnpm add @mark1russell7/market</code>
-    <button id="copy" type="button">Copy</button>
-  </div>
-  <p class="note">This package has no release on npm yet. <a href="./releases/">Releases</a> shows each version, and <a href="./status/">Status</a> shows the open work.</p>
+  <section class="demo" aria-labelledby="choose-title">
+    <div class="demo-head">
+      <h2 id="choose-title">Choose the offer to buy</h2>
+      <p class="sub">The page runs <code>offersOfPart</code> and <code>bestOffer</code> on 9 sample offers from 4 sources. The sources and the prices are not real.</p>
+    </div>
+
+    <div class="card controls">
+      <label class="field part-field">
+        <span class="field-name">Part number of the maker</span>
+        <input id="part" type="text" spellcheck="false" autocomplete="off" maxlength="40">
+        <span class="hint">The maker is Acme, or Acme Storage. An offer matches when its part number starts with this text.</span>
+      </label>
+      <div class="field count-field">
+        <label class="field-name" for="count">Count of units: <output id="count-value" for="count"></output></label>
+        <input id="count" type="range" min="1" max="120" step="1">
+        <div class="quick" role="group" aria-label="Counts with a price break" id="quick"></div>
+      </div>
+      <fieldset class="field conds">
+        <legend class="field-name">Conditions that you accept</legend>
+        <div class="checks" id="conds"></div>
+      </fieldset>
+    </div>
+
+    <section class="card summary" aria-live="polite" aria-label="The choice">
+      <p class="verdict" id="verdict"></p>
+      <p class="why" id="why"></p>
+    </section>
+
+    <section class="card chart-card" aria-labelledby="chart-title">
+      <h3 id="chart-title">The unit price for each count</h3>
+      <ul class="legend" id="legend" aria-label="The offers in the chart"></ul>
+      <div class="plot" id="plot">
+        <svg id="chart" role="img" aria-labelledby="chart-title chart-desc"></svg>
+        <div class="tip" id="tip" hidden></div>
+      </div>
+      <p class="caption" id="chart-desc">The count goes from 1 to 120 units. A dashed line is an offer that is not in stock. The band under the chart shows the best offer at each count. Click the chart to choose a count.</p>
+    </section>
+
+    <section class="card" aria-labelledby="offers-title">
+      <h3 id="offers-title">The offers, from the lowest price</h3>
+      <div class="table-wrap">
+        <table class="offers">
+          <thead>
+            <tr><th scope="col">Offer</th><th scope="col">Condition</th><th scope="col">Stock</th><th scope="col" class="num">Unit price</th><th scope="col" class="num">Goods</th><th scope="col" class="num">Shipping</th><th scope="col" class="num">Cost</th></tr>
+          </thead>
+          <tbody id="offers"></tbody>
+        </table>
+      </div>
+      <p class="tiles-note" id="offers-empty" hidden>No offer can take this order.</p>
+    </section>
+
+    <div class="pair">
+      <section class="card" aria-labelledby="skipped-title">
+        <h3 id="skipped-title">Skipped offers</h3>
+        <ul class="reasons" id="skipped"></ul>
+        <p class="tiles-note" id="skipped-empty" hidden>The choice skipped no offer.</p>
+      </section>
+      <section class="card" aria-labelledby="other-title">
+        <h3 id="other-title">Offers of other parts</h3>
+        <p class="hint">The brand or the part number does not match the part.</p>
+        <ul class="reasons" id="other"></ul>
+        <p class="tiles-note" id="other-empty" hidden>Each offer matches the part.</p>
+      </section>
+    </div>
+  </section>
+
+  <section class="demo" aria-labelledby="gtin-title">
+    <div class="demo-head">
+      <h2 id="gtin-title">Check a GTIN</h2>
+      <p class="sub">A GTIN is the number of a barcode: a UPC-A, an EAN-13, a GTIN-8 or a GTIN-14. Its last digit is a check digit. The page runs <code>parseGtin</code> and <code>matchKeys</code>.</p>
+      <div class="presets" id="codes" role="group" aria-label="Sample codes"></div>
+    </div>
+    <div class="card gtin-card">
+      <label class="field">
+        <span class="field-name">The digits of the code</span>
+        <input id="code" type="text" inputmode="numeric" spellcheck="false" autocomplete="off" maxlength="40">
+      </label>
+      <div class="digits" id="digits" aria-hidden="true"></div>
+      <p class="sum" id="sum"></p>
+      <p class="check" id="check" aria-live="polite"></p>
+      <dl class="keys" id="keys"></dl>
+    </div>
+  </section>
+
+  <section class="demo" aria-labelledby="terms-title">
+    <div class="demo-head">
+      <h2 id="terms-title">How long a store keeps a reading</h2>
+      <p class="sub">The terms of each source limit how long a program keeps its prices. The page runs <code>isKept</code>, <code>keepUntil</code>, <code>permitsHistory</code> and <code>permitsTrend</code> on the sample terms.</p>
+    </div>
+    <div class="card controls">
+      <div class="field">
+        <label class="field-name" for="age">Age of the reading: <output id="age-value" for="age"></output></label>
+        <input id="age" type="range" min="0" max="48" step="1">
+      </div>
+      <label class="field toggle"><input id="ended" type="checkbox"> The offer ended</label>
+    </div>
+    <ol class="terms" id="terms"></ol>
+  </section>
+
+  <section class="install" aria-labelledby="install-title">
+    <h2 id="install-title">Install</h2>
+    <div class="command">
+      <code id="install">pnpm add @mark1russell7/market</code>
+      <button id="copy" type="button">Copy</button>
+    </div>
+    <p class="note"><a href="./releases/">Releases</a> shows each version, and <a href="./status/">Status</a> shows the open work.</p>
+  </section>
 </main>
 
 <script type="module" src="./src/index.ts"></script>

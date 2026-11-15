@@ -14,4 +14,11 @@ describe("the home page", () => {
     expect(page).toContain('href="./status/"');
     expect(page).toContain('href="https://github.com/mark1russell7/market"');
   });
+
+  it("has each element that the demo writes", () => {
+    const script = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
+    const ids = [...script.matchAll(/byId(?:<[^>]+>)?\("([a-z-]+)"\)/g)].map((match) => match[1]);
+    expect(ids.length).toBeGreaterThan(20);
+    for (const id of new Set(ids)) expect(page, id).toContain(`id="${id}"`);
+  });
 });
