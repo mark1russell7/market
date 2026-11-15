@@ -1,0 +1,326 @@
+# The public API of @mark1russell7/market
+#
+# The names of each entry of the exports field, and the declaration of each name, without comments
+# and private members. The command `api-report check` compares this file with the built .d.ts files.
+# To accept a change of the API, start the build, then `api-report update`, and review the diff.
+
+## . (build/index.d.ts): names
+
+AVAILABILITIES: build/index.d.ts#AVAILABILITIES
+type Availability: build/index.d.ts#Availability
+type BestOffer: build/index.d.ts#BestOffer
+type BestOfferOptions: build/index.d.ts#BestOfferOptions
+CONDITIONS: build/index.d.ts#CONDITIONS
+type Condition: build/index.d.ts#Condition
+FORMATS: build/index.d.ts#FORMATS
+type Format: build/index.d.ts#Format
+type Identifiers: build/index.d.ts#Identifiers
+type Observation: build/index.d.ts#Observation
+type Offer: build/index.d.ts#Offer
+type OfferChoice: build/index.d.ts#OfferChoice
+type PartNumber: build/index.d.ts#PartNumber
+type PartWant: build/index.d.ts#PartWant
+type PriceBreak: build/index.d.ts#PriceBreak
+type PriceReading: build/index.d.ts#PriceReading
+type Product: build/index.d.ts#Product
+type Rating: build/index.d.ts#Rating
+type Retention: build/index.d.ts#Retention
+type Seller: build/index.d.ts#Seller
+type Shipping: build/index.d.ts#Shipping
+type SourceTerms: build/index.d.ts#SourceTerms
+type Spec: build/index.d.ts#Spec
+bestOffer: build/index.d.ts#bestOffer
+costOf: build/index.d.ts#costOf
+foldCode: build/index.d.ts#foldCode
+gtinCheckDigit: build/index.d.ts#gtinCheckDigit
+gtinSchema: build/index.d.ts#gtinSchema
+instantSchema: build/index.d.ts#instantSchema
+isKept: build/index.d.ts#isKept
+keepUntil: build/index.d.ts#keepUntil
+latestObservations: build/index.d.ts#latestObservations
+matchKeys: build/index.d.ts#matchKeys
+moneySchema: build/index.d.ts#moneySchema
+offerId: build/index.d.ts#offerId
+offerSchema: build/index.d.ts#offerSchema
+offersOfPart: build/index.d.ts#offersOfPart
+offersPart: build/index.d.ts#offersPart
+parseGtin: build/index.d.ts#parseGtin
+partNumberSchema: build/index.d.ts#partNumberSchema
+permitsHistory: build/index.d.ts#permitsHistory
+permitsTrend: build/index.d.ts#permitsTrend
+priceBreakSchema: build/index.d.ts#priceBreakSchema
+priceReadingSchema: build/index.d.ts#priceReadingSchema
+productSchema: build/index.d.ts#productSchema
+retentionSchema: build/index.d.ts#retentionSchema
+sellerSchema: build/index.d.ts#sellerSchema
+shippingSchema: build/index.d.ts#shippingSchema
+sourceOfOffer: build/index.d.ts#sourceOfOffer
+sourceSchema: build/index.d.ts#sourceSchema
+sourceTermsSchema: build/index.d.ts#sourceTermsSchema
+specSchema: build/index.d.ts#specSchema
+textSchema: build/index.d.ts#textSchema
+unitPriceFor: build/index.d.ts#unitPriceFor
+
+## Declarations
+
+### build/index.d.ts#AVAILABILITIES
+export declare const AVAILABILITIES: readonly ["in-stock", "low-stock", "out-of-stock", "preorder", "unknown"];
+
+### build/index.d.ts#Availability
+type Availability = (typeof AVAILABILITIES)[number];
+
+### build/index.d.ts#BestOffer
+interface BestOffer {
+  readonly best: OfferChoice | null;
+  readonly offers: readonly OfferChoice[];
+  readonly skipped: readonly {
+    readonly offerId: string;
+    readonly why: string;
+  }[];
+}
+
+### build/index.d.ts#BestOfferOptions
+interface BestOfferOptions {
+  readonly currency: string;
+  readonly count?: number;
+  readonly conditions?: readonly Condition[];
+}
+
+### build/index.d.ts#CONDITIONS
+export declare const CONDITIONS: readonly ["new", "open-box", "refurbished", "used", "for-parts", "unknown"];
+
+### build/index.d.ts#Condition
+type Condition = (typeof CONDITIONS)[number];
+
+### build/index.d.ts#FORMATS
+export declare const FORMATS: readonly ["fixed-price", "auction"];
+
+### build/index.d.ts#Format
+type Format = (typeof FORMATS)[number];
+
+### build/index.d.ts#Identifiers
+interface Identifiers {
+  readonly gtins: readonly string[];
+  readonly partNumbers: readonly PartNumber[];
+}
+
+### build/index.d.ts#Observation
+interface Observation {
+  readonly offer: Offer;
+  readonly reading: PriceReading;
+}
+
+### build/index.d.ts#Offer
+interface Offer {
+  readonly id: string;
+  readonly source: string;
+  readonly sourceId: string;
+  readonly productId?: string | undefined;
+  readonly title: string;
+  readonly url?: string | undefined;
+  readonly seller: Seller;
+  readonly condition: Condition;
+  readonly grade?: string | undefined;
+  readonly format: Format;
+  readonly endsAt?: string | undefined;
+  readonly gtins: readonly string[];
+  readonly partNumbers: readonly PartNumber[];
+  readonly specs: readonly Spec[];
+}
+
+### build/index.d.ts#OfferChoice
+interface OfferChoice {
+  readonly observation: Observation;
+  readonly goods: Quantity;
+  readonly cost: Quantity | null;
+  readonly inStock: boolean;
+}
+
+### build/index.d.ts#PartNumber
+interface PartNumber {
+  readonly brand: string;
+  readonly partNumber: string;
+}
+
+### build/index.d.ts#PartWant
+interface PartWant {
+  readonly brands: readonly string[];
+  readonly partNumbers: readonly string[];
+}
+
+### build/index.d.ts#PriceBreak
+interface PriceBreak {
+  readonly quantity: number;
+  readonly unitPrice: Quantity;
+}
+
+### build/index.d.ts#PriceReading
+interface PriceReading {
+  readonly offerId: string;
+  readonly at: string;
+  readonly price: Quantity;
+  readonly listPrice?: Quantity | undefined;
+  readonly shipping: Shipping;
+  readonly availability: Availability;
+  readonly available?: number | undefined;
+  readonly minimumQuantity?: number | undefined;
+  readonly priceBreaks?: readonly PriceBreak[] | undefined;
+}
+
+### build/index.d.ts#Product
+interface Product {
+  readonly id: string;
+  readonly title: string;
+  readonly brand?: string | undefined;
+  readonly category?: readonly string[] | undefined;
+  readonly gtins: readonly string[];
+  readonly partNumbers: readonly PartNumber[];
+  readonly specs: readonly Spec[];
+}
+
+### build/index.d.ts#Rating
+interface Rating {
+  readonly percent: number;
+  readonly count: number;
+}
+
+### build/index.d.ts#Retention
+type Retention = {
+  readonly kind: "keep";
+} | {
+  readonly kind: "max-age";
+  readonly age: Quantity;
+} | {
+  readonly kind: "no-store";
+};
+
+### build/index.d.ts#Seller
+interface Seller {
+  readonly id?: string | undefined;
+  readonly name?: string | undefined;
+  readonly rating?: Rating | undefined;
+}
+
+### build/index.d.ts#Shipping
+type Shipping = {
+  readonly kind: "free";
+} | {
+  readonly kind: "fixed";
+  readonly cost: Quantity;
+} | {
+  readonly kind: "calculated";
+} | {
+  readonly kind: "unknown";
+};
+
+### build/index.d.ts#SourceTerms
+interface SourceTerms {
+  readonly source: string;
+  readonly retention: Retention;
+  readonly deleteWhenEnded: boolean;
+  readonly priceModel: boolean;
+  readonly clause: string;
+}
+
+### build/index.d.ts#Spec
+interface Spec {
+  readonly name: string;
+  readonly value: string;
+}
+
+### build/index.d.ts#bestOffer
+export declare function bestOffer(observations: readonly Observation[], options: BestOfferOptions): BestOffer;
+
+### build/index.d.ts#costOf
+export declare function costOf(reading: PriceReading, count: number): Quantity | null;
+
+### build/index.d.ts#foldCode
+export declare function foldCode(text: string): string;
+
+### build/index.d.ts#gtinCheckDigit
+export declare function gtinCheckDigit(body: string): number;
+
+### build/index.d.ts#gtinSchema
+export declare const gtinSchema: z.ZodType<string>;
+
+### build/index.d.ts#instantSchema
+export declare const instantSchema: z.ZodType<string>;
+
+### build/index.d.ts#isKept
+export declare function isKept(terms: SourceTerms, reading: {
+  readonly at: string;
+}, now: string, ended?: boolean): boolean;
+
+### build/index.d.ts#keepUntil
+export declare function keepUntil(terms: SourceTerms, reading: {
+  readonly at: string;
+}): string | null;
+
+### build/index.d.ts#latestObservations
+export declare function latestObservations(observations: readonly Observation[]): Observation[];
+
+### build/index.d.ts#matchKeys
+export declare function matchKeys(identifiers: Identifiers): string[];
+
+### build/index.d.ts#moneySchema
+export declare const moneySchema: z.ZodType<Quantity, Quantity>;
+
+### build/index.d.ts#offerId
+export declare function offerId(source: string, sourceId: string): string;
+
+### build/index.d.ts#offerSchema
+export declare const offerSchema: z.ZodType<Offer>;
+
+### build/index.d.ts#offersOfPart
+export declare function offersOfPart(observations: readonly Observation[], want: PartWant): Observation[];
+
+### build/index.d.ts#offersPart
+export declare function offersPart(offer: Pick<Offer, "partNumbers">, want: PartWant): boolean;
+
+### build/index.d.ts#parseGtin
+export declare function parseGtin(text: string): string | null;
+
+### build/index.d.ts#partNumberSchema
+export declare const partNumberSchema: z.ZodType<PartNumber>;
+
+### build/index.d.ts#permitsHistory
+export declare function permitsHistory(terms: SourceTerms): boolean;
+
+### build/index.d.ts#permitsTrend
+export declare function permitsTrend(terms: SourceTerms): boolean;
+
+### build/index.d.ts#priceBreakSchema
+export declare const priceBreakSchema: z.ZodType<PriceBreak>;
+
+### build/index.d.ts#priceReadingSchema
+export declare const priceReadingSchema: z.ZodType<PriceReading>;
+
+### build/index.d.ts#productSchema
+export declare const productSchema: z.ZodType<Product>;
+
+### build/index.d.ts#retentionSchema
+export declare const retentionSchema: z.ZodType<Retention>;
+
+### build/index.d.ts#sellerSchema
+export declare const sellerSchema: z.ZodType<Seller>;
+
+### build/index.d.ts#shippingSchema
+export declare const shippingSchema: z.ZodType<Shipping>;
+
+### build/index.d.ts#sourceOfOffer
+export declare function sourceOfOffer(id: string): string;
+
+### build/index.d.ts#sourceSchema
+export declare const sourceSchema: z.ZodType<string>;
+
+### build/index.d.ts#sourceTermsSchema
+export declare const sourceTermsSchema: z.ZodType<SourceTerms>;
+
+### build/index.d.ts#specSchema
+export declare const specSchema: z.ZodType<Spec>;
+
+### build/index.d.ts#textSchema
+export declare const textSchema: z.ZodType<string>;
+
+### build/index.d.ts#unitPriceFor
+export declare function unitPriceFor(reading: PriceReading, count: number): Quantity;
