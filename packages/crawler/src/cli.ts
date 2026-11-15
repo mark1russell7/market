@@ -17,6 +17,9 @@ import {
   type ParseResult,
   type Transport,
 } from "@mark1russell7/market-sources";
+import type { Clock, ProcessPort } from "@mark1russell7/service";
+import { errorMessage } from "@mark1russell7/text";
+import { writeFileAtomicSync } from "@procedures/fs/files";
 import { HostScheduler, realClock } from "polite-crawler/politeness";
 import { SOURCE_NAMES, loadKeys, type KeysResult, type SourceName } from "./keys.ts";
 import { apiTransport } from "./transport.ts";
@@ -25,6 +28,7 @@ import { apiTransport } from "./transport.ts";
 export const USAGE: string = `Usage: market-crawler read <source> <id> [options]
        market-crawler read <source> --search <words> [--limit <n>]
        market-crawler run <plan file> [--out <file>] [--record <file>]
+       market-crawler watch <watch file> [--board <file>] [--once]
 
 Sources and ids:
   digikey <product number>   ProductDetails of the Digi-Key Product Information API v4
@@ -47,7 +51,15 @@ run reads each read of a plan file, in order, with one pace and one client for e
 Each read has an id or a search, and the options limit, openBox and sandbox. A tag is free text for the record.
   --out <file>      The observations of all reads, as JSON lines in UTF-8 (default <plan>-<time>.jsonl)
   --record <file>   The record of each read: its time, its count, its notes, its problems (default <plan>-<time>.reads.json)
-A read with a problem does not stop the run. The exit code is 1 when a read has a problem.`;
+A read with a problem does not stop the run. The exit code is 1 when a read has a problem.
+
+watch reads each entry of a watch file when it is due, and keeps the board of current prices in one file:
+  {"slack": {"value": 30, "unit": "min"}, "tick": {"value": 1, "unit": "min"},
+   "entries": [{"name": "ups", "every": {"value": 2, "unit": "h"}, "source": "ebay", "search": "BE600M1", "limit": 20}]}
+Each entry has a name, a time every, and the fields of a read. The terms of each source limit the board.
+  --board <file>    The board file (default <watch>.board.json). A new board starts when the file does not exist.
+  --once            One pass: read each due entry, write the board, and stop. The exit code is 1 when a read has a problem.
+Without --once, the watch runs until Ctrl+C. It wakes each tick, and a pass takes at most the slack less the tick.`;
 
 /** The ports of the command. A test gives fakes. */
 export interface Io {
@@ -56,11 +68,20 @@ export interface Io {
   readonly keys: (source: SourceName) => KeysResult;
   readonly transport: (hosts: readonly string[]) => Transport<AbortSignal>;
   readonly pace: () => Pace<AbortSignal>;
-  /** The text files of `run`: the plan file, and the files of the observations and of the record. */
-  readonly files: { readonly read: (path: string) => string; readonly write: (path: string, text: string) => void };
+  /**
+   * The text files: the plan file, the watch file, and the files of the observations, of the record and of the board.
+   * `replace` writes a file in one step: a reader sees the old file or the whole new file.
+   */
+  readonly files: {
+    readonly read: (path: string) => string;
+    readonly write: (path: string, text: string) => void;
+    readonly replace: (path: string, text: string) => void;
+  };
   /** The time in milliseconds since 1970. */
   readonly now: () => number;
   readonly signal?: AbortSignal | undefined;
+  /** The clock and the process of the service of `watch`. A test gives fakes. The defaults are the real ones. */
+  readonly service?: { readonly clock?: Clock | undefined; readonly process?: ProcessPort | undefined } | undefined;
 }
 
 /** A read of a plan file: a source, an id or the words of a search, and the options of a read. */
@@ -88,15 +109,23 @@ export type PlanResult =
   | { readonly ok: true; readonly reads: readonly { readonly plan: PlanRead; readonly command: ReadCommand }[] }
   | { readonly ok: false; readonly problems: readonly string[] };
 
-const PLAN_FIELDS: Readonly<Record<string, "string" | "number" | "boolean">> = {
+/** The fields of a read, and the type of each one. */
+export type ReadFields = Readonly<Record<string, "string" | "number" | "boolean">>;
+
+/** The fields of a read of a plan or of a watch. */
+export const READ_FIELDS: ReadFields = {
   source: "string",
   id: "string",
   search: "string",
   limit: "number",
   openBox: "boolean",
   sandbox: "boolean",
-  tag: "string",
 };
+
+const PLAN_FIELDS: ReadFields = { ...READ_FIELDS, tag: "string" };
+
+/** The result of the check of one read: the read with its command, or the problem of the read. */
+export type ReadCheck = { readonly ok: true; readonly plan: PlanRead; readonly command: ReadCommand } | { readonly ok: false; readonly problem: string };
 
 /** A read of one source, from the arguments of the command. */
 export interface ReadCommand {
@@ -134,7 +163,7 @@ export function parseCommand(argv: readonly string[]): Parsed {
   try {
     flags = parseFlags(argv);
   } catch (error) {
-    return { kind: "usage", problem: error instanceof Error ? error.message : String(error) };
+    return { kind: "usage", problem: errorMessage(error) };
   }
   const { values, positionals } = flags;
   if (values.help === true) return { kind: "help" };
@@ -166,63 +195,61 @@ export function parsePlan(text: string): PlanResult {
   try {
     data = JSON.parse(text);
   } catch (error) {
-    return { ok: false, problems: [`The plan is not JSON: ${errorText(error)}`] };
+    return { ok: false, problems: [`The plan is not JSON: ${errorMessage(error)}`] };
   }
   const list = typeof data === "object" && data !== null ? (data as { reads?: unknown }).reads : undefined;
   if (!Array.isArray(list) || list.length === 0) return { ok: false, problems: ["The plan has no list reads, or the list is empty."] };
   const problems: string[] = [];
   const reads: { plan: PlanRead; command: ReadCommand }[] = [];
   list.forEach((value: unknown, index) => {
-    const name = `The read ${String(index + 1)}`;
-    if (typeof value !== "object" || value === null || Array.isArray(value)) {
-      problems.push(`${name} is not an object.`);
-      return;
-    }
-    const entry = value as Record<string, unknown>;
-    const bad = Object.entries(entry).filter(([field, x]) => PLAN_FIELDS[field] === undefined || typeof x !== PLAN_FIELDS[field]);
-    if (bad.length > 0) {
-      problems.push(`${name} has an unknown field or a field of the wrong type: ${bad.map(([field]) => field).join(", ")}.`);
-      return;
-    }
-    const plan = value as PlanRead;
-    const words = plan.search ?? plan.id;
-    if ((plan.id === undefined) === (plan.search === undefined) || words === undefined || words.trim() === "") {
-      problems.push(`${name} has one id or one search, with text.`);
-      return;
-    }
-    const argv = [
-      "read",
-      plan.source,
-      ...(plan.search === undefined ? [] : ["--search"]),
-      ...(plan.limit === undefined ? [] : ["--limit", String(plan.limit)]),
-      ...(plan.openBox === true ? ["--open-box"] : []),
-      ...(plan.sandbox === true ? ["--sandbox"] : []),
-      "--",
-      words,
-    ];
-    const parsed = parseCommand(argv);
-    if (parsed.kind !== "read") {
-      problems.push(`${name}: ${parsed.kind === "usage" ? parsed.problem : "it is not a read."}`);
-      return;
-    }
-    reads.push({ plan, command: parsed.command });
+    const checked = checkRead(value, `The read ${String(index + 1)}`, PLAN_FIELDS);
+    if (checked.ok) reads.push({ plan: checked.plan, command: checked.command });
+    else problems.push(checked.problem);
   });
   return problems.length > 0 ? { ok: false, problems } : { ok: true, reads };
+}
+
+/**
+ * This function checks one read of a plan or of a watch. The read becomes the arguments of `read`, so it gets the
+ * same checks as a read of the command line. Each problem starts with `name`. It does not throw.
+ */
+export function checkRead(value: unknown, name: string, fields: ReadFields = READ_FIELDS): ReadCheck {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return { ok: false, problem: `${name} is not an object.` };
+  const bad = Object.entries(value).filter(([field, x]) => fields[field] === undefined || typeof x !== fields[field]);
+  if (bad.length > 0) return { ok: false, problem: `${name} has an unknown field or a field of the wrong type: ${bad.map(([field]) => field).join(", ")}.` };
+  const plan = value as PlanRead;
+  const words = plan.search ?? plan.id;
+  if ((plan.id === undefined) === (plan.search === undefined) || words === undefined || words.trim() === "") {
+    return { ok: false, problem: `${name} has one id or one search, with text.` };
+  }
+  const argv = [
+    "read",
+    plan.source,
+    ...(plan.search === undefined ? [] : ["--search"]),
+    ...(plan.limit === undefined ? [] : ["--limit", String(plan.limit)]),
+    ...(plan.openBox === true ? ["--open-box"] : []),
+    ...(plan.sandbox === true ? ["--sandbox"] : []),
+    "--",
+    words,
+  ];
+  const parsed = parseCommand(argv);
+  if (parsed.kind !== "read") return { ok: false, problem: `${name}: ${parsed.kind === "usage" ? parsed.problem : "it is not a read."}` };
+  return { ok: true, plan, command: parsed.command };
 }
 
 function base64(text: string): string {
   return Buffer.from(text, "utf8").toString("base64");
 }
 
-function errorText(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
-/** A reader sends the read of a command to one source, with one client. The client keeps its token between reads. */
-type Reader = (command: ReadCommand) => Promise<ParseResult>;
+/**
+ * A reader sends the read of a command to one source, with one client. The client keeps its token between reads.
+ * The signal stops the read. The default is the signal of the ports.
+ */
+export type Reader = (command: ReadCommand, signal?: AbortSignal) => Promise<ParseResult>;
 
-function readerFor(source: SourceName, sandbox: boolean, keys: Readonly<Record<string, string>>, io: Io, pace: Pace<AbortSignal>): Reader {
-  const { signal } = io;
+/** This function makes the reader of one source with its keys. Each read of the reader uses the same client. */
+export function readerFor(source: SourceName, sandbox: boolean, keys: Readonly<Record<string, string>>, io: Io, pace: Pace<AbortSignal>): Reader {
   switch (source) {
     case "digikey": {
       const host = sandbox ? DIGIKEY_SANDBOX_HOST : DIGIKEY_HOST;
@@ -233,7 +260,8 @@ function readerFor(source: SourceName, sandbox: boolean, keys: Readonly<Record<s
         pace,
         sandbox,
       });
-      return async (command) => (command.search ? client.keywordSearch(command.words, command.limit, signal) : client.productDetails(command.words, signal));
+      return async (command, signal = io.signal) =>
+        command.search ? client.keywordSearch(command.words, command.limit, signal) : client.productDetails(command.words, signal);
     }
     case "ebay": {
       const host = sandbox ? EBAY_SANDBOX_HOST : EBAY_HOST;
@@ -245,11 +273,11 @@ function readerFor(source: SourceName, sandbox: boolean, keys: Readonly<Record<s
         pace,
         sandbox,
       });
-      return async (command) => (command.search ? client.search(command.words, command.limit, signal) : client.item(command.words, signal));
+      return async (command, signal = io.signal) => (command.search ? client.search(command.words, command.limit, signal) : client.item(command.words, signal));
     }
     case "bestbuy": {
       const client = createBestBuyClient({ apiKey: keys["BESTBUY_API_KEY"] ?? "", transport: io.transport([BEST_BUY_HOST]), pace });
-      return async (command) => {
+      return async (command, signal = io.signal) => {
         if (command.search) return client.search(command.words, command.limit, signal);
         return command.openBox ? client.openBox(command.words, signal) : client.product(command.words, signal);
       };
@@ -287,7 +315,7 @@ async function runPlan(argv: readonly string[], io: Io): Promise<number> {
       options: { out: { type: "string" }, record: { type: "string" }, help: { type: "boolean", short: "h" } },
     });
   } catch (error) {
-    io.err(`${errorText(error)}\n\n${USAGE}`);
+    io.err(`${errorMessage(error)}\n\n${USAGE}`);
     return 2;
   }
   if (flags.values.help === true) {
@@ -303,7 +331,7 @@ async function runPlan(argv: readonly string[], io: Io): Promise<number> {
   try {
     text = io.files.read(planPath);
   } catch (error) {
-    io.err(`problem: The plan file ${planPath} does not read: ${errorText(error)}`);
+    io.err(`problem: The plan file ${planPath} does not read: ${errorMessage(error)}`);
     return 2;
   }
   const plan = parsePlan(text);
@@ -342,7 +370,7 @@ async function runPlan(argv: readonly string[], io: Io): Promise<number> {
           record = { ...entry, at, observations: 0, notes: [], problems: result.problems.map((problem) => redact(problem, secrets)) };
         }
       } catch (error) {
-        record = { ...entry, at, observations: 0, notes: [], problems: [redact(errorText(error), secrets)] };
+        record = { ...entry, at, observations: 0, notes: [], problems: [redact(errorMessage(error), secrets)] };
       }
     }
     records.push(record);
@@ -361,10 +389,10 @@ async function runPlan(argv: readonly string[], io: Io): Promise<number> {
 }
 
 /**
- * This function is the command. It reads the arguments, loads the keys of the source, sends the read, and writes
+ * This function is the commands `read` and `run`. A read loads the keys of the source, sends the read, and writes
  * each observation as one line of JSON. It gives the exit code. Each message goes through `redact` with the keys.
  */
-export async function main(argv: readonly string[], io: Io): Promise<number> {
+export async function readOrRun(argv: readonly string[], io: Io): Promise<number> {
   if (argv[0] === "run") return runPlan(argv.slice(1), io);
   const parsed = parseCommand(argv);
   if (parsed.kind === "help") {
@@ -393,7 +421,7 @@ export async function main(argv: readonly string[], io: Io): Promise<number> {
     io.err(`read: ${result.observations.length} observations, ${result.notes.length} notes.`);
     return 0;
   } catch (error) {
-    const message = redact(error instanceof Error ? error.message : String(error), secrets);
+    const message = redact(errorMessage(error), secrets);
     if (error instanceof RangeError) {
       io.err(`${message}\n\n${USAGE}`);
       return 2;
@@ -411,7 +439,11 @@ export function nodeIo(signal?: AbortSignal): Io {
     keys: (source) => loadKeys(source),
     transport: apiTransport,
     pace: () => ({ scheduler: new HostScheduler(realClock, 4), now: realClock.now }),
-    files: { read: (path) => textOf(readFileSync(path)), write: (path, text) => writeFileSync(path, text, "utf8") },
+    files: {
+      read: (path) => textOf(readFileSync(path)),
+      write: (path, text) => writeFileSync(path, text, "utf8"),
+      replace: (path, text) => writeFileAtomicSync(path, text),
+    },
     now: () => Date.now(),
     signal,
   };

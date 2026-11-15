@@ -2,18 +2,24 @@
   "$schema": "https://json.schemastore.org/package",
   "name": "@market/crawler",
   "version": "0.1.0",
-  "description": "The crawler of the market: the transport, the keys and the live read command of the clients of @mark1russell7/market-sources.",
+  "description": "The crawler of the market: the transport, the keys, the live read command and the watch of the clients of @mark1russell7/market-sources.",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
   "scripts": {
     "read": "node src/bin.ts read",
+    "watch": "node src/bin.ts watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
   },
   "dependencies": {
+    "@mark1russell7/market": "workspace:*",
     "@mark1russell7/market-sources": "workspace:*",
+    "@mark1russell7/quantity": "^0.4.0",
+    "@mark1russell7/service": "^0.8.19",
+    "@mark1russell7/text": "^0.0.6",
+    "@procedures/fs": "^0.57.0",
     "@procedures/http": "^0.55.1",
     "polite-crawler": "^0.7.3"
   },
@@ -21,6 +27,7 @@
     "@mark1russell7/cue": "^2.0.0",
     "@types/node": "^26.6.5",
     "@vitest/coverage-v8": "^5.0.3",
+    "fast-check": "^4.10.2",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3"
   }

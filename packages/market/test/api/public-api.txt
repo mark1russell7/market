@@ -261,6 +261,7 @@ type ReadInterval = {
 ### build/index.d.ts#ReadPlan
 interface ReadPlan {
   readonly due: readonly string[];
+  readonly queue: readonly string[];
   readonly next: string | null;
 }
 

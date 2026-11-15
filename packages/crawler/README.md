@@ -2,7 +2,7 @@
 
 The crawler of the market. It is the host of the clients of [`@mark1russell7/market-sources`](../market-sources/README.md): it gives the transport, the keys and the clock. This package is private, and it is not on npm.
 
-At this time, the crawler has two commands: a live read of one product or one search, and a run of a plan of reads. The service that reads each offer on a schedule comes later (R4 of [`docs/ROADMAP.md`](../../docs/ROADMAP.md)).
+The crawler has three commands: a live read of one product or one search, a run of a plan of reads, and a watch. The watch reads each entry on a schedule, and keeps a board of current prices in one file.
 
 ## The live read
 
@@ -47,6 +47,38 @@ node packages/crawler/src/bin.ts run plans/prep.json
 
 The run writes its files itself. Thus a redirect of the shell does not change the encoding: in Windows PowerShell 5.1, `>` writes UTF-16.
 
+## The watch
+
+A watch file is JSON. It has the slack and the tick of the loop, and a list of entries:
+
+```json
+{
+  "slack": { "value": 30, "unit": "min" },
+  "tick": { "value": 1, "unit": "min" },
+  "entries": [
+    { "name": "ssd", "every": { "value": 6, "unit": "h" }, "source": "bestbuy", "search": "nvme 1tb", "limit": 10 },
+    { "name": "ups", "every": { "value": 2, "unit": "h" }, "source": "ebay", "id": "v1|110000000001|0" }
+  ]
+}
+```
+
+```sh
+node packages/crawler/src/bin.ts watch watches/parts.json
+node packages/crawler/src/bin.ts watch watches/parts.json --once
+```
+
+- Each entry has a name, a time `every`, and the fields of a read of a plan. The terms of its source must permit a store. Thus the watch refuses Digi-Key.
+- The board file is next to the watch: `<watch>.board.json`. `--board <file>` names another file. A board file that does not exist starts an empty board.
+- The board is the board of `@mark1russell7/market`. Its `settleBoard` applies the terms of each source, and its `planReads` gives the due entries.
+- The watch reads one entry at a time, the entry that is due for the longest time first. It writes the board after each read, with an atomic replace.
+- When no entry is due, the watch sleeps one tick.
+- One read takes 90 s at most. The loop stops a longer read, and the read fails.
+- A failed read keeps the last read of its entry on the board until the terms end it. Its retry comes one tick later, then two times later for each next failure.
+- `--once` reads each due entry one time, and stops. The exit code is 1 when a read has a problem.
+- Without `--once`, the watch is a service of `@mark1russell7/service`. A Ctrl+C stops the read in progress, and the board keeps each read before it.
+
+The parse checks the times of the loop. A due entry is on the board after one tick and one read of each entry, at most. Thus the slack must be more than the tick plus 90 s for each entry. The time `every` of each entry must be one tick or more. A bad watch or a corrupt board file gives an exit code before a request, and the watch does not change the board file.
+
 ## The keys
 
 The keys are in the file `~/.market/seller-keys.env`, in the `.env` form. Only the crawler reads this file.
@@ -72,3 +104,5 @@ The scheduler of `polite-crawler` keeps the pace of each host, and the clients k
 ## Tests
 
 The tests use a fake transport and a fake clock. They hold the parse of the command, the exit codes, the keys and the guard of the transport. A test also holds that no output has a key.
+
+The tests of the watch run its service on the fake clock and the fake process of `@mark1russell7/service/testing`. A property test holds the time bound of the watch. Each due entry is on the board within the slack, for each length of the reads up to their bound.
