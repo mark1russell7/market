@@ -2,7 +2,7 @@
 
 The crawler of the market. It is the host of the clients of [`@mark1russell7/market-sources`](../market-sources/README.md): it gives the transport, the keys and the clock. This package is private, and it is not on npm.
 
-At this time, the crawler has one command: a live read of one product or one search. The service that reads each offer on a schedule comes later (R4 of [`docs/ROADMAP.md`](../../docs/ROADMAP.md)).
+At this time, the crawler has two commands: a live read of one product or one search, and a run of a plan of reads. The service that reads each offer on a schedule comes later (R4 of [`docs/ROADMAP.md`](../../docs/ROADMAP.md)).
 
 ## The live read
 
@@ -19,6 +19,33 @@ node packages/crawler/src/bin.ts read bestbuy 6534613 --open-box
 - The exit code is 0 for a read, 1 for a problem of the source or of the keys, and 2 for a bad command.
 
 A Ctrl+C stops the read in progress.
+
+## The run of a plan
+
+A plan file is JSON. It has a list of reads:
+
+```json
+{
+  "reads": [
+    { "source": "digikey", "search": "BE600M1", "limit": 5, "tag": "ups" },
+    { "source": "bestbuy", "id": "6534613" }
+  ]
+}
+```
+
+```sh
+node packages/crawler/src/bin.ts run plans/prep.json
+```
+
+- Each read has one `id` or one `search`, and the options `limit`, `openBox` and `sandbox` of a read. A `tag` is free text for the record.
+- Each read gets the checks of a read of the command line. A bad plan gives the exit code 2 before a request.
+- The reads go in order. The run has one pace, and one client for each source, so Digi-Key and eBay give one token for all reads.
+- The run writes the observations of all reads as JSON lines in UTF-8. The default file is next to the plan: `<plan>-<time>.jsonl`. `--out <file>` names another file.
+- The run also writes the record of each read: its time, its count of observations, its notes and its problems. The default file is `<plan>-<time>.reads.json`. `--record <file>` names another file.
+- The run writes the two files after each read. Thus a Ctrl+C keeps the reads before it.
+- A read with a problem, for example a source with no keys, does not stop the run. The exit code is 1 when a read has a problem.
+
+The run writes its files itself. Thus a redirect of the shell does not change the encoding: in Windows PowerShell 5.1, `>` writes UTF-16.
 
 ## The keys
 
