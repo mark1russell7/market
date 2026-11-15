@@ -1,9 +1,9 @@
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { Exchange, Pace, Reply, Transport } from "@mark1russell7/market-sources";
+import { BEST_BUY_HOST, type Exchange, type Pace, type Reply, type Transport } from "@mark1russell7/market-sources";
 import { HostScheduler, type Clock } from "polite-crawler/politeness";
 import { describe, expect, it } from "vitest";
-import { USAGE, main, parseCommand, type Io } from "./cli.ts";
+import { USAGE, main, parseCommand, parsePlan, type Io, type ReadRecord } from "./cli.ts";
 import { KEY_VARIABLES, keyFile, loadKeys, readKeys, type KeysResult } from "./keys.ts";
 import { apiTransport, flatHeaders } from "./transport.ts";
 import * as entry from "./index.ts";
@@ -47,7 +47,12 @@ interface Run {
   readonly hosts: (readonly string[])[];
 }
 
-async function run(argv: readonly string[], answer: (exchange: Exchange) => Reply | Error, keys?: KeysResult): Promise<Run> {
+async function run(
+  argv: readonly string[],
+  answer: (exchange: Exchange) => Reply | Error,
+  keys?: KeysResult | ((source: string) => KeysResult),
+  files: Map<string, string> = new Map(),
+): Promise<Run> {
   const out: string[] = [];
   const err: string[] = [];
   const sent: Exchange[] = [];
@@ -57,7 +62,7 @@ async function run(argv: readonly string[], answer: (exchange: Exchange) => Repl
     out: (line) => out.push(line),
     err: (line) => err.push(line),
     keys: (source) =>
-      keys ??
+      (typeof keys === "function" ? keys(source) : keys) ??
       readKeys(source, `BESTBUY_API_KEY=${API_KEY}\nDIGIKEY_CLIENT_ID=${CLIENT_ID}\nDIGIKEY_CLIENT_SECRET=${CLIENT_SECRET}\n`),
     transport: (allowed): Transport<AbortSignal> => {
       hosts.push(allowed);
@@ -69,6 +74,17 @@ async function run(argv: readonly string[], answer: (exchange: Exchange) => Repl
       };
     },
     pace: (): Pace<AbortSignal> => ({ scheduler: new HostScheduler(clock, 4), now: clock.now }),
+    files: {
+      read: (path) => {
+        const text = files.get(path);
+        if (text === undefined) throw new Error(`ENOENT: ${path}`);
+        return text;
+      },
+      write: (path, text) => {
+        files.set(path, text);
+      },
+    },
+    now: clock.now,
   };
   const code = await main(argv, io);
   return { code, out, err, sent, hosts };
@@ -209,6 +225,107 @@ describe("the command", () => {
   });
 });
 
+describe("the run of a plan", () => {
+  const TOKEN = "/oauth2/token";
+  /** Digi-Key gives a token and a 404 to each product, and Best Buy gives the product. */
+  const answer = (exchange: Exchange): Reply =>
+    exchange.url.endsWith(TOKEN)
+      ? json(200, { access_token: "token-0001", expires_in: 599 })
+      : new URL(exchange.url).host === BEST_BUY_HOST
+        ? json(200, product)
+        : json(404, {}, "Not Found");
+  const plan = (reads: unknown[]): string => JSON.stringify({ reads });
+  const recordOf = (files: Map<string, string>, path: string): ReadRecord[] => (JSON.parse(files.get(path) ?? "{}") as { reads: ReadRecord[] }).reads;
+
+  it("turns each read into a command, with the checks of a read of the command line", () => {
+    expect(parsePlan(plan([{ source: "digikey", search: "BE600M1", limit: 5 }, { source: "bestbuy", search: "ssd", openBox: true }]))).toEqual({
+      ok: false,
+      problems: ["The read 2: --open-box is for one Best Buy SKU."],
+    });
+    expect(parsePlan(plan([{ source: "digikey", search: "-x BE600M1", limit: 5, tag: "ups" }]))).toEqual({
+      ok: true,
+      reads: [
+        {
+          plan: { source: "digikey", search: "-x BE600M1", limit: 5, tag: "ups" },
+          command: { source: "digikey", words: "-x BE600M1", search: true, limit: 5, openBox: false, sandbox: false },
+        },
+      ],
+    });
+    const problems = [
+      "{",
+      JSON.stringify({ reads: [] }),
+      JSON.stringify([]),
+      plan([1]),
+      plan([{ source: "digikey" }]),
+      plan([{ source: "digikey", id: "a", search: "b" }]),
+      plan([{ source: "digikey", id: " " }]),
+      plan([{ source: "amazon", id: "a" }]),
+      plan([{ source: "digikey", id: "a", limit: 5 }]),
+      plan([{ source: "digikey", search: "a", limit: "5" }]),
+      plan([{ source: "digikey", id: "a", price: 1 }]),
+      plan([{ source: "bestbuy", id: "1", sandbox: true }]),
+    ];
+    for (const text of problems) expect(parsePlan(text).ok, text).toBe(false);
+  });
+
+  it("reads each read in order with one Digi-Key token, and writes the observations and the record", async () => {
+    const files = new Map([["plans/prep.json", plan([
+      { source: "digikey", id: "P5555-ND", tag: "first" },
+      { source: "bestbuy", id: "1234567", tag: "widget" },
+      { source: "digikey", id: "P5556-ND" },
+    ])]]);
+    const result = await run(["run", "plans/prep.json"], answer, undefined, files);
+    expect(result.code).toBe(1);
+    expect(result.sent.filter(({ url }) => url.endsWith(TOKEN))).toHaveLength(1);
+    expect(result.sent.filter(({ url }) => !url.endsWith(TOKEN)).map(({ url }) => new URL(url).origin + new URL(url).pathname)).toEqual([
+      "https://api.digikey.com/products/v4/search/P5555-ND/productdetails",
+      "https://api.bestbuy.com/v1/products/1234567.json",
+      "https://api.digikey.com/products/v4/search/P5556-ND/productdetails",
+    ]);
+    const out = join("plans", "prep-2026-11-12T18-00-00Z.jsonl");
+    const record = join("plans", "prep-2026-11-12T18-00-00Z.reads.json");
+    expect([...files.keys()].sort()).toEqual([out, "plans/prep.json", record].sort());
+    const lines = (files.get(out) ?? "").trimEnd().split("\n");
+    expect(lines).toHaveLength(1);
+    expect((JSON.parse(lines[0]!) as { offer: { title: string } }).offer.title).toBe(product.name);
+    const reads = recordOf(files, record);
+    expect(reads.map(({ source, tag, observations, problems }) => ({ source, tag, observations, problems }))).toEqual([
+      { source: "digikey", tag: "first", observations: 0, problems: ["Digi-Key answered 404 Not Found to ProductDetails of P5555-ND."] },
+      { source: "bestbuy", tag: "widget", observations: 1, problems: [] },
+      { source: "digikey", tag: undefined, observations: 0, problems: ["Digi-Key answered 404 Not Found to ProductDetails of P5556-ND."] },
+    ]);
+    for (const { at } of reads) expect(Date.parse(at)).toBeGreaterThanOrEqual(Date.parse("2026-11-12T18:00:00Z"));
+    expect(result.err.at(-3)).toBe("run: 3 of 3 reads, 1 observations, 2 reads with a problem.");
+    expect([...result.out, ...result.err, ...files.values()].join("\n")).not.toContain(CLIENT_SECRET);
+  });
+
+  it("records the problem of the keys of a source, runs the other reads, and writes to the named files", async () => {
+    const files = new Map([["prep.json", plan([{ source: "ebay", search: "BE600M1" }, { source: "bestbuy", id: "1234567" }])]]);
+    const keys = (source: string): KeysResult =>
+      source === "ebay"
+        ? { ok: false, problems: ["The key file has no value for EBAY_CLIENT_ID."] }
+        : readKeys("bestbuy", `BESTBUY_API_KEY=${API_KEY}\n`);
+    const result = await run(["run", "prep.json", "--out", "o.jsonl", "--record", "r.json"], answer, keys, files);
+    expect(result.code).toBe(1);
+    expect(result.sent.map(({ url }) => new URL(url).origin + new URL(url).pathname)).toEqual(["https://api.bestbuy.com/v1/products/1234567.json"]);
+    expect(recordOf(files, "r.json").map(({ observations, problems }) => ({ observations, problems }))).toEqual([
+      { observations: 0, problems: ["The key file has no value for EBAY_CLIENT_ID."] },
+      { observations: 1, problems: [] },
+    ]);
+    expect((files.get("o.jsonl") ?? "").trimEnd().split("\n")).toHaveLength(1);
+  });
+
+  it("gives 0 when each read has no problem, and 2 for a bad plan or no plan file, before a request", async () => {
+    const files = new Map([["ok.json", plan([{ source: "bestbuy", id: "1234567" }])], ["bad.json", plan([{ source: "bestbuy" }])]]);
+    expect((await run(["run", "ok.json"], answer, undefined, files)).code).toBe(0);
+    const bad = await run(["run", "bad.json"], answer, undefined, files);
+    expect(bad).toMatchObject({ code: 2, sent: [], err: ["problem: The read 1 has one id or one search, with text."] });
+    expect(await run(["run", "none.json"], answer, undefined, files)).toMatchObject({ code: 2, sent: [] });
+    expect(await run(["run"], answer, undefined, files)).toMatchObject({ code: 2, sent: [] });
+    expect(await run(["run", "ok.json", "--unknown"], answer, undefined, files)).toMatchObject({ code: 2, sent: [] });
+  });
+});
+
 describe("the entry", () => {
   it("exports the transport, the keys and the command", () => {
     expect(Object.keys(entry).sort()).toEqual([
@@ -224,6 +341,7 @@ describe("the entry", () => {
       "main",
       "nodeIo",
       "parseCommand",
+      "parsePlan",
       "read",
       "readKeys",
     ]);

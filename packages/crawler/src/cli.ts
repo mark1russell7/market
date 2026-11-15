@@ -1,4 +1,6 @@
 import { Buffer } from "node:buffer";
+import { readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, extname, join } from "node:path";
 import { parseArgs } from "node:util";
 import {
   BEST_BUY_HOST,
@@ -22,6 +24,7 @@ import { apiTransport } from "./transport.ts";
 /** The help text of the command. */
 export const USAGE: string = `Usage: market-crawler read <source> <id> [options]
        market-crawler read <source> --search <words> [--limit <n>]
+       market-crawler run <plan file> [--out <file>] [--record <file>]
 
 Sources and ids:
   digikey <product number>   ProductDetails of the Digi-Key Product Information API v4
@@ -37,7 +40,14 @@ Options:
 
 Each observation goes to stdout as one line of JSON. Notes and problems go to stderr.
 The keys come from ~/.market/seller-keys.env. No output has a key.
-Exit codes: 0 read, 1 a problem of the source or of the keys, 2 a bad command.`;
+Exit codes: 0 read, 1 a problem of the source or of the keys, 2 a bad command.
+
+run reads each read of a plan file, in order, with one pace and one client for each source:
+  {"reads": [{"source": "digikey", "search": "BE600M1", "limit": 5, "tag": "ups"}, {"source": "bestbuy", "id": "6534613"}]}
+Each read has an id or a search, and the options limit, openBox and sandbox. A tag is free text for the record.
+  --out <file>      The observations of all reads, as JSON lines in UTF-8 (default <plan>-<time>.jsonl)
+  --record <file>   The record of each read: its time, its count, its notes, its problems (default <plan>-<time>.reads.json)
+A read with a problem does not stop the run. The exit code is 1 when a read has a problem.`;
 
 /** The ports of the command. A test gives fakes. */
 export interface Io {
@@ -46,8 +56,47 @@ export interface Io {
   readonly keys: (source: SourceName) => KeysResult;
   readonly transport: (hosts: readonly string[]) => Transport<AbortSignal>;
   readonly pace: () => Pace<AbortSignal>;
+  /** The text files of `run`: the plan file, and the files of the observations and of the record. */
+  readonly files: { readonly read: (path: string) => string; readonly write: (path: string, text: string) => void };
+  /** The time in milliseconds since 1970. */
+  readonly now: () => number;
   readonly signal?: AbortSignal | undefined;
 }
+
+/** A read of a plan file: a source, an id or the words of a search, and the options of a read. */
+export interface PlanRead {
+  readonly source: string;
+  readonly id?: string;
+  readonly search?: string;
+  readonly limit?: number;
+  readonly openBox?: boolean;
+  readonly sandbox?: boolean;
+  /** Free text for the record, for example the name of the thing that the read prices. */
+  readonly tag?: string;
+}
+
+/** The record of one read of a run: the read, its start time, its count of observations, its notes and its problems. */
+export interface ReadRecord extends PlanRead {
+  readonly at: string;
+  readonly observations: number;
+  readonly notes: readonly string[];
+  readonly problems: readonly string[];
+}
+
+/** The result of the parse of a plan file: each read with its command, or the problems of the plan. */
+export type PlanResult =
+  | { readonly ok: true; readonly reads: readonly { readonly plan: PlanRead; readonly command: ReadCommand }[] }
+  | { readonly ok: false; readonly problems: readonly string[] };
+
+const PLAN_FIELDS: Readonly<Record<string, "string" | "number" | "boolean">> = {
+  source: "string",
+  id: "string",
+  search: "string",
+  limit: "number",
+  openBox: "boolean",
+  sandbox: "boolean",
+  tag: "string",
+};
 
 /** A read of one source, from the arguments of the command. */
 export interface ReadCommand {
@@ -108,45 +157,207 @@ export function parseCommand(argv: readonly string[]): Parsed {
   return { kind: "read", command: { source, words: rest.join(" "), search, limit, openBox, sandbox } };
 }
 
+/**
+ * This function reads the text of a plan file. Each read becomes the arguments of `read`, so a read of a plan has
+ * the same checks as a read of the command line. It does not throw.
+ */
+export function parsePlan(text: string): PlanResult {
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch (error) {
+    return { ok: false, problems: [`The plan is not JSON: ${errorText(error)}`] };
+  }
+  const list = typeof data === "object" && data !== null ? (data as { reads?: unknown }).reads : undefined;
+  if (!Array.isArray(list) || list.length === 0) return { ok: false, problems: ["The plan has no list reads, or the list is empty."] };
+  const problems: string[] = [];
+  const reads: { plan: PlanRead; command: ReadCommand }[] = [];
+  list.forEach((value: unknown, index) => {
+    const name = `The read ${String(index + 1)}`;
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      problems.push(`${name} is not an object.`);
+      return;
+    }
+    const entry = value as Record<string, unknown>;
+    const bad = Object.entries(entry).filter(([field, x]) => PLAN_FIELDS[field] === undefined || typeof x !== PLAN_FIELDS[field]);
+    if (bad.length > 0) {
+      problems.push(`${name} has an unknown field or a field of the wrong type: ${bad.map(([field]) => field).join(", ")}.`);
+      return;
+    }
+    const plan = value as PlanRead;
+    const words = plan.search ?? plan.id;
+    if ((plan.id === undefined) === (plan.search === undefined) || words === undefined || words.trim() === "") {
+      problems.push(`${name} has one id or one search, with text.`);
+      return;
+    }
+    const argv = [
+      "read",
+      plan.source,
+      ...(plan.search === undefined ? [] : ["--search"]),
+      ...(plan.limit === undefined ? [] : ["--limit", String(plan.limit)]),
+      ...(plan.openBox === true ? ["--open-box"] : []),
+      ...(plan.sandbox === true ? ["--sandbox"] : []),
+      "--",
+      words,
+    ];
+    const parsed = parseCommand(argv);
+    if (parsed.kind !== "read") {
+      problems.push(`${name}: ${parsed.kind === "usage" ? parsed.problem : "it is not a read."}`);
+      return;
+    }
+    reads.push({ plan, command: parsed.command });
+  });
+  return problems.length > 0 ? { ok: false, problems } : { ok: true, reads };
+}
+
 function base64(text: string): string {
   return Buffer.from(text, "utf8").toString("base64");
 }
 
-/** This function sends the read of a command with the keys, and gives the result of the parser. */
-export async function read(command: ReadCommand, keys: Readonly<Record<string, string>>, io: Io): Promise<ParseResult> {
-  const pace = io.pace();
-  const { words, limit } = command;
+function errorText(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/** A reader sends the read of a command to one source, with one client. The client keeps its token between reads. */
+type Reader = (command: ReadCommand) => Promise<ParseResult>;
+
+function readerFor(source: SourceName, sandbox: boolean, keys: Readonly<Record<string, string>>, io: Io, pace: Pace<AbortSignal>): Reader {
   const { signal } = io;
-  switch (command.source) {
+  switch (source) {
     case "digikey": {
-      const host = command.sandbox ? DIGIKEY_SANDBOX_HOST : DIGIKEY_HOST;
+      const host = sandbox ? DIGIKEY_SANDBOX_HOST : DIGIKEY_HOST;
       const client = createDigiKeyClient({
         clientId: keys["DIGIKEY_CLIENT_ID"] ?? "",
         clientSecret: keys["DIGIKEY_CLIENT_SECRET"] ?? "",
         transport: io.transport([host]),
         pace,
-        sandbox: command.sandbox,
+        sandbox,
       });
-      return command.search ? client.keywordSearch(words, limit, signal) : client.productDetails(words, signal);
+      return async (command) => (command.search ? client.keywordSearch(command.words, command.limit, signal) : client.productDetails(command.words, signal));
     }
     case "ebay": {
-      const host = command.sandbox ? EBAY_SANDBOX_HOST : EBAY_HOST;
+      const host = sandbox ? EBAY_SANDBOX_HOST : EBAY_HOST;
       const client = createEbayClient({
         clientId: keys["EBAY_CLIENT_ID"] ?? "",
         clientSecret: keys["EBAY_CLIENT_SECRET"] ?? "",
         base64,
         transport: io.transport([host]),
         pace,
-        sandbox: command.sandbox,
+        sandbox,
       });
-      return command.search ? client.search(words, limit, signal) : client.item(words, signal);
+      return async (command) => (command.search ? client.search(command.words, command.limit, signal) : client.item(command.words, signal));
     }
     case "bestbuy": {
       const client = createBestBuyClient({ apiKey: keys["BESTBUY_API_KEY"] ?? "", transport: io.transport([BEST_BUY_HOST]), pace });
-      if (command.search) return client.search(words, limit, signal);
-      return command.openBox ? client.openBox(words, signal) : client.product(words, signal);
+      return async (command) => {
+        if (command.search) return client.search(command.words, command.limit, signal);
+        return command.openBox ? client.openBox(command.words, signal) : client.product(command.words, signal);
+      };
     }
   }
+}
+
+/** This function sends the read of a command with the keys, and gives the result of the parser. */
+export async function read(command: ReadCommand, keys: Readonly<Record<string, string>>, io: Io): Promise<ParseResult> {
+  return readerFor(command.source, command.sandbox, keys, io, io.pace())(command);
+}
+
+/** The text of a read of a plan, for a line of the progress. */
+function readText(plan: PlanRead): string {
+  return `${plan.source} ${plan.search === undefined ? (plan.id ?? "") : `--search "${plan.search}"`}`;
+}
+
+/** The time of a file name: an ISO time with no colons and no milliseconds, for example 2026-11-15T01-22-36Z. */
+function fileTime(ms: number): string {
+  return new Date(ms).toISOString().replace(/\.\d+Z$/, "Z").replaceAll(":", "-");
+}
+
+/**
+ * This function is the command `run`. It reads each read of the plan file in order, with one pace for the run and
+ * one client for each source. After each read, it writes the file of the observations and the file of the record.
+ * A read with a problem does not stop the run.
+ */
+async function runPlan(argv: readonly string[], io: Io): Promise<number> {
+  let flags: { values: { out?: string | undefined; record?: string | undefined; help?: boolean | undefined }; positionals: string[] };
+  try {
+    flags = parseArgs({
+      args: [...argv],
+      allowPositionals: true,
+      strict: true,
+      options: { out: { type: "string" }, record: { type: "string" }, help: { type: "boolean", short: "h" } },
+    });
+  } catch (error) {
+    io.err(`${errorText(error)}\n\n${USAGE}`);
+    return 2;
+  }
+  if (flags.values.help === true) {
+    io.out(USAGE);
+    return 0;
+  }
+  const [planPath, ...extra] = flags.positionals;
+  if (planPath === undefined || extra.length > 0) {
+    io.err(`Give one plan file.\n\n${USAGE}`);
+    return 2;
+  }
+  let text: string;
+  try {
+    text = io.files.read(planPath);
+  } catch (error) {
+    io.err(`problem: The plan file ${planPath} does not read: ${errorText(error)}`);
+    return 2;
+  }
+  const plan = parsePlan(text);
+  if (!plan.ok) {
+    for (const problem of plan.problems) io.err(`problem: ${problem}`);
+    return 2;
+  }
+  const base = join(dirname(planPath), basename(planPath, extname(planPath)));
+  const stamp = fileTime(io.now());
+  const outPath = flags.values.out ?? `${base}-${stamp}.jsonl`;
+  const recordPath = flags.values.record ?? `${base}-${stamp}.reads.json`;
+  const pace = io.pace();
+  const keysOf = new Map<SourceName, KeysResult>();
+  const readers = new Map<string, Reader>();
+  const lines: string[] = [];
+  const records: ReadRecord[] = [];
+  for (const { plan: entry, command } of plan.reads) {
+    if (io.signal?.aborted === true) break;
+    const at = new Date(io.now()).toISOString();
+    const loaded = keysOf.get(command.source) ?? io.keys(command.source);
+    keysOf.set(command.source, loaded);
+    let record: ReadRecord;
+    if (!loaded.ok) {
+      record = { ...entry, at, observations: 0, notes: [], problems: [...loaded.problems] };
+    } else {
+      const secrets = Object.values(loaded.keys);
+      try {
+        const key = `${command.source}:${String(command.sandbox)}`;
+        const reader = readers.get(key) ?? readerFor(command.source, command.sandbox, loaded.keys, io, pace);
+        readers.set(key, reader);
+        const result = await reader(command);
+        if (result.ok) {
+          for (const observation of result.observations) lines.push(JSON.stringify(observation));
+          record = { ...entry, at, observations: result.observations.length, notes: result.notes.map((note) => redact(note, secrets)), problems: [] };
+        } else {
+          record = { ...entry, at, observations: 0, notes: [], problems: result.problems.map((problem) => redact(problem, secrets)) };
+        }
+      } catch (error) {
+        record = { ...entry, at, observations: 0, notes: [], problems: [redact(errorText(error), secrets)] };
+      }
+    }
+    records.push(record);
+    const problems = record.problems.length > 0 ? `, problem: ${record.problems.join(" ")}` : "";
+    io.err(`${readText(entry)}: ${String(record.observations)} observations${problems}`);
+    io.files.write(outPath, lines.length > 0 ? `${lines.join("\n")}\n` : "");
+    io.files.write(recordPath, `${JSON.stringify({ reads: records }, null, 2)}\n`);
+  }
+  const failed = records.filter((record) => record.problems.length > 0).length;
+  io.err(
+    `run: ${String(records.length)} of ${String(plan.reads.length)} reads, ${String(lines.length)} observations, ${String(failed)} reads with a problem.`,
+  );
+  io.err(`observations: ${outPath}`);
+  io.err(`record: ${recordPath}`);
+  return failed > 0 || records.length < plan.reads.length ? 1 : 0;
 }
 
 /**
@@ -154,6 +365,7 @@ export async function read(command: ReadCommand, keys: Readonly<Record<string, s
  * each observation as one line of JSON. It gives the exit code. Each message goes through `redact` with the keys.
  */
 export async function main(argv: readonly string[], io: Io): Promise<number> {
+  if (argv[0] === "run") return runPlan(argv.slice(1), io);
   const parsed = parseCommand(argv);
   if (parsed.kind === "help") {
     io.out(USAGE);
@@ -199,6 +411,15 @@ export function nodeIo(signal?: AbortSignal): Io {
     keys: (source) => loadKeys(source),
     transport: apiTransport,
     pace: () => ({ scheduler: new HostScheduler(realClock, 4), now: realClock.now }),
+    files: { read: (path) => textOf(readFileSync(path)), write: (path, text) => writeFileSync(path, text, "utf8") },
+    now: () => Date.now(),
     signal,
   };
+}
+
+/** This function gives the text of a file in UTF-8, or in UTF-16 with its byte order mark (Windows PowerShell 5.1 writes it). */
+function textOf(bytes: Buffer): string {
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) return bytes.subarray(2).toString("utf16le");
+  const text = bytes.toString("utf8");
+  return text.startsWith("﻿") ? text.slice(1) : text;
 }
