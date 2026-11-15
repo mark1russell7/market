@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { Exchange, Pace, Reply, Transport } from "@mark1russell7/market-sources";
+import { BEST_BUY_HOST, type Exchange, type Pace, type Reply, type Transport } from "@mark1russell7/market-sources";
 import { HostScheduler, type Clock } from "polite-crawler/politeness";
 import { describe, expect, it } from "vitest";
 import { USAGE, main, parseCommand, parsePlan, type Io, type ReadRecord } from "./cli.ts";
@@ -231,7 +231,7 @@ describe("the run of a plan", () => {
   const answer = (exchange: Exchange): Reply =>
     exchange.url.endsWith(TOKEN)
       ? json(200, { access_token: "token-0001", expires_in: 599 })
-      : exchange.url.includes("api.bestbuy.com")
+      : new URL(exchange.url).host === BEST_BUY_HOST
         ? json(200, product)
         : json(404, {}, "Not Found");
   const plan = (reads: unknown[]): string => JSON.stringify({ reads });
