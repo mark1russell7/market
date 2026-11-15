@@ -56,23 +56,25 @@ chosen.skipped; // [{ offerId: "ebay:1234", why: "The condition used is not a co
 
 ## The board of current prices
 
-A watch reads its sources on a schedule and keeps the latest price of each offer on a board. The terms of each source limit the board. The functions of the board are calculations with no effect. A host does the reads, and it writes the board.
+A watch reads its sources on a schedule. A board keeps the last read of each entry of the watch, and the terms of each source limit it. The functions of the board are calculations with no effect. A host does the reads, and it writes the board.
 
+- `settleBoard(board, { terms, now, names }, read)` gives the new board. A new read replaces the last read of its entry, so an offer that the new read does not give leaves the board. Then the terms apply to each read. The board also drops the read of an entry that the watch does not have.
+- `boardObservations(board, { terms, now })` gives the current observations of a board: the latest observation of each offer over the reads, within the terms.
 - `keepObservations(observations, { terms, now, ended })` gives the latest observation of each offer that a store keeps at `now`, and each dropped offer with its reason. The board drops a reading of a source with `no-store` or with no terms. It also drops a reading past its limit, and an ended offer.
 - `readInterval(entry, { terms, slack })` gives the time from one read of a watch entry to the next. It is the shorter of `every` and the limit of the terms less the slack of the loop. Thus the board has a current reading of the entry at each instant after its first read.
 - `watchProblems(entries, { terms, slack })` gives each entry with no interval, and each name that two entries have. A source with `no-store` has no interval: a program reads it for each request.
-- `planReads(entries, last, now, { terms, slack })` gives the due entries at `now`, and the instant of the next due read.
-- `boardSchema`, `observationSchema` and `watchEntrySchema` examine a board file, an observation and a watch entry.
+- `planReads(entries, last, now, { terms, slack })` gives the due entries at `now`, and the instant of the next due read. `lastReads(board)` gives `last`.
+- `boardSchema`, `boardReadSchema`, `observationSchema` and `watchEntrySchema` examine a board file, a read, an observation and a watch entry.
 
-Give the board and the new observations together to `keepObservations`. Then write its `kept` list as the new board. To read the board at an instant, give the board alone. A reading can pass its limit after the last change of the board.
+Settle the board after each read, and also when no read is due: a reading can pass its limit between two reads. Write each new board in place of the old board.
 
 ```ts
-import { bestOffer, keepObservations, offersOfPart, planReads } from "@mark1russell7/market";
+import { bestOffer, boardObservations, lastReads, offersOfPart, planReads, settleBoard } from "@mark1russell7/market";
 
-const plan = planReads(entries, lastReads, now, { terms, slack: { value: 2, unit: "min" } });
-// Read each entry of plan.due, then keep the board within the terms.
-const { kept, dropped } = keepObservations([...board.observations, ...read], { terms, now });
-const chosen = bestOffer(offersOfPart(kept, want), { currency: "USD" });
+const plan = planReads(entries, lastReads(board), now, { terms, slack: { value: 2, unit: "min" } });
+// Read each entry of plan.due. Then settle the board with each read, and write the board.
+board = settleBoard(board, { terms, now, names }, { name: "ups", at: now, observations }).board;
+const chosen = bestOffer(offersOfPart(boardObservations(board, { terms, now }), want), { currency: "USD" });
 ```
 
 ## Example
@@ -105,4 +107,4 @@ isKept(terms, reading, "2026-11-16T00:00:00Z"); // false
 - A part number of a want matches each longer part number that starts with it. A want gives the full part number of the maker.
 - The money of the quantity package has one currency: the US dollar.
 - The package has no history of prices yet. Roadmap item R5 adds it, after the owner chooses its source.
-- The board keeps one reading of each offer. A search that does not find an offer again does not end the offer: its reading stays until the limit of its terms.
+- The board does not know if an offer ended when a new read does not give it. It drops the offer from that read. Another read can still give it.

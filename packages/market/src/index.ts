@@ -6,20 +6,28 @@
  */
 export {
   BOARD_FORMAT,
+  boardObservations,
+  boardReadSchema,
   boardSchema,
   keepObservations,
+  lastReads,
   observationSchema,
   planReads,
   readInterval,
+  settleBoard,
   watchEntrySchema,
   watchProblems,
   type Board,
+  type BoardDrop,
+  type BoardRead,
   type Dropped,
   type KeepOptions,
   type Kept,
   type ReadInterval,
   type ReadPlan,
   type ScheduleOptions,
+  type SettleOptions,
+  type Settled,
   type WatchEntry,
 } from "./board.ts";
 export { gtinCheckDigit, parseGtin } from "./gtin.ts";

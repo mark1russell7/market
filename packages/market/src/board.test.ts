@@ -2,13 +2,17 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
   BOARD_FORMAT,
+  boardObservations,
   boardSchema,
   keepObservations,
+  lastReads,
   observationSchema,
   planReads,
   readInterval,
+  settleBoard,
   watchEntrySchema,
   watchProblems,
+  type Board,
   type ScheduleOptions,
   type WatchEntry,
 } from "./board.ts";
@@ -42,12 +46,14 @@ function observation(id: string, at: string, more: Partial<Offer> = {}, price = 
 }
 
 describe("the schemas of a board", () => {
-  it("accept a board, and refuse a reading of another offer and two observations of one offer", () => {
+  it("accept a board, and refuse a reading of another offer, two observations of one offer and two reads of one entry", () => {
     const one = observation("shop:1", NOW);
-    expect(boardSchema.parse({ format: BOARD_FORMAT, at: NOW, observations: [one] })).toEqual({ format: BOARD_FORMAT, at: NOW, observations: [one] });
+    const read = { name: "ups", at: NOW, observations: [one] };
+    expect(boardSchema.parse({ format: BOARD_FORMAT, at: NOW, reads: [read] })).toEqual({ format: BOARD_FORMAT, at: NOW, reads: [read] });
     expect(observationSchema.safeParse({ offer: one.offer, reading: { ...one.reading, offerId: "shop:2" } }).success).toBe(false);
-    expect(boardSchema.safeParse({ format: BOARD_FORMAT, at: NOW, observations: [one, one] }).success).toBe(false);
-    expect(boardSchema.safeParse({ format: "price-board/2", at: NOW, observations: [] }).success).toBe(false);
+    expect(boardSchema.safeParse({ format: BOARD_FORMAT, at: NOW, reads: [{ ...read, observations: [one, one] }] }).success).toBe(false);
+    expect(boardSchema.safeParse({ format: BOARD_FORMAT, at: NOW, reads: [read, read] }).success).toBe(false);
+    expect(boardSchema.safeParse({ format: "price-board/2", at: NOW, reads: [] }).success).toBe(false);
     expect(watchEntrySchema.safeParse({ name: "ups", source: "shop", every: { value: 0, unit: "h" } }).success).toBe(false);
     expect(watchEntrySchema.parse({ name: "ups", source: "shop", every: { value: 2, unit: "h" } }).every).toEqual({ value: 2, unit: "h" });
   });
@@ -130,6 +136,81 @@ describe("keepObservations", () => {
         const later = keepObservations(first.kept, { terms: TERMS, now: new Date(Date.parse(now) + wait).toISOString() });
         const before = new Set(first.kept.map((each) => each.offer.id));
         for (const each of later.kept) expect(before.has(each.offer.id)).toBe(true);
+      }),
+    );
+  });
+});
+
+const board = (...reads: Board["reads"]): Board => ({ format: BOARD_FORMAT, at: "2026-11-15T00:00:00.000Z", reads });
+
+describe("settleBoard", () => {
+  const ups = { name: "ups", at: "2026-11-15T10:00:00.000Z", observations: [observation("shop:1", "2026-11-15T10:00:00Z"), observation("shop:2", "2026-11-15T10:00:00Z")] };
+  const fan = { name: "fan", at: "2026-11-15T09:00:00.000Z", observations: [observation("bids:7", "2026-11-15T09:00:00Z")] };
+
+  it("replaces the read of an entry, so an offer that the new read does not give leaves the board", () => {
+    const again = { name: "ups", at: "2026-11-15T11:00:00.000Z", observations: [observation("shop:2", "2026-11-15T11:00:00Z", {}, 9)] };
+    const { board: settled, dropped } = settleBoard(board(ups, fan), { terms: TERMS, now: NOW }, again);
+    expect(settled.at).toBe(NOW);
+    expect(settled.reads.map((each) => [each.name, each.at, each.observations.map((o) => o.offer.id)])).toEqual([
+      ["fan", "2026-11-15T09:00:00.000Z", ["bids:7"]],
+      ["ups", "2026-11-15T11:00:00.000Z", ["shop:2"]],
+    ]);
+    expect(dropped).toEqual([]);
+    expect(lastReads(settled)).toEqual({ fan: "2026-11-15T09:00:00.000Z", ups: "2026-11-15T11:00:00.000Z" });
+  });
+
+  it("drops the readings past their limit, a reading of a source with no store, and the read of an entry that the watch does not have", () => {
+    const parts = { name: "parts", at: NOW, observations: [observation("parts:1", NOW)] };
+    const { board: settled, dropped } = settleBoard(board(ups, fan), { terms: TERMS, now: "2026-11-15T15:30:00.000Z", names: ["ups", "parts"] }, parts);
+    expect(settled.reads.map((each) => [each.name, each.observations.length])).toEqual([
+      ["parts", 0],
+      ["ups", 2],
+    ]);
+    expect(dropped).toEqual([
+      { entry: "fan", offerId: "bids:7", why: "The watch has no entry fan." },
+      { entry: "parts", offerId: "parts:1", why: "The terms of parts permit no store: a reading serves one request." },
+    ]);
+    expect(settleBoard(board(fan), { terms: TERMS, now: NOW }).dropped).toEqual([]);
+    const late = settleBoard(board(fan), { terms: TERMS, now: "2026-11-15T15:00:00.001Z" });
+    expect(late.dropped.map((each) => each.offerId)).toEqual(["bids:7"]);
+    expect(late.board.reads).toEqual([{ ...fan, observations: [] }]);
+  });
+
+  it("gives the latest observation of each offer over the reads, within the terms at now", () => {
+    const other = { name: "other", at: "2026-11-15T11:00:00.000Z", observations: [observation("shop:1", "2026-11-15T11:00:00Z", {}, 8)] };
+    const current = boardObservations(board(ups, fan, other), { terms: TERMS, now: NOW });
+    expect(current.map((each) => [each.offer.id, each.reading.price.value])).toEqual([
+      ["bids:7", 10],
+      ["shop:1", 8],
+      ["shop:2", 10],
+    ]);
+  });
+
+  const instant = fc.integer({ min: Date.parse("2026-11-10T00:00:00Z"), max: Date.parse("2026-11-20T00:00:00Z") }).map((ms) => new Date(ms).toISOString());
+  const read = fc.record({
+    name: fc.constantFrom("a", "b", "c"),
+    at: instant,
+    observations: fc.uniqueArray(fc.record({ source: fc.constantFrom("keep", "bids", "shop", "parts"), n: fc.integer({ min: 1, max: 4 }), at: instant }), {
+      selector: (each) => `${each.source}:${String(each.n)}`,
+      maxLength: 6,
+    }),
+  }).map((each) => ({ name: each.name, at: each.at, observations: each.observations.map((o) => observation(`${o.source}:${String(o.n)}`, o.at)) }));
+
+  it("keeps only the readings that the terms permit, and a second settle at the same instant changes nothing", () => {
+    fc.assert(
+      fc.property(fc.array(read, { maxLength: 6 }), instant, (reads, now) => {
+        let current = settleBoard(board(), { terms: TERMS, now }).board;
+        for (const each of reads) current = settleBoard(current, { terms: TERMS, now }, each).board;
+        expect(boardSchema.safeParse(current).success).toBe(true);
+        for (const each of current.reads) {
+          for (const kept of each.observations) {
+            const rules = TERMS.find((t) => t.source === kept.offer.source);
+            expect(rules !== undefined && isKept(rules, kept.reading, now)).toBe(true);
+          }
+        }
+        expect(settleBoard(current, { terms: TERMS, now })).toEqual({ board: current, dropped: [] });
+        const names = new Set(reads.map((each) => each.name));
+        expect(current.reads.map((each) => each.name)).toEqual([...names].sort());
       }),
     );
   });

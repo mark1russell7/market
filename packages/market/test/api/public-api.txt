@@ -12,6 +12,8 @@ BOARD_FORMAT: build/index.d.ts#BOARD_FORMAT
 type BestOffer: build/index.d.ts#BestOffer
 type BestOfferOptions: build/index.d.ts#BestOfferOptions
 type Board: build/index.d.ts#Board
+type BoardDrop: build/index.d.ts#BoardDrop
+type BoardRead: build/index.d.ts#BoardRead
 CONDITIONS: build/index.d.ts#CONDITIONS
 type Condition: build/index.d.ts#Condition
 type Dropped: build/index.d.ts#Dropped
@@ -34,11 +36,15 @@ type ReadPlan: build/index.d.ts#ReadPlan
 type Retention: build/index.d.ts#Retention
 type ScheduleOptions: build/index.d.ts#ScheduleOptions
 type Seller: build/index.d.ts#Seller
+type SettleOptions: build/index.d.ts#SettleOptions
+type Settled: build/index.d.ts#Settled
 type Shipping: build/index.d.ts#Shipping
 type SourceTerms: build/index.d.ts#SourceTerms
 type Spec: build/index.d.ts#Spec
 type WatchEntry: build/index.d.ts#WatchEntry
 bestOffer: build/index.d.ts#bestOffer
+boardObservations: build/index.d.ts#boardObservations
+boardReadSchema: build/index.d.ts#boardReadSchema
 boardSchema: build/index.d.ts#boardSchema
 costOf: build/index.d.ts#costOf
 foldCode: build/index.d.ts#foldCode
@@ -48,6 +54,7 @@ instantSchema: build/index.d.ts#instantSchema
 isKept: build/index.d.ts#isKept
 keepObservations: build/index.d.ts#keepObservations
 keepUntil: build/index.d.ts#keepUntil
+lastReads: build/index.d.ts#lastReads
 latestObservations: build/index.d.ts#latestObservations
 matchKeys: build/index.d.ts#matchKeys
 moneySchema: build/index.d.ts#moneySchema
@@ -67,6 +74,7 @@ productSchema: build/index.d.ts#productSchema
 readInterval: build/index.d.ts#readInterval
 retentionSchema: build/index.d.ts#retentionSchema
 sellerSchema: build/index.d.ts#sellerSchema
+settleBoard: build/index.d.ts#settleBoard
 shippingSchema: build/index.d.ts#shippingSchema
 sourceOfOffer: build/index.d.ts#sourceOfOffer
 sourceSchema: build/index.d.ts#sourceSchema
@@ -108,6 +116,18 @@ interface BestOfferOptions {
 ### build/index.d.ts#Board
 interface Board {
   readonly format: typeof BOARD_FORMAT;
+  readonly at: string;
+  readonly reads: readonly BoardRead[];
+}
+
+### build/index.d.ts#BoardDrop
+interface BoardDrop extends Dropped {
+  readonly entry: string;
+}
+
+### build/index.d.ts#BoardRead
+interface BoardRead {
+  readonly name: string;
   readonly at: string;
   readonly observations: readonly Observation[];
 }
@@ -267,6 +287,17 @@ interface Seller {
   readonly rating?: Rating | undefined;
 }
 
+### build/index.d.ts#SettleOptions
+interface SettleOptions extends KeepOptions {
+  readonly names?: readonly string[] | undefined;
+}
+
+### build/index.d.ts#Settled
+interface Settled {
+  readonly board: Board;
+  readonly dropped: readonly BoardDrop[];
+}
+
 ### build/index.d.ts#Shipping
 type Shipping = {
   readonly kind: "free";
@@ -304,6 +335,12 @@ interface WatchEntry {
 ### build/index.d.ts#bestOffer
 export declare function bestOffer(observations: readonly Observation[], options: BestOfferOptions): BestOffer;
 
+### build/index.d.ts#boardObservations
+export declare function boardObservations(board: Board, options: KeepOptions): Observation[];
+
+### build/index.d.ts#boardReadSchema
+export declare const boardReadSchema: z.ZodType<BoardRead>;
+
 ### build/index.d.ts#boardSchema
 export declare const boardSchema: z.ZodType<Board>;
 
@@ -334,6 +371,9 @@ export declare function keepObservations(observations: readonly Observation[], o
 export declare function keepUntil(terms: SourceTerms, reading: {
   readonly at: string;
 }): string | null;
+
+### build/index.d.ts#lastReads
+export declare function lastReads(board: Board): Record<string, string>;
 
 ### build/index.d.ts#latestObservations
 export declare function latestObservations(observations: readonly Observation[]): Observation[];
@@ -391,6 +431,9 @@ export declare const retentionSchema: z.ZodType<Retention>;
 
 ### build/index.d.ts#sellerSchema
 export declare const sellerSchema: z.ZodType<Seller>;
+
+### build/index.d.ts#settleBoard
+export declare function settleBoard(board: Board, options: SettleOptions, read?: BoardRead): Settled;
 
 ### build/index.d.ts#shippingSchema
 export declare const shippingSchema: z.ZodType<Shipping>;

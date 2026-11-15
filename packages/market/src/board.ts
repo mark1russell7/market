@@ -6,10 +6,9 @@ import { instantSchema, offerSchema, priceReadingSchema, sourceSchema, textSchem
 import { isKept, keepUntil, type SourceTerms } from "./terms.ts";
 
 /*
- * This module calculates a board of current prices. A board has the latest observation of each offer that the
- * terms of its source permit a store to keep. A watch reads its sources on a schedule, so the board has a current
- * price of each offer. Each function of this module is a calculation with no effect. A host does the reads and
- * writes the board.
+ * This module calculates a board of current prices. A watch reads its sources on a schedule. The board keeps the
+ * last read of each entry of the watch, within the terms of each source. Each function of this module is a
+ * calculation with no effect. A host does the reads and writes the board.
  */
 
 /** The format name of a board record. */
@@ -20,18 +19,32 @@ export const observationSchema: z.ZodType<Observation> = z
   .strictObject({ offer: offerSchema, reading: priceReadingSchema })
   .refine((each) => each.reading.offerId === each.offer.id, { message: "The reading is not a reading of the offer." });
 
-/** This record is a board: the instant of its last change, and the latest kept observation of each offer. */
-export interface Board {
-  readonly format: typeof BOARD_FORMAT;
+/** This record is the last read of one entry of a watch: the name of the entry, the instant, and the observations. */
+export interface BoardRead {
+  readonly name: string;
   readonly at: string;
   readonly observations: readonly Observation[];
 }
 
-/** This schema accepts a board. Each offer has one observation at most. */
+/** This record is a board: the instant of its last settle, and the last read of each entry, in the order of the names. */
+export interface Board {
+  readonly format: typeof BOARD_FORMAT;
+  readonly at: string;
+  readonly reads: readonly BoardRead[];
+}
+
+/** This schema accepts the read of an entry. The read has one observation of each offer at most. */
+export const boardReadSchema: z.ZodType<BoardRead> = z
+  .strictObject({ name: textSchema, at: instantSchema, observations: z.array(observationSchema) })
+  .refine((read) => new Set(read.observations.map((each) => each.offer.id)).size === read.observations.length, {
+    message: "The read has two observations of one offer.",
+  });
+
+/** This schema accepts a board. The board has one read of each entry at most. */
 export const boardSchema: z.ZodType<Board> = z
-  .strictObject({ format: z.literal(BOARD_FORMAT), at: instantSchema, observations: z.array(observationSchema) })
-  .refine((board) => new Set(board.observations.map((each) => each.offer.id)).size === board.observations.length, {
-    message: "The board has two observations of one offer.",
+  .strictObject({ format: z.literal(BOARD_FORMAT), at: instantSchema, reads: z.array(boardReadSchema) })
+  .refine((board) => new Set(board.reads.map((each) => each.name)).size === board.reads.length, {
+    message: "The board has two reads of one entry.",
   });
 
 /** This record is an offer that the store does not keep, with the reason. */
@@ -76,8 +89,7 @@ const timeText = (age: Quantity): string => `${age.value} ${age.unit}`;
  * an observation while the terms of its source permit it, and while its offer has not ended. A current price is
  * a price that a buyer can pay, so the store drops an ended offer for each source.
  *
- * Give the board and the new observations together. To read the board at an instant, give the board alone. A
- * reading can pass its limit after the last change of the board.
+ * `settleBoard` applies this function to each read of a board.
  *
  * @throws RangeError when `now` is not an instant, or when the terms have two entries for one source.
  */
@@ -104,6 +116,66 @@ export function keepObservations(observations: readonly Observation[], options: 
     } else kept.push(observation);
   }
   return { kept, dropped };
+}
+
+/** These options give the rules of a settle: the rules of a store, and the names of the entries of the watch. */
+export interface SettleOptions extends KeepOptions {
+  /** The names of the entries of the watch. The board drops the read of each other name. With no list, it keeps each read. */
+  readonly names?: readonly string[] | undefined;
+}
+
+/** This record is an offer that the board drops, with the name of the entry of its read. */
+export interface BoardDrop extends Dropped {
+  readonly entry: string;
+}
+
+/** This record is the result of a settle: the new board, and each offer that it dropped. */
+export interface Settled {
+  readonly board: Board;
+  readonly dropped: readonly BoardDrop[];
+}
+
+const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
+
+/**
+ * This function settles a board at `now`. A new read replaces the last read of its entry, so an offer that the new
+ * read does not give leaves the read. Then `keepObservations` applies the terms to each read. The board drops the
+ * read of an entry that the watch does not have. Write the new board in place of the old board.
+ *
+ * @param read - A new read of an entry, or none to settle the board alone
+ * @throws RangeError when `now` is not an instant, or when the terms have two entries for one source.
+ */
+export function settleBoard(board: Board, options: SettleOptions, read?: BoardRead): Settled {
+  const names = options.names === undefined ? undefined : new Set(options.names);
+  const reads = new Map(board.reads.map((each) => [each.name, each]));
+  if (read !== undefined) reads.set(read.name, read);
+  const settled: BoardRead[] = [];
+  const dropped: BoardDrop[] = [];
+  for (const name of [...reads.keys()].sort(byText)) {
+    const each = reads.get(name);
+    if (each === undefined) continue;
+    if (names !== undefined && !names.has(name)) {
+      for (const gone of latestObservations(each.observations)) dropped.push({ entry: name, offerId: gone.offer.id, why: `The watch has no entry ${name}.` });
+      continue;
+    }
+    const decision = keepObservations(each.observations, options);
+    settled.push({ name, at: each.at, observations: decision.kept });
+    for (const drop of decision.dropped) dropped.push({ entry: name, ...drop });
+  }
+  return { board: { format: BOARD_FORMAT, at: options.now, reads: settled }, dropped };
+}
+
+/**
+ * This function gives the current observations of a board at `now`. Each is the latest observation of an offer over
+ * the reads, while the terms of its source permit it. Give them to `offersOfPart` and `bestOffer`.
+ */
+export function boardObservations(board: Board, options: KeepOptions): Observation[] {
+  return [...keepObservations(board.reads.flatMap((each) => each.observations), options).kept];
+}
+
+/** This function gives the instant of the last read of each entry of a board, by name, for `planReads`. */
+export function lastReads(board: Board): Record<string, string> {
+  return Object.fromEntries(board.reads.map((each) => [each.name, each.at]));
 }
 
 /** This record is one entry of a watch: a read of one source that repeats. */
