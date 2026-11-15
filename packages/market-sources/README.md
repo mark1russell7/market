@@ -2,6 +2,10 @@
 
 The adapters of the sellers of a market. Each parser reads the answer of an official API at one instant. It gives the current offers and their price readings as records of [`@mark1russell7/market`](../market/README.md).
 
+```sh
+pnpm add @mark1russell7/market-sources
+```
+
 A parser is a pure function. It sends no request, it keeps no store, and it reads no key.
 
 A client sends the requests of one API, and gives the result of a parser. Its host gives the transport, the keys and the clock. The scheduler of [`polite-crawler`](https://www.npmjs.com/package/polite-crawler) keeps the pace of each host.

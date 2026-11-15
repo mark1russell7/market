@@ -1,0 +1,234 @@
+# The public API of @mark1russell7/market-sources
+#
+# The names of each entry of the exports field, and the declaration of each name, without comments
+# and private members. The command `api-report check` compares this file with the built .d.ts files.
+# To accept a change of the API, start the build, then `api-report update`, and review the diff.
+
+## . (build/index.d.ts): names
+
+ApiError: polite-crawler/api#ApiError (external)
+type ApiScheduler: polite-crawler/api#ApiScheduler (external)
+BEST_BUY_HOST: build/index.d.ts#BEST_BUY_HOST
+BEST_BUY_PACE_MS: build/index.d.ts#BEST_BUY_PACE_MS
+BEST_BUY_PAGE_LIMIT: build/index.d.ts#BEST_BUY_PAGE_LIMIT
+BEST_BUY_SOURCE: build/index.d.ts#BEST_BUY_SOURCE
+BEST_BUY_TERMS: build/index.d.ts#BEST_BUY_TERMS
+type BestBuyClient: build/index.d.ts#BestBuyClient
+type BestBuyClientOptions: build/index.d.ts#BestBuyClientOptions
+DIGIKEY_HOST: build/index.d.ts#DIGIKEY_HOST
+DIGIKEY_PACE_MS: build/index.d.ts#DIGIKEY_PACE_MS
+DIGIKEY_SANDBOX_HOST: build/index.d.ts#DIGIKEY_SANDBOX_HOST
+DIGIKEY_SEARCH_LIMIT: build/index.d.ts#DIGIKEY_SEARCH_LIMIT
+DIGIKEY_SELLER: build/index.d.ts#DIGIKEY_SELLER
+DIGIKEY_SOURCE: build/index.d.ts#DIGIKEY_SOURCE
+DIGIKEY_TERMS: build/index.d.ts#DIGIKEY_TERMS
+DIGIKEY_US: build/index.d.ts#DIGIKEY_US
+type DigiKeyClient: build/index.d.ts#DigiKeyClient
+type DigiKeyClientOptions: build/index.d.ts#DigiKeyClientOptions
+type DigiKeyLocale: build/index.d.ts#DigiKeyLocale
+EBAY_HOST: build/index.d.ts#EBAY_HOST
+EBAY_PACE_MS: build/index.d.ts#EBAY_PACE_MS
+EBAY_SANDBOX_HOST: build/index.d.ts#EBAY_SANDBOX_HOST
+EBAY_SCOPE: build/index.d.ts#EBAY_SCOPE
+EBAY_SEARCH_LIMIT: build/index.d.ts#EBAY_SEARCH_LIMIT
+EBAY_SOURCE: build/index.d.ts#EBAY_SOURCE
+EBAY_TERMS: build/index.d.ts#EBAY_TERMS
+EBAY_US: build/index.d.ts#EBAY_US
+type EbayClient: build/index.d.ts#EbayClient
+type EbayClientOptions: build/index.d.ts#EbayClientOptions
+type Exchange: polite-crawler/api#Exchange (external)
+type Observation: @mark1russell7/market#Observation (external)
+type Pace: polite-crawler/api#Pace (external)
+type ParseResult: build/index.d.ts#ParseResult
+type Reply: polite-crawler/api#Reply (external)
+SECRET_MARK: build/index.d.ts#SECRET_MARK
+SOURCE_TERMS: build/index.d.ts#SOURCE_TERMS
+type Signal: polite-crawler/api#Signal (external)
+type Transport: polite-crawler/api#Transport (external)
+bestBuyCondition: build/index.d.ts#bestBuyCondition
+createBestBuyClient: build/index.d.ts#createBestBuyClient
+createDigiKeyClient: build/index.d.ts#createDigiKeyClient
+createEbayClient: build/index.d.ts#createEbayClient
+ebayCondition: build/index.d.ts#ebayCondition
+parseBestBuyOpenBox: build/index.d.ts#parseBestBuyOpenBox
+parseBestBuyProduct: build/index.d.ts#parseBestBuyProduct
+parseBestBuyProducts: build/index.d.ts#parseBestBuyProducts
+parseDigiKeyKeywordSearch: build/index.d.ts#parseDigiKeyKeywordSearch
+parseDigiKeyProductDetails: build/index.d.ts#parseDigiKeyProductDetails
+parseEbayItem: build/index.d.ts#parseEbayItem
+parseEbaySearch: build/index.d.ts#parseEbaySearch
+redact: build/index.d.ts#redact
+
+## Declarations
+
+### build/index.d.ts#BEST_BUY_HOST
+export declare const BEST_BUY_HOST = "api.bestbuy.com";
+
+### build/index.d.ts#BEST_BUY_PACE_MS
+export declare const BEST_BUY_PACE_MS = 1e3;
+
+### build/index.d.ts#BEST_BUY_PAGE_LIMIT
+export declare const BEST_BUY_PAGE_LIMIT = 100;
+
+### build/index.d.ts#BEST_BUY_SOURCE
+export declare const BEST_BUY_SOURCE = "bestbuy";
+
+### build/index.d.ts#BEST_BUY_TERMS
+export declare const BEST_BUY_TERMS: SourceTerms;
+
+### build/index.d.ts#BestBuyClient
+interface BestBuyClient<S extends Signal> {
+  product(sku: string, signal?: S): Promise<ParseResult>;
+  search(words: string, pageSize?: number, signal?: S): Promise<ParseResult>;
+  openBox(sku: string, signal?: S): Promise<ParseResult>;
+}
+
+### build/index.d.ts#BestBuyClientOptions
+interface BestBuyClientOptions<S extends Signal> {
+  readonly apiKey: string;
+  readonly transport: Transport<S>;
+  readonly pace: Pace<S>;
+}
+
+### build/index.d.ts#DIGIKEY_HOST
+export declare const DIGIKEY_HOST = "api.digikey.com";
+
+### build/index.d.ts#DIGIKEY_PACE_MS
+export declare const DIGIKEY_PACE_MS = 500;
+
+### build/index.d.ts#DIGIKEY_SANDBOX_HOST
+export declare const DIGIKEY_SANDBOX_HOST = "sandbox-api.digikey.com";
+
+### build/index.d.ts#DIGIKEY_SEARCH_LIMIT
+export declare const DIGIKEY_SEARCH_LIMIT = 50;
+
+### build/index.d.ts#DIGIKEY_SELLER
+export declare const DIGIKEY_SELLER = "Digi-Key";
+
+### build/index.d.ts#DIGIKEY_SOURCE
+export declare const DIGIKEY_SOURCE = "digikey";
+
+### build/index.d.ts#DIGIKEY_TERMS
+export declare const DIGIKEY_TERMS: SourceTerms;
+
+### build/index.d.ts#DIGIKEY_US
+export declare const DIGIKEY_US: DigiKeyLocale;
+
+### build/index.d.ts#DigiKeyClient
+interface DigiKeyClient<S extends Signal> {
+  productDetails(productNumber: string, signal?: S): Promise<ParseResult>;
+  keywordSearch(keywords: string, limit?: number, signal?: S): Promise<ParseResult>;
+}
+
+### build/index.d.ts#DigiKeyClientOptions
+interface DigiKeyClientOptions<S extends Signal> {
+  readonly clientId: string;
+  readonly clientSecret: string;
+  readonly transport: Transport<S>;
+  readonly pace: Pace<S>;
+  readonly sandbox?: boolean | undefined;
+  readonly locale?: DigiKeyLocale | undefined;
+}
+
+### build/index.d.ts#DigiKeyLocale
+interface DigiKeyLocale {
+  readonly site: string;
+  readonly language: string;
+  readonly currency: string;
+}
+
+### build/index.d.ts#EBAY_HOST
+export declare const EBAY_HOST = "api.ebay.com";
+
+### build/index.d.ts#EBAY_PACE_MS
+export declare const EBAY_PACE_MS = 1e3;
+
+### build/index.d.ts#EBAY_SANDBOX_HOST
+export declare const EBAY_SANDBOX_HOST = "api.sandbox.ebay.com";
+
+### build/index.d.ts#EBAY_SCOPE
+export declare const EBAY_SCOPE = "https://api.ebay.com/oauth/api_scope";
+
+### build/index.d.ts#EBAY_SEARCH_LIMIT
+export declare const EBAY_SEARCH_LIMIT = 200;
+
+### build/index.d.ts#EBAY_SOURCE
+export declare const EBAY_SOURCE = "ebay";
+
+### build/index.d.ts#EBAY_TERMS
+export declare const EBAY_TERMS: SourceTerms;
+
+### build/index.d.ts#EBAY_US
+export declare const EBAY_US = "EBAY_US";
+
+### build/index.d.ts#EbayClient
+interface EbayClient<S extends Signal> {
+  item(itemId: string, signal?: S): Promise<ParseResult>;
+  search(words: string, limit?: number, signal?: S): Promise<ParseResult>;
+}
+
+### build/index.d.ts#EbayClientOptions
+interface EbayClientOptions<S extends Signal> {
+  readonly clientId: string;
+  readonly clientSecret: string;
+  readonly base64: (text: string) => string;
+  readonly transport: Transport<S>;
+  readonly pace: Pace<S>;
+  readonly sandbox?: boolean | undefined;
+  readonly marketplace?: string | undefined;
+}
+
+### build/index.d.ts#ParseResult
+type ParseResult = {
+  readonly ok: true;
+  readonly observations: readonly Observation[];
+  readonly notes: readonly string[];
+} | {
+  readonly ok: false;
+  readonly problems: readonly string[];
+};
+
+### build/index.d.ts#SECRET_MARK
+export declare const SECRET_MARK = "[secret]";
+
+### build/index.d.ts#SOURCE_TERMS
+export declare const SOURCE_TERMS: readonly SourceTerms[];
+
+### build/index.d.ts#bestBuyCondition
+export declare function bestBuyCondition(condition: unknown, preowned: unknown): Condition;
+
+### build/index.d.ts#createBestBuyClient
+export declare function createBestBuyClient<S extends Signal>(options: BestBuyClientOptions<S>): BestBuyClient<S>;
+
+### build/index.d.ts#createDigiKeyClient
+export declare function createDigiKeyClient<S extends Signal>(options: DigiKeyClientOptions<S>): DigiKeyClient<S>;
+
+### build/index.d.ts#createEbayClient
+export declare function createEbayClient<S extends Signal>(options: EbayClientOptions<S>): EbayClient<S>;
+
+### build/index.d.ts#ebayCondition
+export declare function ebayCondition(conditionId: unknown): Condition;
+
+### build/index.d.ts#parseBestBuyOpenBox
+export declare function parseBestBuyOpenBox(answer: unknown, at: string): ParseResult;
+
+### build/index.d.ts#parseBestBuyProduct
+export declare function parseBestBuyProduct(answer: unknown, at: string): ParseResult;
+
+### build/index.d.ts#parseBestBuyProducts
+export declare function parseBestBuyProducts(answer: unknown, at: string): ParseResult;
+
+### build/index.d.ts#parseDigiKeyKeywordSearch
+export declare function parseDigiKeyKeywordSearch(answer: unknown, at: string): ParseResult;
+
+### build/index.d.ts#parseDigiKeyProductDetails
+export declare function parseDigiKeyProductDetails(answer: unknown, at: string): ParseResult;
+
+### build/index.d.ts#parseEbayItem
+export declare function parseEbayItem(answer: unknown, at: string): ParseResult;
+
+### build/index.d.ts#parseEbaySearch
+export declare function parseEbaySearch(answer: unknown, at: string): ParseResult;
+
+### build/index.d.ts#redact
+export declare function redact(text: string, secrets: readonly string[]): string;
