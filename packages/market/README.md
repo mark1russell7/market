@@ -1,6 +1,6 @@
 # @mark1russell7/market
 
-The records of a market: a product, an offer of a seller and a price reading, with their checks. The package also has the GTIN check, the match keys of a record, the cost of an order and the storage rules of a source.
+The records of a market: a product, an offer of a seller and a price reading, with their checks. The package also has the GTIN check, the match keys of a record, the cost of an order and the storage rules of a source. The offers of a part and the best offer join the observations of the sources to the parts that a buyer wants.
 
 The records come from the hand crawl ([`docs/HAND-CRAWL.md`](../../docs/HAND-CRAWL.md)). The fields are the common fields of the official APIs of the sellers.
 
@@ -31,6 +31,25 @@ Each record has a `zod` schema. A schema refuses an unknown field, an empty text
 - `keepUntil(terms, reading)` gives the last instant at which a store keeps a reading, or null with no limit. `isKept(terms, reading, now, ended)` tells if a store keeps it at `now`.
 - `permitsHistory(terms)` and `permitsTrend(terms)` tell if the terms of a source permit a stored history and a trend of its prices.
 
+## The offers of a part
+
+An observation is one offer and its price reading at one instant. The parsers of `@mark1russell7/market-sources` give observations.
+
+- `offersPart(offer, want)` tells if an offer is an offer of a part. A want has the names of the maker and the part numbers of the maker. One part number of the offer must have a brand of the want and start with a part number of the want, after the fold.
+- `offersOfPart(observations, want)` gives the latest observation of each offer of the part. `latestObservations(observations)` does the same for each offer.
+- `bestOffer(observations, { currency, count, conditions })` chooses the offer to buy. It skips an offer with another condition, another currency, or a minimum above the count. Each skipped offer has its reason. The offers go from the lowest price of the goods, then the lowest cost with the shipping. The best offer is the first offer in stock, or else the first offer.
+
+The brand is necessary, because many makers use short part numbers. A search for the number of a power bank found a solder tip and a fan of other makers.
+
+```ts
+import { bestOffer, offersOfPart, type PartWant } from "@mark1russell7/market";
+
+const want: PartWant = { brands: ["Acme", "Acme Power Inc."], partNumbers: ["UPS-600X"] };
+const chosen = bestOffer(offersOfPart(observations, want), { currency: "USD" });
+chosen.best?.goods; // { value: 89.99, unit: "USD" }
+chosen.skipped; // [{ offerId: "ebay:1234", why: "The condition used is not a condition that the buyer accepts." }]
+```
+
 ## Example
 
 ```ts
@@ -57,6 +76,7 @@ isKept(terms, reading, "2026-11-16T00:00:00Z"); // false
 
 ## Limits
 
-- The match keys do not know the aliases of a brand. `Western Digital` and `WD` give two keys.
+- The match keys do not know the aliases of a brand. `Western Digital` and `WD` give two keys. A want of a part names each form of the brand.
+- A part number of a want matches each longer part number that starts with it. A want gives the full part number of the maker.
 - The money of the quantity package has one currency: the US dollar.
 - The package has no history of prices yet. Roadmap item R5 adds it, after the owner chooses its source.
