@@ -6,112 +6,113 @@
 
 ## . (build/index.d.ts): names
 
-AVAILABILITIES: build/index.d.ts#AVAILABILITIES
-type Availability: build/index.d.ts#Availability
+AVAILABILITIES: build/offers.chunk.d.ts#AVAILABILITIES
+type Availability: build/offers.chunk.d.ts#Availability
 BOARD_FORMAT: build/index.d.ts#BOARD_FORMAT
-type BestOffer: build/index.d.ts#BestOffer
-type BestOfferOptions: build/index.d.ts#BestOfferOptions
+type BestOffer: build/offers.chunk.d.ts#BestOffer
+type BestOfferOptions: build/offers.chunk.d.ts#BestOfferOptions
 type Board: build/index.d.ts#Board
 type BoardDrop: build/index.d.ts#BoardDrop
 type BoardRead: build/index.d.ts#BoardRead
-CONDITIONS: build/index.d.ts#CONDITIONS
-type Condition: build/index.d.ts#Condition
+CONDITIONS: build/offers.chunk.d.ts#CONDITIONS
+type Condition: build/offers.chunk.d.ts#Condition
 type Dropped: build/index.d.ts#Dropped
-FORMATS: build/index.d.ts#FORMATS
-type Format: build/index.d.ts#Format
-type Identifiers: build/index.d.ts#Identifiers
+FORMATS: build/offers.chunk.d.ts#FORMATS
+type Format: build/offers.chunk.d.ts#Format
+type Identifiers: build/offers.chunk.d.ts#Identifiers
 type KeepOptions: build/index.d.ts#KeepOptions
 type Kept: build/index.d.ts#Kept
-type Observation: build/index.d.ts#Observation
-type Offer: build/index.d.ts#Offer
-type OfferChoice: build/index.d.ts#OfferChoice
-type PartNumber: build/index.d.ts#PartNumber
-type PartWant: build/index.d.ts#PartWant
-type PriceBreak: build/index.d.ts#PriceBreak
-type PriceReading: build/index.d.ts#PriceReading
-type Product: build/index.d.ts#Product
-type Rating: build/index.d.ts#Rating
+type Observation: build/offers.chunk.d.ts#Observation
+type Offer: build/offers.chunk.d.ts#Offer
+type OfferChoice: build/offers.chunk.d.ts#OfferChoice
+type PartNumber: build/offers.chunk.d.ts#PartNumber
+type PartWant: build/offers.chunk.d.ts#PartWant
+type PriceBreak: build/offers.chunk.d.ts#PriceBreak
+type PriceReading: build/offers.chunk.d.ts#PriceReading
+type Product: build/offers.chunk.d.ts#Product
+type Rating: build/offers.chunk.d.ts#Rating
 type ReadInterval: build/index.d.ts#ReadInterval
 type ReadPlan: build/index.d.ts#ReadPlan
 type Retention: build/index.d.ts#Retention
 type ScheduleOptions: build/index.d.ts#ScheduleOptions
-type Seller: build/index.d.ts#Seller
+type Seller: build/offers.chunk.d.ts#Seller
 type SettleOptions: build/index.d.ts#SettleOptions
 type Settled: build/index.d.ts#Settled
-type Shipping: build/index.d.ts#Shipping
+type Shipping: build/offers.chunk.d.ts#Shipping
 type SourceTerms: build/index.d.ts#SourceTerms
-type Spec: build/index.d.ts#Spec
+type Spec: build/offers.chunk.d.ts#Spec
 type WatchEntry: build/index.d.ts#WatchEntry
-bestOffer: build/index.d.ts#bestOffer
+bestOffer: build/offers.chunk.d.ts#bestOffer
 boardObservations: build/index.d.ts#boardObservations
 boardReadSchema: build/index.d.ts#boardReadSchema
 boardSchema: build/index.d.ts#boardSchema
 costOf: build/index.d.ts#costOf
-foldCode: build/index.d.ts#foldCode
+foldCode: build/offers.chunk.d.ts#foldCode
 gtinCheckDigit: build/index.d.ts#gtinCheckDigit
-gtinSchema: build/index.d.ts#gtinSchema
-instantSchema: build/index.d.ts#instantSchema
+gtinSchema: build/offers.chunk.d.ts#gtinSchema
+instantSchema: build/offers.chunk.d.ts#instantSchema
 isKept: build/index.d.ts#isKept
 keepObservations: build/index.d.ts#keepObservations
 keepUntil: build/index.d.ts#keepUntil
 lastReads: build/index.d.ts#lastReads
-latestObservations: build/index.d.ts#latestObservations
-matchKeys: build/index.d.ts#matchKeys
-moneySchema: build/index.d.ts#moneySchema
+latestObservations: build/offers.chunk.d.ts#latestObservations
+matchKeys: build/offers.chunk.d.ts#matchKeys
+moneySchema: build/offers.chunk.d.ts#moneySchema
 observationSchema: build/index.d.ts#observationSchema
-offerId: build/index.d.ts#offerId
-offerSchema: build/index.d.ts#offerSchema
-offersOfPart: build/index.d.ts#offersOfPart
-offersPart: build/index.d.ts#offersPart
+offerId: build/offers.chunk.d.ts#offerId
+offerSchema: build/offers.chunk.d.ts#offerSchema
+offersOfPart: build/offers.chunk.d.ts#offersOfPart
+offersPart: build/offers.chunk.d.ts#offersPart
 parseGtin: build/index.d.ts#parseGtin
-partNumberSchema: build/index.d.ts#partNumberSchema
+partNumberSchema: build/offers.chunk.d.ts#partNumberSchema
 permitsHistory: build/index.d.ts#permitsHistory
 permitsTrend: build/index.d.ts#permitsTrend
 planReads: build/index.d.ts#planReads
-priceBreakSchema: build/index.d.ts#priceBreakSchema
-priceReadingSchema: build/index.d.ts#priceReadingSchema
-productSchema: build/index.d.ts#productSchema
+priceBreakSchema: build/offers.chunk.d.ts#priceBreakSchema
+priceReadingSchema: build/offers.chunk.d.ts#priceReadingSchema
+productSchema: build/offers.chunk.d.ts#productSchema
 readInterval: build/index.d.ts#readInterval
 retentionSchema: build/index.d.ts#retentionSchema
-sellerSchema: build/index.d.ts#sellerSchema
+sellerSchema: build/offers.chunk.d.ts#sellerSchema
 settleBoard: build/index.d.ts#settleBoard
-shippingSchema: build/index.d.ts#shippingSchema
-sourceOfOffer: build/index.d.ts#sourceOfOffer
-sourceSchema: build/index.d.ts#sourceSchema
+shippingSchema: build/offers.chunk.d.ts#shippingSchema
+sourceOfOffer: build/offers.chunk.d.ts#sourceOfOffer
+sourceSchema: build/offers.chunk.d.ts#sourceSchema
 sourceTermsSchema: build/index.d.ts#sourceTermsSchema
-specSchema: build/index.d.ts#specSchema
-textSchema: build/index.d.ts#textSchema
+specSchema: build/offers.chunk.d.ts#specSchema
+textSchema: build/offers.chunk.d.ts#textSchema
 unitPriceFor: build/index.d.ts#unitPriceFor
 watchEntrySchema: build/index.d.ts#watchEntrySchema
 watchProblems: build/index.d.ts#watchProblems
 
+## ./plan (build/plan.d.ts): names
+
+BuyBreak: build/plan.d.ts#BuyBreak
+BuyChoice: build/plan.d.ts#BuyChoice
+BuyItem: build/plan.d.ts#BuyItem
+BuyNeed: build/plan.d.ts#BuyNeed
+BuyPlan: build/plan.d.ts#BuyPlan
+Fact: build/plan.d.ts#Fact
+NEED_FORMAT: build/plan.d.ts#NEED_FORMAT
+NEED_KEY: build/plan.d.ts#NEED_KEY
+NeedMeasure: build/plan.d.ts#NeedMeasure
+NeedPart: build/plan.d.ts#NeedPart
+NeedRule: build/plan.d.ts#NeedRule
+NeedSlot: build/plan.d.ts#NeedSlot
+PLAN_EVALUATIONS: build/plan.d.ts#PLAN_EVALUATIONS
+PLAN_FORMAT: build/plan.d.ts#PLAN_FORMAT
+PlanOptions: build/plan.d.ts#PlanOptions
+SLOT_FIELDS: build/plan.d.ts#SLOT_FIELDS
+SlotCount: build/plan.d.ts#SlotCount
+UnpricedPart: build/plan.d.ts#UnpricedPart
+buyNeedSchema: build/plan.d.ts#buyNeedSchema
+needProblems: build/plan.d.ts#needProblems
+planBuys: build/plan.d.ts#planBuys
+
 ## Declarations
-
-### build/index.d.ts#AVAILABILITIES
-export declare const AVAILABILITIES: readonly ["in-stock", "low-stock", "out-of-stock", "preorder", "unknown"];
-
-### build/index.d.ts#Availability
-type Availability = (typeof AVAILABILITIES)[number];
 
 ### build/index.d.ts#BOARD_FORMAT
 export declare const BOARD_FORMAT = "price-board/1";
-
-### build/index.d.ts#BestOffer
-interface BestOffer {
-  readonly best: OfferChoice | null;
-  readonly offers: readonly OfferChoice[];
-  readonly skipped: readonly {
-    readonly offerId: string;
-    readonly why: string;
-  }[];
-}
-
-### build/index.d.ts#BestOfferOptions
-interface BestOfferOptions {
-  readonly currency: string;
-  readonly count?: number;
-  readonly conditions?: readonly Condition[];
-}
 
 ### build/index.d.ts#Board
 interface Board {
@@ -132,28 +133,10 @@ interface BoardRead {
   readonly observations: readonly Observation[];
 }
 
-### build/index.d.ts#CONDITIONS
-export declare const CONDITIONS: readonly ["new", "open-box", "refurbished", "used", "for-parts", "unknown"];
-
-### build/index.d.ts#Condition
-type Condition = (typeof CONDITIONS)[number];
-
 ### build/index.d.ts#Dropped
 interface Dropped {
   readonly offerId: string;
   readonly why: string;
-}
-
-### build/index.d.ts#FORMATS
-export declare const FORMATS: readonly ["fixed-price", "auction"];
-
-### build/index.d.ts#Format
-type Format = (typeof FORMATS)[number];
-
-### build/index.d.ts#Identifiers
-interface Identifiers {
-  readonly gtins: readonly string[];
-  readonly partNumbers: readonly PartNumber[];
 }
 
 ### build/index.d.ts#KeepOptions
@@ -167,86 +150,6 @@ interface KeepOptions {
 interface Kept {
   readonly kept: readonly Observation[];
   readonly dropped: readonly Dropped[];
-}
-
-### build/index.d.ts#Observation
-interface Observation {
-  readonly offer: Offer;
-  readonly reading: PriceReading;
-}
-
-### build/index.d.ts#Offer
-interface Offer {
-  readonly id: string;
-  readonly source: string;
-  readonly sourceId: string;
-  readonly productId?: string | undefined;
-  readonly title: string;
-  readonly url?: string | undefined;
-  readonly seller: Seller;
-  readonly condition: Condition;
-  readonly grade?: string | undefined;
-  readonly format: Format;
-  readonly endsAt?: string | undefined;
-  readonly gtins: readonly string[];
-  readonly partNumbers: readonly PartNumber[];
-  readonly specs: readonly Spec[];
-}
-
-### build/index.d.ts#OfferChoice
-interface OfferChoice {
-  readonly observation: Observation;
-  readonly goods: Quantity;
-  readonly cost: Quantity | null;
-  readonly inStock: boolean;
-}
-
-### build/index.d.ts#PartNumber
-interface PartNumber {
-  readonly brand: string;
-  readonly partNumber: string;
-}
-
-### build/index.d.ts#PartWant
-interface PartWant {
-  readonly brands: readonly string[];
-  readonly partNumbers: readonly string[];
-}
-
-### build/index.d.ts#PriceBreak
-interface PriceBreak {
-  readonly quantity: number;
-  readonly unitPrice: Quantity;
-}
-
-### build/index.d.ts#PriceReading
-interface PriceReading {
-  readonly offerId: string;
-  readonly at: string;
-  readonly price: Quantity;
-  readonly listPrice?: Quantity | undefined;
-  readonly shipping: Shipping;
-  readonly availability: Availability;
-  readonly available?: number | undefined;
-  readonly minimumQuantity?: number | undefined;
-  readonly priceBreaks?: readonly PriceBreak[] | undefined;
-}
-
-### build/index.d.ts#Product
-interface Product {
-  readonly id: string;
-  readonly title: string;
-  readonly brand?: string | undefined;
-  readonly category?: readonly string[] | undefined;
-  readonly gtins: readonly string[];
-  readonly partNumbers: readonly PartNumber[];
-  readonly specs: readonly Spec[];
-}
-
-### build/index.d.ts#Rating
-interface Rating {
-  readonly percent: number;
-  readonly count: number;
 }
 
 ### build/index.d.ts#ReadInterval
@@ -281,13 +184,6 @@ interface ScheduleOptions {
   readonly slack: Quantity;
 }
 
-### build/index.d.ts#Seller
-interface Seller {
-  readonly id?: string | undefined;
-  readonly name?: string | undefined;
-  readonly rating?: Rating | undefined;
-}
-
 ### build/index.d.ts#SettleOptions
 interface SettleOptions extends KeepOptions {
   readonly names?: readonly string[] | undefined;
@@ -299,18 +195,6 @@ interface Settled {
   readonly dropped: readonly BoardDrop[];
 }
 
-### build/index.d.ts#Shipping
-type Shipping = {
-  readonly kind: "free";
-} | {
-  readonly kind: "fixed";
-  readonly cost: Quantity;
-} | {
-  readonly kind: "calculated";
-} | {
-  readonly kind: "unknown";
-};
-
 ### build/index.d.ts#SourceTerms
 interface SourceTerms {
   readonly source: string;
@@ -320,21 +204,12 @@ interface SourceTerms {
   readonly clause: string;
 }
 
-### build/index.d.ts#Spec
-interface Spec {
-  readonly name: string;
-  readonly value: string;
-}
-
 ### build/index.d.ts#WatchEntry
 interface WatchEntry {
   readonly name: string;
   readonly source: string;
   readonly every: Quantity;
 }
-
-### build/index.d.ts#bestOffer
-export declare function bestOffer(observations: readonly Observation[], options: BestOfferOptions): BestOffer;
 
 ### build/index.d.ts#boardObservations
 export declare function boardObservations(board: Board, options: KeepOptions): Observation[];
@@ -348,17 +223,8 @@ export declare const boardSchema: z.ZodType<Board>;
 ### build/index.d.ts#costOf
 export declare function costOf(reading: PriceReading, count: number): Quantity | null;
 
-### build/index.d.ts#foldCode
-export declare function foldCode(text: string): string;
-
 ### build/index.d.ts#gtinCheckDigit
 export declare function gtinCheckDigit(body: string): number;
-
-### build/index.d.ts#gtinSchema
-export declare const gtinSchema: z.ZodType<string>;
-
-### build/index.d.ts#instantSchema
-export declare const instantSchema: z.ZodType<string>;
 
 ### build/index.d.ts#isKept
 export declare function isKept(terms: SourceTerms, reading: {
@@ -376,35 +242,11 @@ export declare function keepUntil(terms: SourceTerms, reading: {
 ### build/index.d.ts#lastReads
 export declare function lastReads(board: Board): Record<string, string>;
 
-### build/index.d.ts#latestObservations
-export declare function latestObservations(observations: readonly Observation[]): Observation[];
-
-### build/index.d.ts#matchKeys
-export declare function matchKeys(identifiers: Identifiers): string[];
-
-### build/index.d.ts#moneySchema
-export declare const moneySchema: z.ZodType<Quantity, Quantity>;
-
 ### build/index.d.ts#observationSchema
 export declare const observationSchema: z.ZodType<Observation>;
 
-### build/index.d.ts#offerId
-export declare function offerId(source: string, sourceId: string): string;
-
-### build/index.d.ts#offerSchema
-export declare const offerSchema: z.ZodType<Offer>;
-
-### build/index.d.ts#offersOfPart
-export declare function offersOfPart(observations: readonly Observation[], want: PartWant): Observation[];
-
-### build/index.d.ts#offersPart
-export declare function offersPart(offer: Pick<Offer, "partNumbers">, want: PartWant): boolean;
-
 ### build/index.d.ts#parseGtin
 export declare function parseGtin(text: string): string | null;
-
-### build/index.d.ts#partNumberSchema
-export declare const partNumberSchema: z.ZodType<PartNumber>;
 
 ### build/index.d.ts#permitsHistory
 export declare function permitsHistory(terms: SourceTerms): boolean;
@@ -415,44 +257,17 @@ export declare function permitsTrend(terms: SourceTerms): boolean;
 ### build/index.d.ts#planReads
 export declare function planReads(entries: readonly WatchEntry[], last: Readonly<Record<string, string>>, now: string, options: ScheduleOptions): ReadPlan;
 
-### build/index.d.ts#priceBreakSchema
-export declare const priceBreakSchema: z.ZodType<PriceBreak>;
-
-### build/index.d.ts#priceReadingSchema
-export declare const priceReadingSchema: z.ZodType<PriceReading>;
-
-### build/index.d.ts#productSchema
-export declare const productSchema: z.ZodType<Product>;
-
 ### build/index.d.ts#readInterval
 export declare function readInterval(entry: WatchEntry, options: ScheduleOptions): ReadInterval;
 
 ### build/index.d.ts#retentionSchema
 export declare const retentionSchema: z.ZodType<Retention>;
 
-### build/index.d.ts#sellerSchema
-export declare const sellerSchema: z.ZodType<Seller>;
-
 ### build/index.d.ts#settleBoard
 export declare function settleBoard(board: Board, options: SettleOptions, read?: BoardRead): Settled;
 
-### build/index.d.ts#shippingSchema
-export declare const shippingSchema: z.ZodType<Shipping>;
-
-### build/index.d.ts#sourceOfOffer
-export declare function sourceOfOffer(id: string): string;
-
-### build/index.d.ts#sourceSchema
-export declare const sourceSchema: z.ZodType<string>;
-
 ### build/index.d.ts#sourceTermsSchema
 export declare const sourceTermsSchema: z.ZodType<SourceTerms>;
-
-### build/index.d.ts#specSchema
-export declare const specSchema: z.ZodType<Spec>;
-
-### build/index.d.ts#textSchema
-export declare const textSchema: z.ZodType<string>;
 
 ### build/index.d.ts#unitPriceFor
 export declare function unitPriceFor(reading: PriceReading, count: number): Quantity;
@@ -462,3 +277,340 @@ export declare const watchEntrySchema: z.ZodType<WatchEntry>;
 
 ### build/index.d.ts#watchProblems
 export declare function watchProblems(entries: readonly WatchEntry[], options: ScheduleOptions): string[];
+
+### build/offers.chunk.d.ts#AVAILABILITIES
+declare const AVAILABILITIES: readonly ["in-stock", "low-stock", "out-of-stock", "preorder", "unknown"];
+
+### build/offers.chunk.d.ts#Availability
+type Availability = (typeof AVAILABILITIES)[number];
+
+### build/offers.chunk.d.ts#BestOffer
+interface BestOffer {
+  readonly best: OfferChoice | null;
+  readonly offers: readonly OfferChoice[];
+  readonly skipped: readonly {
+    readonly offerId: string;
+    readonly why: string;
+  }[];
+}
+
+### build/offers.chunk.d.ts#BestOfferOptions
+interface BestOfferOptions {
+  readonly currency: string;
+  readonly count?: number;
+  readonly conditions?: readonly Condition[];
+}
+
+### build/offers.chunk.d.ts#CONDITIONS
+declare const CONDITIONS: readonly ["new", "open-box", "refurbished", "used", "for-parts", "unknown"];
+
+### build/offers.chunk.d.ts#Condition
+type Condition = (typeof CONDITIONS)[number];
+
+### build/offers.chunk.d.ts#FORMATS
+declare const FORMATS: readonly ["fixed-price", "auction"];
+
+### build/offers.chunk.d.ts#Format
+type Format = (typeof FORMATS)[number];
+
+### build/offers.chunk.d.ts#Identifiers
+interface Identifiers {
+  readonly gtins: readonly string[];
+  readonly partNumbers: readonly PartNumber[];
+}
+
+### build/offers.chunk.d.ts#Observation
+interface Observation {
+  readonly offer: Offer;
+  readonly reading: PriceReading;
+}
+
+### build/offers.chunk.d.ts#Offer
+interface Offer {
+  readonly id: string;
+  readonly source: string;
+  readonly sourceId: string;
+  readonly productId?: string | undefined;
+  readonly title: string;
+  readonly url?: string | undefined;
+  readonly seller: Seller;
+  readonly condition: Condition;
+  readonly grade?: string | undefined;
+  readonly format: Format;
+  readonly endsAt?: string | undefined;
+  readonly gtins: readonly string[];
+  readonly partNumbers: readonly PartNumber[];
+  readonly specs: readonly Spec[];
+}
+
+### build/offers.chunk.d.ts#OfferChoice
+interface OfferChoice {
+  readonly observation: Observation;
+  readonly goods: Quantity;
+  readonly cost: Quantity | null;
+  readonly inStock: boolean;
+}
+
+### build/offers.chunk.d.ts#PartNumber
+interface PartNumber {
+  readonly brand: string;
+  readonly partNumber: string;
+}
+
+### build/offers.chunk.d.ts#PartWant
+interface PartWant {
+  readonly brands: readonly string[];
+  readonly partNumbers: readonly string[];
+}
+
+### build/offers.chunk.d.ts#PriceBreak
+interface PriceBreak {
+  readonly quantity: number;
+  readonly unitPrice: Quantity;
+}
+
+### build/offers.chunk.d.ts#PriceReading
+interface PriceReading {
+  readonly offerId: string;
+  readonly at: string;
+  readonly price: Quantity;
+  readonly listPrice?: Quantity | undefined;
+  readonly shipping: Shipping;
+  readonly availability: Availability;
+  readonly available?: number | undefined;
+  readonly minimumQuantity?: number | undefined;
+  readonly priceBreaks?: readonly PriceBreak[] | undefined;
+}
+
+### build/offers.chunk.d.ts#Product
+interface Product {
+  readonly id: string;
+  readonly title: string;
+  readonly brand?: string | undefined;
+  readonly category?: readonly string[] | undefined;
+  readonly gtins: readonly string[];
+  readonly partNumbers: readonly PartNumber[];
+  readonly specs: readonly Spec[];
+}
+
+### build/offers.chunk.d.ts#Rating
+interface Rating {
+  readonly percent: number;
+  readonly count: number;
+}
+
+### build/offers.chunk.d.ts#Seller
+interface Seller {
+  readonly id?: string | undefined;
+  readonly name?: string | undefined;
+  readonly rating?: Rating | undefined;
+}
+
+### build/offers.chunk.d.ts#Shipping
+type Shipping = {
+  readonly kind: "free";
+} | {
+  readonly kind: "fixed";
+  readonly cost: Quantity;
+} | {
+  readonly kind: "calculated";
+} | {
+  readonly kind: "unknown";
+};
+
+### build/offers.chunk.d.ts#Spec
+interface Spec {
+  readonly name: string;
+  readonly value: string;
+}
+
+### build/offers.chunk.d.ts#bestOffer
+declare function bestOffer(observations: readonly Observation[], options: BestOfferOptions): BestOffer;
+
+### build/offers.chunk.d.ts#foldCode
+declare function foldCode(text: string): string;
+
+### build/offers.chunk.d.ts#gtinSchema
+declare const gtinSchema: z.ZodType<string>;
+
+### build/offers.chunk.d.ts#instantSchema
+declare const instantSchema: z.ZodType<string>;
+
+### build/offers.chunk.d.ts#latestObservations
+declare function latestObservations(observations: readonly Observation[]): Observation[];
+
+### build/offers.chunk.d.ts#matchKeys
+declare function matchKeys(identifiers: Identifiers): string[];
+
+### build/offers.chunk.d.ts#moneySchema
+declare const moneySchema: z.ZodType<Quantity, Quantity>;
+
+### build/offers.chunk.d.ts#offerId
+declare function offerId(source: string, sourceId: string): string;
+
+### build/offers.chunk.d.ts#offerSchema
+declare const offerSchema: z.ZodType<Offer>;
+
+### build/offers.chunk.d.ts#offersOfPart
+declare function offersOfPart(observations: readonly Observation[], want: PartWant): Observation[];
+
+### build/offers.chunk.d.ts#offersPart
+declare function offersPart(offer: Pick<Offer, "partNumbers">, want: PartWant): boolean;
+
+### build/offers.chunk.d.ts#partNumberSchema
+declare const partNumberSchema: z.ZodType<PartNumber>;
+
+### build/offers.chunk.d.ts#priceBreakSchema
+declare const priceBreakSchema: z.ZodType<PriceBreak>;
+
+### build/offers.chunk.d.ts#priceReadingSchema
+declare const priceReadingSchema: z.ZodType<PriceReading>;
+
+### build/offers.chunk.d.ts#productSchema
+declare const productSchema: z.ZodType<Product>;
+
+### build/offers.chunk.d.ts#sellerSchema
+declare const sellerSchema: z.ZodType<Seller>;
+
+### build/offers.chunk.d.ts#shippingSchema
+declare const shippingSchema: z.ZodType<Shipping>;
+
+### build/offers.chunk.d.ts#sourceOfOffer
+declare function sourceOfOffer(id: string): string;
+
+### build/offers.chunk.d.ts#sourceSchema
+declare const sourceSchema: z.ZodType<string>;
+
+### build/offers.chunk.d.ts#specSchema
+declare const specSchema: z.ZodType<Spec>;
+
+### build/offers.chunk.d.ts#textSchema
+declare const textSchema: z.ZodType<string>;
+
+### build/plan.d.ts#BuyBreak
+export interface BuyBreak {
+  readonly name: string;
+  readonly count: number;
+  readonly why: string;
+}
+
+### build/plan.d.ts#BuyChoice
+export interface BuyChoice {
+  readonly config: string;
+  readonly price: Quantity;
+  readonly values: Readonly<Record<string, number>>;
+  readonly items: readonly BuyItem[];
+}
+
+### build/plan.d.ts#BuyItem
+export interface BuyItem {
+  readonly slot: string;
+  readonly part: string;
+  readonly count: number;
+  readonly offerId: string;
+  readonly cost: Quantity;
+}
+
+### build/plan.d.ts#BuyNeed
+export interface BuyNeed {
+  readonly format: typeof NEED_FORMAT;
+  readonly id: string;
+  readonly currency: string;
+  readonly conditions?: readonly Condition[] | undefined;
+  readonly inputs?: Readonly<Record<string, Fact>> | undefined;
+  readonly slots: readonly NeedSlot[];
+  readonly measures?: readonly NeedMeasure[] | undefined;
+  readonly rules?: readonly NeedRule[] | undefined;
+}
+
+### build/plan.d.ts#BuyPlan
+export interface BuyPlan {
+  readonly format: typeof PLAN_FORMAT;
+  readonly need: string;
+  readonly currency: string;
+  readonly method: "grid" | "evolve" | "none";
+  readonly seed: number | null;
+  readonly run: string | null;
+  readonly objectives: readonly Objective[];
+  readonly counts: SweepCounts;
+  readonly front: readonly BuyChoice[];
+  readonly breaks: readonly BuyBreak[];
+  readonly unpriced: readonly UnpricedPart[];
+}
+
+### build/plan.d.ts#Fact
+export type Fact = number | string | boolean;
+
+### build/plan.d.ts#NEED_FORMAT
+export declare const NEED_FORMAT = "buy-need/1";
+
+### build/plan.d.ts#NEED_KEY
+export declare const NEED_KEY = "need";
+
+### build/plan.d.ts#NeedMeasure
+export interface NeedMeasure {
+  readonly name: string;
+  readonly program: unknown;
+  readonly goal?: "min" | "max" | undefined;
+  readonly unit?: string | undefined;
+  readonly min?: number | undefined;
+  readonly max?: number | undefined;
+}
+
+### build/plan.d.ts#NeedPart
+export interface NeedPart {
+  readonly key: string;
+  readonly want: PartWant;
+  readonly facts?: Readonly<Record<string, Fact>> | undefined;
+}
+
+### build/plan.d.ts#NeedRule
+export interface NeedRule {
+  readonly name: string;
+  readonly program: unknown;
+}
+
+### build/plan.d.ts#NeedSlot
+export interface NeedSlot {
+  readonly name: string;
+  readonly parts: readonly NeedPart[];
+  readonly count?: SlotCount | undefined;
+}
+
+### build/plan.d.ts#PLAN_EVALUATIONS
+export declare const PLAN_EVALUATIONS = 2e3;
+
+### build/plan.d.ts#PLAN_FORMAT
+export declare const PLAN_FORMAT = "buy-plan/1";
+
+### build/plan.d.ts#PlanOptions
+export interface PlanOptions {
+  readonly evaluations?: number | undefined;
+  readonly seed?: number | string | undefined;
+  readonly population?: number | undefined;
+}
+
+### build/plan.d.ts#SLOT_FIELDS
+export declare const SLOT_FIELDS: readonly ["slot", "part", "count", "cost"];
+
+### build/plan.d.ts#SlotCount
+export interface SlotCount {
+  readonly min: number;
+  readonly max: number;
+}
+
+### build/plan.d.ts#UnpricedPart
+export interface UnpricedPart {
+  readonly slot: string;
+  readonly part: string;
+  readonly why: string;
+}
+
+### build/plan.d.ts#buyNeedSchema
+export declare const buyNeedSchema: z.ZodType<BuyNeed>;
+
+### build/plan.d.ts#needProblems
+export declare function needProblems(need: BuyNeed): string[];
+
+### build/plan.d.ts#planBuys
+export declare function planBuys(need: BuyNeed, observations: readonly Observation[], options?: PlanOptions): BuyPlan;

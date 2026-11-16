@@ -40,7 +40,7 @@ export interface NeedPart {
   readonly key: string;
   readonly want: PartWant;
   /** The facts of the part that the programs read, for example its watts. */
-  readonly facts?: Readonly<Record<string, Fact>>;
+  readonly facts?: Readonly<Record<string, Fact>> | undefined;
 }
 
 /** The count of units of a slot. With `min` 0, a basket can leave the slot empty. */
@@ -53,7 +53,7 @@ export interface SlotCount {
 export interface NeedSlot {
   readonly name: string;
   readonly parts: readonly NeedPart[];
-  readonly count?: SlotCount;
+  readonly count?: SlotCount | undefined;
 }
 
 /**
@@ -64,11 +64,11 @@ export interface NeedMeasure {
   readonly name: string;
   /** The program, as the JSON form of a Vex expression. */
   readonly program: unknown;
-  readonly goal?: "min" | "max";
+  readonly goal?: "min" | "max" | undefined;
   /** The unit of the values, as text for a reader. */
-  readonly unit?: string;
-  readonly min?: number;
-  readonly max?: number;
+  readonly unit?: string | undefined;
+  readonly min?: number | undefined;
+  readonly max?: number | undefined;
 }
 
 /** One rule of a basket: a Vex program that gives `true` when the basket keeps the rule. */
@@ -85,12 +85,12 @@ export interface BuyNeed {
   /** The currency of the prices, a unit of money of `@mark1russell7/quantity`, for example `USD`. */
   readonly currency: string;
   /** The conditions that the buyer accepts. The default is `new` only. */
-  readonly conditions?: readonly Condition[];
+  readonly conditions?: readonly Condition[] | undefined;
   /** The inputs that the programs read at the key `need`, for example the load in watts. */
-  readonly inputs?: Readonly<Record<string, Fact>>;
+  readonly inputs?: Readonly<Record<string, Fact>> | undefined;
   readonly slots: readonly NeedSlot[];
-  readonly measures?: readonly NeedMeasure[];
-  readonly rules?: readonly NeedRule[];
+  readonly measures?: readonly NeedMeasure[] | undefined;
+  readonly rules?: readonly NeedRule[] | undefined;
 }
 
 const factSchema: z.ZodType<Fact> = z.union([z.number().refine(Number.isFinite, "The number is not finite."), z.string(), z.boolean()]);
@@ -266,11 +266,11 @@ export interface BuyPlan {
 /** These options change the search of a plan. */
 export interface PlanOptions {
   /** The largest count of evaluations. A space with no more baskets gets a grid of each basket. The default is `PLAN_EVALUATIONS`. */
-  readonly evaluations?: number;
+  readonly evaluations?: number | undefined;
   /** The seed of a genetic search. The default is the id of the need. */
-  readonly seed?: number | string;
+  readonly seed?: number | string | undefined;
   /** The count of the baskets of a generation of a genetic search. The default is the default of strategy-search. */
-  readonly population?: number;
+  readonly population?: number | undefined;
 }
 
 /** The offer to buy for one count of a part, or the reason that no offer is usable. */
