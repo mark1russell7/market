@@ -174,7 +174,7 @@ importers:
         version: 0.2.1(@swc/core@1.16.22)(dependency-cruiser@18.7.2)
       '@mark1russell7/conventions':
         specifier: ^0.41.0
-        version: 0.41.14
+        version: 0.41.15
       '@mark1russell7/cue':
         specifier: ^2.0.0
         version: 2.1.4
@@ -333,8 +333,8 @@ importers:
         specifier: ^2.0.0
         version: 2.1.4
       '@mark1russell7/site-pages':
-        specifier: ^0.4.6
-        version: 0.4.8
+        specifier: ^0.5.2
+        version: 0.5.2
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.6
@@ -594,8 +594,8 @@ packages:
     resolution: {integrity: sha512-s2DyC8i8JhP0Ue6oG+dLUHrjwvUjz+UQrrSIViLkDdU0t+LhLChLrkRpcwr/eof62ffOSPXifLVYuzM7alEEPw==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/conventions@0.41.14':
-    resolution: {integrity: sha512-GqmF9TE9SWnkj+heyy8addISBS7Q+q3tbvof40QpaxNmulixVoUROUIullzuvfl27yUBVED2RL/eBUaXe/AZFg==}
+  '@mark1russell7/conventions@0.41.15':
+    resolution: {integrity: sha512-MxfocF+YfdmMbG1UPZrZ17s7HyuCltJi2o488MtHiBgLy1oKrVgGZ1kSkCp0GUGkm2wgvShlhvnB9blEPYGvAg==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -637,6 +637,10 @@ packages:
     resolution: {integrity: sha512-DBcPP7mt0LsUFIVk8luMICkwbrt/JRCIosHCfpn/F/IM5PYbUKHrCvyzKfwglw4M7lKa7oO70vpcQ2jZZxqKeA==}
     engines: {node: '>=22'}
 
+  '@mark1russell7/rigor-statistics@0.2.5':
+    resolution: {integrity: sha512-jaUqrz8FmsUoR9n0MeRUIk9UTpG5QL+dF/moh+C23fyihb00LgOD42Up//1piIPVZZDiq6lua0sBcSKMwh5IFg==}
+    engines: {node: '>=22'}
+
   '@mark1russell7/service@0.8.20':
     resolution: {integrity: sha512-8yo1hu4MMXCdzRk43tSvB1xqb9MBgOqAmKisspOGszqsRCZVjdmSbZ1Hgli6RtE5jrF7I7eaGEQLHADnhxxHGQ==}
     engines: {node: '>=22.19'}
@@ -667,8 +671,8 @@ packages:
       zod:
         optional: true
 
-  '@mark1russell7/site-pages@0.4.8':
-    resolution: {integrity: sha512-uN7SV7VxrsMyH7/cPOUClFOnJhw24S2+qVaMIoNK+7AtJe3FB4l5qN2NowKAYvYgLcDpY4gUBlw9meJ6/Gq2pQ==}
+  '@mark1russell7/site-pages@0.5.2':
+    resolution: {integrity: sha512-wZaQllWi5qrxXzzY04b2v2r07RMKq4HsOGguw5i0kuTL/Cl3IEyw3zIhcSoU0pAh9iwK+MD6KrbfywGE4oRAJQ==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -2098,7 +2102,7 @@ snapshots:
 
   '@mark1russell7/api-report@0.5.7':
     dependencies:
-      '@mark1russell7/conventions': 0.41.14
+      '@mark1russell7/conventions': 0.41.15
 
   '@mark1russell7/boundaries@0.2.1(@swc/core@1.16.22)(dependency-cruiser@18.7.2)':
     optionalDependencies:
@@ -2128,7 +2132,7 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  '@mark1russell7/conventions@0.41.14':
+  '@mark1russell7/conventions@0.41.15':
     dependencies:
       yaml: 2.9.1
 
@@ -2156,6 +2160,10 @@ snapshots:
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.16
 
+  '@mark1russell7/rigor-statistics@0.2.5':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.16
+
   '@mark1russell7/service@0.8.20(@opentelemetry/api@1.10.0)(ws@8.22.2)(zod@4.6.7)':
     dependencies:
       '@mark1russell7/algebra': 0.8.10(zod@4.6.7)
@@ -2169,9 +2177,9 @@ snapshots:
       ws: 8.22.2
       zod: 4.6.7
 
-  '@mark1russell7/site-pages@0.4.8':
+  '@mark1russell7/site-pages@0.5.2':
     dependencies:
-      '@mark1russell7/rigor-statistics': 0.1.27
+      '@mark1russell7/rigor-statistics': 0.2.5
 
   '@mark1russell7/sqlite@0.3.2': {}
 
