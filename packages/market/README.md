@@ -1,6 +1,6 @@
 # @mark1russell7/market
 
-The records of a market: a product, an offer of a seller and a price reading, with their checks. The package also has the GTIN check, the match keys of a record, the cost of an order and the storage rules of a source. The offers of a part and the best offer join the observations of the sources to the parts that a buyer wants. The board keeps the current prices within the terms of each source, and plans the reads of a watch.
+The records of a market: a product, an offer of a seller and a price reading, with their checks. The package also has the GTIN check, the match keys of a record, the cost of an order and the storage rules of a source. The offers of a part and the best offer join the observations of the sources to the parts that a buyer wants. The board keeps the current prices within the terms of each source, and plans the reads of a watch. A buy plan gives the best baskets of the parts that a need names.
 
 ```sh
 pnpm add @mark1russell7/market
@@ -77,6 +77,41 @@ board = settleBoard(board, { terms, now, names }, { name: "ups", at: now, observ
 const chosen = bestOffer(offersOfPart(boardObservations(board, { terms, now }), want), { currency: "USD" });
 ```
 
+## A buy plan
+
+The entry `@mark1russell7/market/plan` chooses the parts of a purchase. A need names the slots of a basket and the parts that can fill each slot. Each part has facts, for example its watts. Vex programs over a basket give its measures and its rules. The plan searches the baskets with `@mark1russell7/strategy-search`. It gives the Pareto front of the price against the measures.
+
+- `planBuys(need, observations, { evaluations, seed, population })` gives the plan. Each item of a basket is the offer in stock with the lowest cost for its part and its count.
+- **The search.** A space with no more baskets than `evaluations` gets a grid of each basket. A larger space gets a genetic search. The seed of the search is `seed`, or else the id of the need.
+- `needProblems(need)` gives the problems of a need. Examples are two slots with one name, a bad count, and a program that is not valid. `buyNeedSchema` examines the form of a need file.
+- **The records of a basket.** A program evaluates at the key `need`, which has the inputs of the need. The key of each slot has the facts of its part, `slot`, `part`, `count` and `cost`. An empty slot has the count 0. The axis `others` gives the slots.
+- **The breaks.** A basket breaks `price:<slot>` with no usable offer at its count. It breaks `measure:<name>` when a measure gives no number, and `limit:<name>` outside the limits of a measure. It breaks `rule:<name>` when a rule does not give `true`. The plan counts the baskets of each break, with the reason of the first basket.
+- **The parts with no offer.** `unpriced` names each part with no usable offer at a count of its slot. A slot with a minimum of 1 or more and no such part gives the method `none` and an empty front.
+
+```ts
+import { app, axes, each, lit, ref } from "@mark1russell7/vex";
+import { NEED_FORMAT, planBuys, type BuyNeed } from "@mark1russell7/market/plan";
+
+const part = (key: string, wattHours: number, outputWatts: number) => ({ key, want: { brands: ["Acme"], partNumbers: [key] }, facts: { wattHours, outputWatts } });
+const need: BuyNeed = {
+  format: NEED_FORMAT,
+  id: "closet-ups",
+  currency: "USD",
+  inputs: { loadWatts: 300 },
+  slots: [
+    { name: "ups", parts: [part("UPS-600", 100, 360), part("UPS-1000", 200, 600)] },
+    { name: "battery", parts: [part("PACK-1", 150, 0)], count: { min: 0, max: 2 } },
+  ],
+  // The minutes of the batteries at the load.
+  measures: [{ name: "minutes", goal: "max", unit: "min", program: app("multiply", app("divide", app("sum", each(axes.others, app("multiply", ref("wattHours"), ref("count")))), ref("loadWatts")), lit(60)) }],
+  // The largest output of a part is the load or more.
+  rules: [{ name: "output", program: app("gte", app("max", each(axes.others, ref("outputWatts"))), ref("loadWatts")) }],
+};
+// The offers: a UPS-600 for $120, a UPS-1000 for $260 and a PACK-1 for $80, each with free shipping.
+const plan = planBuys(need, observations);
+plan.front.map((choice) => [choice.price.value, choice.values["minutes"]]); // [[120, 20], [200, 50], [280, 80], [420, 100]]
+```
+
 ## Example
 
 ```ts
@@ -106,5 +141,7 @@ isKept(terms, reading, "2026-11-16T00:00:00Z"); // false
 - The match keys do not know the aliases of a brand. `Western Digital` and `WD` give two keys. A want of a part names each form of the brand.
 - A part number of a want matches each longer part number that starts with it. A want gives the full part number of the maker.
 - The money of the quantity package has one currency: the US dollar.
+- The price of a basket adds the cost of each item. Each item is one order with its own shipping, so the plan does not know a shared shipping cost.
+- A buy plan does not compare the count of an item with the count of the available units of its offer.
 - The package has no history of prices yet. Roadmap item R5 adds it, after the owner chooses its source.
 - The board does not know if an offer ended when a new read does not give it. It drops the offer from that read. Another read can still give it.

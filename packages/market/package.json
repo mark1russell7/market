@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/package",
   "name": "@mark1russell7/market",
-  "version": "0.1.3",
-  "description": "The records of a market: a product, an offer of a seller and a price reading, with their checks, the GTIN check, match keys, the cost of an order, the storage rules of a source, the best offer of a part, and a board of current prices within the terms of each source.",
+  "version": "0.1.4",
+  "description": "The records of a market: a product, an offer of a seller and a price reading, with their checks, the GTIN check, match keys, the cost of an order, the storage rules of a source, the best offer of a part, a board of current prices within the terms of each source, and a buy plan: the Pareto front of the baskets of a need.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -20,12 +20,15 @@
     "price-history",
     "products",
     "catalog",
-    "parts"
+    "parts",
+    "buy-plan",
+    "pareto"
   ],
   "type": "module",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./plan": "./src/plan.ts",
     "./package.json": "./package.json"
   },
   "files": [
@@ -39,6 +42,10 @@
   },
   "dependencies": {
     "@mark1russell7/quantity": "^0.4.0",
+    "@mark1russell7/strategy-search": "^0.1.0",
+    "@mark1russell7/strategy-space": "^0.1.0",
+    "@mark1russell7/vex": "^0.19.1",
+    "@mark1russell7/vex-domains": "^0.19.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -62,6 +69,11 @@
         "types": "./build/index.d.ts",
         "import": "./build/index.js",
         "default": "./build/index.js"
+      },
+      "./plan": {
+        "types": "./build/plan.d.ts",
+        "import": "./build/plan.js",
+        "default": "./build/plan.js"
       },
       "./package.json": "./package.json"
     }

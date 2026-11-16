@@ -18,7 +18,7 @@ The first package exists. The second package is the plan.
 
 | Package | What it has |
 | --- | --- |
-| [`@mark1russell7/market`](packages/market/README.md) | The records of a product, an offer and a price reading, their checks, and the storage rules of a source. The history of a price and its trend come later. |
+| [`@mark1russell7/market`](packages/market/README.md) | The records of a product, an offer and a price reading, their checks, and the storage rules of a source. Its entry `/plan` gives the best baskets of a need. The history of a price and its trend come later. |
 | [`@mark1russell7/market-sources`](packages/market-sources/README.md) | One adapter for each seller: the parsers of the answers of eBay, Best Buy and Digi-Key, the clients of their APIs, and the terms of each source. |
 | [`@market/crawler`](packages/crawler/README.md) | The private host of the clients: the transport, the keys and the live read command. |
 
@@ -27,6 +27,7 @@ Other packages give the general parts:
 - `polite-crawler` does each fetch. It obeys `robots.txt`, and it sends one request at a time to a site.
 - `@mark1russell7/service` gives the live loops, the backoff and the retries.
 - `@mark1russell7/rigor-statistics` gives the statistics of a trend.
+- `@mark1russell7/vex` evaluates the measures and the rules of a buy plan, and `@mark1russell7/strategy-search` searches its baskets.
 
 ## Development
 
