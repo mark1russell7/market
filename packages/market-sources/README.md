@@ -132,7 +132,7 @@ A plan list is an API that gives each plan of virtual machines with its prices a
 | --- | --- |
 | Offers | Each plan in each available region on each term is one offer, with the source id `{plan}/{region}/{term}`. A plan with no available region gives a note. |
 | Meter | The meter `compute` counts the hours of use in 1 month. Its first tier is the hourly price. A tier at the price 0 starts at the monthly price over the hourly price. |
-| Cost | Thus the cost of a month is the smaller of the hourly cost and the monthly price. A plan with no monthly price has only the hourly tier. A plan with an hourly price of 0 and a monthly price above 0 has no offer, and a note tells why. |
+| Cost | Thus the cost of a month is the smaller of the hourly cost and the monthly price. A plan with no monthly price has only the hourly tier. A plan with an hourly price of 0 and a monthly price above 0 has no offer, and a note tells why. A monthly price of 0 above an hourly price gives no cap, with a note. |
 | Prices of a region | The price of a region replaces the price of the plan. A field that the price of a region does not have comes from the plan. |
 | Specs | Each spec of the record, with its unit, for example `memory` with the value `1024 MiB`. The spec `pricing` has the key of the term. |
 | Availability | The rows of the list of regions with no plan, no region or no `available` of true or false count in one note. The pairs that are not available count in one note. |
@@ -181,7 +181,7 @@ The package uses no type of a platform. Thus the host gives each port:
 - **Inputs.** A client refuses a bad key, a bad product number, a bad SKU and a limit out of range with a `RangeError`, before a request.
 - **Pages.** The Azure client follows the link of the next page only to the same API, up to 10 pages. An empty filter is a `RangeError`, because a read of all the prices is a large crawl.
 - **Plan lists.** The plan client makes each address from the record. An answer gives only the number or the cursor of the next page. A list with more pages than the limit gives a problem, because a part of a list gives wrong regions. The limit is 20 pages. A cursor that comes again also gives a problem.
-- **Paging faults.** A page whose paging field is missing or of a wrong type gives a problem too, not the end of the list. A cursor of empty text or null is the end.
+- **Paging faults.** A page whose paging field is missing or of a wrong type gives a problem too, not the end of the list. A cursor of empty text or null is the end. A cursor goes back with no change.
 - **Pace of Azure.** Each answer of Azure tells the requests that remain in a window of 60 seconds, from 10. Thus the client sends 1 request in 6 seconds at most.
 
 The clients send each request with `send` of `polite-crawler/api`. It has the scheduler, the classifier and the reaction of the crawler to an answer, with no page store. The entry also gives the token store and the grant. The clients do not use the `Crawler`. The crawler keeps a copy of each page, and the terms of Digi-Key permit no store. The crawler also sends only `GET`, and a token request is a `POST`.

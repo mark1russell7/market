@@ -119,10 +119,13 @@ describe("parsePlanLists with the Vultr record", () => {
     expect(meteredObservations(result).some((observation) => observation.offer.id.endsWith("/ewr/on-demand") && observation.offer.id.includes("h100"))).toBe(false);
   });
 
-  it("skips an offer with an hourly price of 0 and a monthly price, which would look free, and keeps a free plan", () => {
+  it("skips an offer with an hourly price of 0 and a monthly price, notes a monthly price of 0, and keeps a free plan", () => {
     const priced = parsePlanLists(VULTR_PLANS, { plans: [vultrWith(0, { hourly_cost: 0, monthly_cost: 5, location_cost: {} })] }, AT);
     expect(meteredObservations(priced)).toEqual([]);
     expect(meteredNotes(priced)).toContain("The offer vultr:vc2-1c-1gb/ewr/on-demand is skipped: its hourly price is 0 and its monthly price is 5.");
+    const uncapped = parsePlanLists(VULTR_PLANS, { plans: [vultrWith(0, { hourly_cost: 0.01, monthly_cost: 0, location_cost: {} })] }, AT);
+    expect(meteredObservations(uncapped)).toHaveLength(3);
+    expect(meteredNotes(uncapped)).toContain("The offer vultr:vc2-1c-1gb/ewr/on-demand has no monthly cap: its monthly price is 0 and its hourly price is 0.01.");
     const free = parsePlanLists(VULTR_PLANS, { plans: [vultrWith(0, { hourly_cost: 0, monthly_cost: 0, location_cost: {} })] }, AT);
     expect(meteredObservations(free).map((observation) => observation.offer.id)).toEqual(["vultr:vc2-1c-1gb/ewr/on-demand", "vultr:vc2-1c-1gb/ams/on-demand", "vultr:vc2-1c-1gb/sao/on-demand"]);
   });
@@ -222,6 +225,7 @@ describe("the addresses of the pages of a list", () => {
     expect(planNextPage(VULTR_PLANS.plans, { meta: { links: { next: "bmV4dA==" } } }, 1)).toEqual({ kind: "next", after: "bmV4dA==" });
     expect(planNextPage(VULTR_PLANS.plans, { meta: { links: { next: null } } }, 1)).toEqual({ kind: "end" });
     expect(planNextPage(VULTR_PLANS.plans, { meta: { links: { next: "  " } } }, 1)).toEqual({ kind: "end" });
+    expect(planNextPage(VULTR_PLANS.plans, { meta: { links: { next: " bmV4dA== " } } }, 1)).toEqual({ kind: "next", after: " bmV4dA== " });
     const [first, second] = linodeAvailability;
     expect(planNextPage(LINODE_PLANS.plans, first, 1)).toEqual({ kind: "next", after: "2" });
     expect(planNextPage(LINODE_PLANS.plans, second, 2)).toEqual({ kind: "end" });

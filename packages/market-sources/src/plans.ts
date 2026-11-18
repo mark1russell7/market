@@ -264,9 +264,9 @@ export function planNextPage(read: PlanListRead, answer: unknown, page: number):
   }
   const raw = dig(answer, paging.next);
   if (raw === null || (typeof raw === "string" && raw.trim() === "")) return { kind: "end" };
-  const after = text(raw);
-  if (after === undefined) return { kind: "fault", why: `The cursor ${show(raw)} at ${show(paging.next)} is not text or null.` };
-  return { kind: "next", after };
+  if (typeof raw !== "string") return { kind: "fault", why: `The cursor ${show(raw)} at ${show(paging.next)} is not text or null.` };
+  // The cursor is opaque, so it goes back with no change.
+  return { kind: "next", after: raw };
 }
 
 function itemsOf(pages: readonly unknown[], read: PlanListRead, what: string): Read<readonly unknown[]> {
@@ -382,6 +382,8 @@ function observationOf(
     notes.push(`The offer ${id} is skipped: its hourly price is 0 and its monthly price is ${String(monthly)}.`);
     return undefined;
   }
+  // A monthly price of 0 cannot be a cap above an hourly price, so the meter has no cap. The note shows the fault of the data.
+  if (hourly > 0 && monthly === 0) notes.push(`The offer ${id} has no monthly cap: its monthly price is 0 and its hourly price is ${String(hourly)}.`);
   return observeMetered(
     {
       id,
