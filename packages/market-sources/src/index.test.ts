@@ -1,11 +1,20 @@
 import { isKept, keepUntil, permitsHistory, permitsTrend, sourceTermsSchema } from "@mark1russell7/market";
 import { describe, expect, it } from "vitest";
 import * as entry from "./index.ts";
-import { BEST_BUY_TERMS, DIGIKEY_TERMS, EBAY_TERMS, SOURCE_TERMS } from "./index.ts";
+import { AZURE_TERMS, BEST_BUY_TERMS, DIGIKEY_TERMS, EBAY_TERMS, SOURCE_TERMS } from "./index.ts";
 
 describe("the entry", () => {
   it("exports the parsers, the terms and the clients", () => {
     expect(Object.keys(entry).sort()).toEqual([
+      "AZURE_API_VERSION",
+      "AZURE_FILTER_FIELDS",
+      "AZURE_HOST",
+      "AZURE_PACE_MS",
+      "AZURE_PAGE_LIMIT",
+      "AZURE_PRICES_URL",
+      "AZURE_PROVIDER",
+      "AZURE_SOURCE",
+      "AZURE_TERMS",
       "ApiError",
       "BEST_BUY_HOST",
       "BEST_BUY_PACE_MS",
@@ -30,11 +39,18 @@ describe("the entry", () => {
       "EBAY_US",
       "SECRET_MARK",
       "SOURCE_TERMS",
+      "azureNextPage",
+      "azurePricesUrl",
+      "azureUnit",
       "bestBuyCondition",
+      "createAzureClient",
       "createBestBuyClient",
       "createDigiKeyClient",
       "createEbayClient",
       "ebayCondition",
+      "isAzurePricesUrl",
+      "parseAzureRetailPricePages",
+      "parseAzureRetailPrices",
       "parseBestBuyOpenBox",
       "parseBestBuyProduct",
       "parseBestBuyProducts",
@@ -50,14 +66,26 @@ describe("the entry", () => {
 describe("the terms of each source", () => {
   it("are valid under the schema of the market, with one entry for each source", () => {
     for (const terms of SOURCE_TERMS) expect(sourceTermsSchema.parse(terms)).toEqual(terms);
-    expect(SOURCE_TERMS.map((terms) => terms.source)).toEqual([entry.EBAY_SOURCE, entry.BEST_BUY_SOURCE, entry.DIGIKEY_SOURCE]);
+    expect(SOURCE_TERMS.map((terms) => terms.source)).toEqual([
+      entry.EBAY_SOURCE,
+      entry.BEST_BUY_SOURCE,
+      entry.DIGIKEY_SOURCE,
+      entry.AZURE_SOURCE,
+    ]);
   });
 
-  it("permit no stored history and no trend for any source", () => {
-    for (const terms of SOURCE_TERMS) {
+  it("permit no stored history and no trend for any seller", () => {
+    for (const terms of [EBAY_TERMS, BEST_BUY_TERMS, DIGIKEY_TERMS]) {
       expect(permitsHistory(terms)).toBe(false);
       expect(permitsTrend(terms)).toBe(false);
     }
+  });
+
+  it("keep each Azure reading, with a history and a trend", () => {
+    expect(keepUntil(AZURE_TERMS, { at: "2026-11-12T12:00:00Z" })).toBeNull();
+    expect(isKept(AZURE_TERMS, { at: "2026-11-12T12:00:00Z" }, "2027-11-12T12:00:00Z", true)).toBe(true);
+    expect(permitsHistory(AZURE_TERMS)).toBe(true);
+    expect(permitsTrend(AZURE_TERMS)).toBe(true);
   });
 
   it("keep an eBay reading for 6 hours, and no reading of an ended listing", () => {
