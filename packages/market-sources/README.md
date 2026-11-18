@@ -1,6 +1,6 @@
 # @mark1russell7/market-sources
 
-The adapters of the sellers of a market. Each parser reads the answer of an official API at one instant. It gives the current offers and their price readings as records of [`@mark1russell7/market`](../market/README.md).
+The adapters of the sellers of a market and of the price APIs of clouds. Each parser reads the answer of an official API at one instant. It gives the current offers and their price readings as records of [`@mark1russell7/market`](../market/README.md). The parsers of a cloud give metered offers and their metered readings.
 
 ```sh
 pnpm add @mark1russell7/market-sources
@@ -36,11 +36,15 @@ for (const note of result.notes) console.warn(note);
 | `parseBestBuyOpenBox` | the Best Buy Open Box API: `GET /beta/products/{sku}/openBox` |
 | `parseDigiKeyProductDetails` | `ProductDetails` of the Digi-Key Product Information API v4 |
 | `parseDigiKeyKeywordSearch` | `KeywordSearch` of the Digi-Key Product Information API v4 |
+| `parseAzureRetailPrices` | one page of the Azure Retail Prices API: `GET /api/retail/prices` |
+| `parseAzureRetailPricePages` | all the pages of one read of the Azure Retail Prices API |
 
 Each parser takes the JSON of the answer and the instant `at` of the answer. It gives one of two results:
 
 - `{ ok: true, observations, notes }`. The answer has the documented shape. Each observation is an offer and its reading, and the schemas of `@mark1russell7/market` accept both. Each note tells why the parser skipped a record or a field.
 - `{ ok: false, problems }`. The answer does not have the documented shape, for example the error body of an API.
+
+The Azure parsers give metered observations of `@mark1russell7/market`, and `next`. The field `next` is the link of the next page, or `null`.
 
 A parser throws a `RangeError` only when `at` is not an ISO 8601 instant in UTC. It does not throw on the answer, for any JSON value.
 
@@ -88,6 +92,32 @@ The US APIs of Best Buy give each price in US dollars.
 
 The API has no GTIN and no shipping cost. The shipping of a reading is `unknown`.
 
+### Azure
+
+The Azure Retail Prices API gives the public retail prices of Azure. It needs no key. Each observation goes through `meteredObservationSchema`.
+
+| Field | Rule |
+| --- | --- |
+| Offers | Each SKU in a region on a term is one offer, with the source id `{armRegionName}/{skuId}/{term}`. Each meter of the SKU is a meter of the offer. |
+| Terms | A `Consumption` row gives `on-demand`, or `spot` when its SKU name ends in `Spot` or `Low Priority`. Each entry of `savingsPlan` gives a `committed` offer at its rate. |
+| Reservations | A `Reservation` row gives a `committed` offer. Its price is the total for the term. Thus it is the `upfront` money of the reading, and the rate is 0. |
+| Dev/Test | A `DevTestConsumption` row gives its own offer, with `Dev/Test` in its title. |
+| Units | The unit of measure gives a unit of `@mark1russell7/quantity`. `1 Hour` gives `h`, `1 GB/Month` gives `GiB·mo` and `10K` gives 10,000 `{count}`. |
+| Unit prices | The price of a unit is the price of the row over its count, with exact rationals. |
+| Data | A GB of Azure is 2^30 bytes, from the pricing pages of Blob Storage. Thus `GB`, `MB` and `TB` give `GiB`, `MiB` and `TiB`. |
+| Tiers | `tierMinimumUnits` is the start of a tier, in the unit of its meter. A free first amount stays a tier at the price 0. |
+| Period | Each reading has the period of 1 month. |
+| Specs | `serviceName`, `serviceFamily`, `productName`, `skuName`, `armSkuName` and `location`, and `pricing`: the key of the term, for example `savings-plan-3y`. |
+| Pages | A page has 1,000 rows at most. The tiers of a meter can continue on the next page. Thus `parseAzureRetailPricePages` reads the pages of one read together. |
+
+These rows give a note, and the parser skips them:
+
+- A meter whose tiers start above 0 in a unit of more than 1 count. The documentation does not tell the unit of the start.
+- A meter with no tier at 0, or with two prices for one tier.
+- A unit of measure that the parser does not know, for example `1 PB`. The unit `PiB` is not in `@mark1russell7/quantity`.
+
+A reservation and a savings plan cover a fixed amount of use. The metered model has no limit of coverage. Thus give the usage of a committed offer only for the covered hours.
+
 ## The clients
 
 | Client | Methods | Pace | Access |
@@ -95,6 +125,7 @@ The API has no GTIN and no shipping cost. The shipping of a reading is `unknown`
 | `createDigiKeyClient` | `productDetails(productNumber)`, `keywordSearch(keywords, limit)` | 500 ms | OAuth 2.0 client credentials, the client id in a header |
 | `createEbayClient` | `item(itemId)`, `search(words, limit)` | 1 s | OAuth 2.0 client credentials with Basic, the scope `api_scope` |
 | `createBestBuyClient` | `product(sku)`, `search(words, pageSize)`, `openBox(sku)` | 1 s | the API key in the query |
+| `createAzureClient` | `prices(filter, { pages, currency })`, `more(next, pages)` | 6 s | no key |
 
 ```ts
 import { HostScheduler, realClock } from "polite-crawler/politeness";
@@ -125,6 +156,8 @@ The package uses no type of a platform. Thus the host gives each port:
 - **Answers.** An answer that is not a 2xx gives `{ ok: false, problems }` with its status line. The problem has no part of the body.
 - **Secrets.** No message of a client has a key, a secret or a token. The text `[secret]` is in the place of each one, also in its URL form, its form-body form and its Basic form. `redact` uses `redactSecrets` of `@mark1russell7/text`.
 - **Inputs.** A client refuses a bad key, a bad product number, a bad SKU and a limit out of range with a `RangeError`, before a request.
+- **Pages.** The Azure client follows the link of the next page only to the same API, up to 10 pages. An empty filter is a `RangeError`, because a read of all the prices is a large crawl.
+- **Pace of Azure.** Each answer of Azure tells the requests that remain in a window of 60 seconds, from 10. Thus the client sends 1 request in 6 seconds at most.
 
 The clients send each request with `send` of `polite-crawler/api`. It has the scheduler, the classifier and the reaction of the crawler to an answer, with no page store. The entry also gives the token store and the grant. The clients do not use the `Crawler`. The crawler keeps a copy of each page, and the terms of Digi-Key permit no store. The crawler also sends only `GET`, and a token request is a `POST`.
 
@@ -137,12 +170,16 @@ Each source has its terms as a `SourceTerms` record of `@mark1russell7/market`, 
 | `ebay` | `EBAY_TERMS` | 6 hours | deleted | no |
 | `bestbuy` | `BEST_BUY_TERMS` | 72 hours | kept until the limit | no |
 | `digikey` | `DIGIKEY_TERMS` | no store | not applicable | no |
+| `azure` | `AZURE_TERMS` | no limit | kept | yes |
 
-`SOURCE_TERMS` has the three records.
+`SOURCE_TERMS` has the four records.
+
+The Microsoft APIs Terms of Use permit copies of the Azure prices only as the application needs them. They forbid the redistribution and the resale of the data.
 
 ## Tests
 
 - Each parser has a test of the documented answer of its API, and tests of each rule above.
+- The Azure parser has a test of a page of 18 real public rows, read on 2026-11-18. Each row has only the fields that the parser reads. The tests also find the cost of each offer with `meteredCost`.
 - Property tests with `fast-check` mutate each documented answer: they delete fields, and put edge values and random JSON in their place. Each result has only valid records, and each reading belongs to its offer.
 - A property test gives each parser random JSON values. No parser throws.
 - The tests of the clients use a fake transport and a real scheduler of `polite-crawler` on a fake clock. They hold each rule of the clients: the pace, the waits, the stops, the tokens and the secrets. `polite-crawler/api` has the tests of the send and of the token store.

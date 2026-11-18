@@ -117,6 +117,24 @@ Each source of R3 needs an account or a key. The owner makes each account.
 | Digi-Key account and an API application | Product Information v4 | no fee found |
 | Keepa subscription | the price history of Amazon | a fee each month |
 
+## The Azure Retail Prices API (R7)
+
+On 2026-11-18, part 2 of R7 read the documentation and the terms of the Azure Retail Prices API. The API needs no account and no key. The host `prices.azure.com` has no `robots.txt` file: the answer is 404.
+
+| Clause | Where |
+| --- | --- |
+| The API is for tools that you make "for internal analysis and price comparison across SKUs and regions". | Azure Retail Prices REST API overview |
+| Do not "Scrape, build databases or otherwise create copies of any data accessed or obtained using the Microsoft APIs, except as necessary to enable an intended usage scenario for your Application". | Microsoft APIs Terms of Use of October 2025, section 3(b)(4) |
+| Do not "Redistribute or resell, or sublicense access to" the data that the Microsoft APIs give. | the same terms, section 3(b)(14) |
+| Ask only for the data that the application needs, and obey the limits of Microsoft. | the same terms, sections 3(b)(5) and 3(b)(7) |
+
+The plain reading:
+
+- Automated reads for internal analysis and price comparison are the documented use. The terms do not forbid them.
+- A store of the prices is a copy. A copy is permitted as the application needs it. Thus `AZURE_TERMS` keeps each reading.
+- The terms forbid redistribution and resale. A public page of the stored prices needs a new reading of the terms first.
+- The documentation gives no rate limit. Each answer tells the requests that remain in a window of 60 seconds. Thus the client sends 1 request in 6 seconds at most.
+
 ## Not read yet
 
 - The terms of Micro Center and Mouser, and their `robots.txt` files. The sites refused or timed out.

@@ -1,10 +1,10 @@
 /**
  * The fixtures of the tests: one answer of each API in its documented shape, from the developer documentation of
  * each seller. All values are fake, and each link goes to `example.com`. The GTIN-12 `036000291452` has a valid
- * check digit.
+ * check digit. The page of the Azure Retail Prices API is the exception: it has real public rows.
  */
 import fc from "fast-check";
-import type { Observation, ParseResult } from "../src/parse.ts";
+import type { MeteredObservation, MeteredParseResult, Observation, ParseResult } from "../src/parse.ts";
 
 /** This function gives the observations of a result, and it throws when the parser refused the answer. */
 export function observations(result: ParseResult): readonly Observation[] {
@@ -14,6 +14,18 @@ export function observations(result: ParseResult): readonly Observation[] {
 
 /** This function gives the notes of a result, and it throws when the parser refused the answer. */
 export function notes(result: ParseResult): readonly string[] {
+  if (!result.ok) throw new Error(`The parser refused the answer: ${result.problems.join(" ")}`);
+  return result.notes;
+}
+
+/** This function gives the metered observations of a result, and it throws when the parser refused the answer. */
+export function meteredObservations(result: MeteredParseResult): readonly MeteredObservation[] {
+  if (!result.ok) throw new Error(`The parser refused the answer: ${result.problems.join(" ")}`);
+  return result.observations;
+}
+
+/** This function gives the notes of a metered result, and it throws when the parser refused the answer. */
+export function meteredNotes(result: MeteredParseResult): readonly string[] {
   if (!result.ok) throw new Error(`The parser refused the answer: ${result.problems.join(" ")}`);
   return result.notes;
 }
@@ -317,3 +329,38 @@ export function mutated(answer: unknown): fc.Arbitrary<unknown> {
     .array(fc.tuple(fc.nat({ max: all.length - 1 }), replacement), { maxLength: 6 })
     .map((changes) => changes.reduce((value, [index, next]) => replaced(value, all[index] ?? [], next), answer));
 }
+
+/**
+ * A page of the Azure Retail Prices API with 18 real public rows. The rows came from
+ * `https://prices.azure.com/api/retail/prices` with `api-version=2023-01-01-preview` on 2026-11-18. Each row keeps
+ * only the fields that the parser reads. The rows are these:
+ *
+ * - The meters of data out of Bandwidth in `westeurope`. The egress meter has 6 tiers, and its first 100 GB are free.
+ * - The meters of the Hot LRS tier of Blob Storage in `westeurope`. Its data meter has 3 tiers.
+ * - The E64 v4 VM in `southcentralus`: on demand with two savings plans, two reservations, and spot with Dev/Test.
+ */
+export const azurePage = {
+  BillingCurrency: "USD",
+  Items: [
+    {currencyCode: "USD", tierMinimumUnits: 0, retailPrice: 0, armRegionName: "westeurope", location: "EU West", meterId: "9995d93a-7d35-4d3f-9c69-7a7fea447ef4", meterName: "Standard Data Transfer Out", productName: "Rtn Preference: MGN", skuId: "DZH318Z0BNVX/003F", skuName: "Standard", serviceName: "Bandwidth", serviceFamily: "Networking", unitOfMeasure: "1 GB", type: "Consumption", armSkuName: ""},
+    {currencyCode: "USD", tierMinimumUnits: 100, retailPrice: 0.087, armRegionName: "westeurope", location: "EU West", meterId: "9995d93a-7d35-4d3f-9c69-7a7fea447ef4", meterName: "Standard Data Transfer Out", productName: "Rtn Preference: MGN", skuId: "DZH318Z0BNVX/003F", skuName: "Standard", serviceName: "Bandwidth", serviceFamily: "Networking", unitOfMeasure: "1 GB", type: "Consumption", armSkuName: ""},
+    {currencyCode: "USD", tierMinimumUnits: 10335, retailPrice: 0.083, armRegionName: "westeurope", location: "EU West", meterId: "9995d93a-7d35-4d3f-9c69-7a7fea447ef4", meterName: "Standard Data Transfer Out", productName: "Rtn Preference: MGN", skuId: "DZH318Z0BNVX/003F", skuName: "Standard", serviceName: "Bandwidth", serviceFamily: "Networking", unitOfMeasure: "1 GB", type: "Consumption", armSkuName: ""},
+    {currencyCode: "USD", tierMinimumUnits: 51295, retailPrice: 0.07, armRegionName: "westeurope", location: "EU West", meterId: "9995d93a-7d35-4d3f-9c69-7a7fea447ef4", meterName: "Standard Data Transfer Out", productName: "Rtn Preference: MGN", skuId: "DZH318Z0BNVX/003F", skuName: "Standard", serviceName: "Bandwidth", serviceFamily: "Networking", unitOfMeasure: "1 GB", type: "Consumption", armSkuName: ""},
+    {currencyCode: "USD", tierMinimumUnits: 153695, retailPrice: 0.05, armRegionName: "westeurope", location: "EU West", meterId: "9995d93a-7d35-4d3f-9c69-7a7fea447ef4", meterName: "Standard Data Transfer Out", productName: "Rtn Preference: MGN", skuId: "DZH318Z0BNVX/003F", skuName: "Standard", serviceName: "Bandwidth", serviceFamily: "Networking", unitOfMeasure: "1 GB", type: "Consumption", armSkuName: ""},
+    {currencyCode: "USD", tierMinimumUnits: 512095, retailPrice: 0.05, armRegionName: "westeurope", location: "EU West", meterId: "9995d93a-7d35-4d3f-9c69-7a7fea447ef4", meterName: "Standard Data Transfer Out", productName: "Rtn Preference: MGN", skuId: "DZH318Z0BNVX/003F", skuName: "Standard", serviceName: "Bandwidth", serviceFamily: "Networking", unitOfMeasure: "1 GB", type: "Consumption", armSkuName: ""},
+    {currencyCode: "USD", tierMinimumUnits: 0, retailPrice: 0.02, armRegionName: "westeurope", location: "EU West", meterId: "fbf3fda7-3c77-5760-888c-abd984ffd63e", meterName: "Standard Inter-Region Data Transfer", productName: "Rtn Preference: MGN", skuId: "DZH318Z0BNVX/003F", skuName: "Standard", serviceName: "Bandwidth", serviceFamily: "Networking", unitOfMeasure: "1 GB", type: "Consumption", armSkuName: ""},
+    {currencyCode: "USD", tierMinimumUnits: 0, retailPrice: 0.0196, armRegionName: "westeurope", location: "EU West", meterId: "10e5ee74-8fd6-4972-909f-65a83f92f0ce", meterName: "Hot LRS Data Stored", productName: "Blob Storage", skuId: "DZH318Z0BNZJ/008R", skuName: "Hot LRS", serviceName: "Storage", serviceFamily: "Storage", unitOfMeasure: "1 GB/Month", type: "Consumption", armSkuName: ""},
+    {currencyCode: "USD", tierMinimumUnits: 51200, retailPrice: 0.018816, armRegionName: "westeurope", location: "EU West", meterId: "10e5ee74-8fd6-4972-909f-65a83f92f0ce", meterName: "Hot LRS Data Stored", productName: "Blob Storage", skuId: "DZH318Z0BNZJ/008R", skuName: "Hot LRS", serviceName: "Storage", serviceFamily: "Storage", unitOfMeasure: "1 GB/Month", type: "Consumption", armSkuName: ""},
+    {currencyCode: "USD", tierMinimumUnits: 512000, retailPrice: 0.018032, armRegionName: "westeurope", location: "EU West", meterId: "10e5ee74-8fd6-4972-909f-65a83f92f0ce", meterName: "Hot LRS Data Stored", productName: "Blob Storage", skuId: "DZH318Z0BNZJ/008R", skuName: "Hot LRS", serviceName: "Storage", serviceFamily: "Storage", unitOfMeasure: "1 GB/Month", type: "Consumption", armSkuName: ""},
+    {currencyCode: "USD", tierMinimumUnits: 0, retailPrice: 0.054, armRegionName: "westeurope", location: "EU West", meterId: "15adff7b-0dab-4c00-889d-caa6d4fb31bb", meterName: "Hot LRS Write Operations", productName: "Blob Storage", skuId: "DZH318Z0BNZJ/008R", skuName: "Hot LRS", serviceName: "Storage", serviceFamily: "Storage", unitOfMeasure: "10K", type: "Consumption", armSkuName: ""},
+    {currencyCode: "USD", tierMinimumUnits: 0, retailPrice: 0.0043, armRegionName: "westeurope", location: "EU West", meterId: "36c961e5-3c53-4481-b339-a10c6fe0f491", meterName: "Hot Read Operations", productName: "Blob Storage", skuId: "DZH318Z0BNZJ/008R", skuName: "Hot LRS", serviceName: "Storage", serviceFamily: "Storage", unitOfMeasure: "10K", type: "Consumption", armSkuName: ""},
+    {currencyCode: "USD", tierMinimumUnits: 0, retailPrice: 0.039, armRegionName: "westeurope", location: "EU West", meterId: "2fb5f78a-0428-4e17-8fee-5b176a3ef34c", meterName: "Index Tags", productName: "Blob Storage", skuId: "DZH318Z0BNZJ/008R", skuName: "Hot LRS", serviceName: "Storage", serviceFamily: "Storage", unitOfMeasure: "10K/Month", type: "Consumption", armSkuName: ""},
+    {currencyCode: "USD", tierMinimumUnits: 0, retailPrice: 4.838, armRegionName: "southcentralus", location: "US South Central", meterId: "0016083a-928f-56fd-8eeb-39287dcf676d", meterName: "E64 v4", productName: "Virtual Machines Ev4 Series", skuId: "DZH318Z0D1L7/0058", skuName: "E64 v4", serviceName: "Virtual Machines", serviceFamily: "Compute", unitOfMeasure: "1 Hour", type: "Consumption", armSkuName: "Standard_E64_v4", savingsPlan: [{retailPrice: 2.2917606, term: "3 Years"},{retailPrice: 3.2743584, term: "1 Year"}]},
+    {currencyCode: "USD", tierMinimumUnits: 0, reservationTerm: "1 Year", retailPrice: 25007, armRegionName: "southcentralus", location: "US South Central", meterId: "0016083a-928f-56fd-8eeb-39287dcf676d", meterName: "E64 v4", productName: "Virtual Machines Ev4 Series", skuId: "DZH318Z0D1L7/018J", skuName: "E64 v4", serviceName: "Virtual Machines", serviceFamily: "Compute", unitOfMeasure: "1 Hour", type: "Reservation", armSkuName: "Standard_E64_v4"},
+    {currencyCode: "USD", tierMinimumUnits: 0, reservationTerm: "3 Years", retailPrice: 48318, armRegionName: "southcentralus", location: "US South Central", meterId: "0016083a-928f-56fd-8eeb-39287dcf676d", meterName: "E64 v4", productName: "Virtual Machines Ev4 Series", skuId: "DZH318Z0D1L7/018F", skuName: "E64 v4", serviceName: "Virtual Machines", serviceFamily: "Compute", unitOfMeasure: "1 Hour", type: "Reservation", armSkuName: "Standard_E64_v4"},
+    {currencyCode: "USD", tierMinimumUnits: 0, retailPrice: 1.438114, armRegionName: "southcentralus", location: "US South Central", meterId: "78567729-27e1-5104-bdbc-2f9cc07d24ef", meterName: "E64 v4 Spot", productName: "Virtual Machines Ev4 Series Windows", skuId: "DZH318Z0D1L3/006C", skuName: "E64 v4 Spot", serviceName: "Virtual Machines", serviceFamily: "Compute", unitOfMeasure: "1 Hour", type: "Consumption", armSkuName: "Standard_E64_v4"},
+    {currencyCode: "USD", tierMinimumUnits: 0, retailPrice: 0.894062, armRegionName: "southcentralus", location: "US South Central", meterId: "78567729-27e1-5104-bdbc-2f9cc07d24ef", meterName: "E64 v4 Spot", productName: "Virtual Machines Ev4 Series Windows", skuId: "DZH318Z0D1L3/006C", skuName: "E64 v4 Spot", serviceName: "Virtual Machines", serviceFamily: "Compute", unitOfMeasure: "1 Hour", type: "DevTestConsumption", armSkuName: "Standard_E64_v4"},
+  ],
+  NextPageLink: null,
+  Count: 18,
+};

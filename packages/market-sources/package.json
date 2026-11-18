@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/package",
   "name": "@mark1russell7/market-sources",
-  "version": "0.2.6",
-  "description": "The adapters of the sellers of a market: each one reads the answer of an official API, and gives the current offers and price readings as records of @mark1russell7/market.",
+  "version": "0.2.7",
+  "description": "The adapters of the sellers of a market and of cloud price APIs: each one reads the answer of an official API, and gives the current offers and price readings as records of @mark1russell7/market.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -20,7 +20,9 @@
     "seller-api",
     "adapters",
     "price-history",
-    "polite-crawler"
+    "polite-crawler",
+    "cloud-pricing",
+    "azure"
   ],
   "type": "module",
   "main": "./src/index.ts",

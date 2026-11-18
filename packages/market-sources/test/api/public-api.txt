@@ -6,8 +6,23 @@
 
 ## . (build/index.d.ts): names
 
+AZURE_API_VERSION: build/index.d.ts#AZURE_API_VERSION
+AZURE_FILTER_FIELDS: build/index.d.ts#AZURE_FILTER_FIELDS
+AZURE_HOST: build/index.d.ts#AZURE_HOST
+AZURE_PACE_MS: build/index.d.ts#AZURE_PACE_MS
+AZURE_PAGE_LIMIT: build/index.d.ts#AZURE_PAGE_LIMIT
+AZURE_PRICES_URL: build/index.d.ts#AZURE_PRICES_URL
+AZURE_PROVIDER: build/index.d.ts#AZURE_PROVIDER
+AZURE_SOURCE: build/index.d.ts#AZURE_SOURCE
+AZURE_TERMS: build/index.d.ts#AZURE_TERMS
 ApiError: polite-crawler/api#ApiError (external)
 type ApiScheduler: polite-crawler/api#ApiScheduler (external)
+type AzureClient: build/index.d.ts#AzureClient
+type AzureClientOptions: build/index.d.ts#AzureClientOptions
+type AzureFilter: build/index.d.ts#AzureFilter
+type AzureFilterField: build/index.d.ts#AzureFilterField
+type AzureReadOptions: build/index.d.ts#AzureReadOptions
+type AzureUnit: build/index.d.ts#AzureUnit
 BEST_BUY_HOST: build/index.d.ts#BEST_BUY_HOST
 BEST_BUY_PACE_MS: build/index.d.ts#BEST_BUY_PACE_MS
 BEST_BUY_PAGE_LIMIT: build/index.d.ts#BEST_BUY_PAGE_LIMIT
@@ -37,6 +52,8 @@ EBAY_US: build/index.d.ts#EBAY_US
 type EbayClient: build/index.d.ts#EbayClient
 type EbayClientOptions: build/index.d.ts#EbayClientOptions
 type Exchange: polite-crawler/api#Exchange (external)
+type MeteredObservation: @mark1russell7/market#MeteredObservation (external)
+type MeteredParseResult: build/index.d.ts#MeteredParseResult
 type Observation: @mark1russell7/market#Observation (external)
 type Pace: polite-crawler/api#Pace (external)
 type ParseResult: build/index.d.ts#ParseResult
@@ -45,11 +62,18 @@ SECRET_MARK: build/index.d.ts#SECRET_MARK
 SOURCE_TERMS: build/index.d.ts#SOURCE_TERMS
 type Signal: polite-crawler/api#Signal (external)
 type Transport: polite-crawler/api#Transport (external)
+azureNextPage: build/index.d.ts#azureNextPage
+azurePricesUrl: build/index.d.ts#azurePricesUrl
+azureUnit: build/index.d.ts#azureUnit
 bestBuyCondition: build/index.d.ts#bestBuyCondition
+createAzureClient: build/index.d.ts#createAzureClient
 createBestBuyClient: build/index.d.ts#createBestBuyClient
 createDigiKeyClient: build/index.d.ts#createDigiKeyClient
 createEbayClient: build/index.d.ts#createEbayClient
 ebayCondition: build/index.d.ts#ebayCondition
+isAzurePricesUrl: build/index.d.ts#isAzurePricesUrl
+parseAzureRetailPricePages: build/index.d.ts#parseAzureRetailPricePages
+parseAzureRetailPrices: build/index.d.ts#parseAzureRetailPrices
 parseBestBuyOpenBox: build/index.d.ts#parseBestBuyOpenBox
 parseBestBuyProduct: build/index.d.ts#parseBestBuyProduct
 parseBestBuyProducts: build/index.d.ts#parseBestBuyProducts
@@ -60,6 +84,63 @@ parseEbaySearch: build/index.d.ts#parseEbaySearch
 redact: build/index.d.ts#redact
 
 ## Declarations
+
+### build/index.d.ts#AZURE_API_VERSION
+export declare const AZURE_API_VERSION = "2023-01-01-preview";
+
+### build/index.d.ts#AZURE_FILTER_FIELDS
+export declare const AZURE_FILTER_FIELDS: readonly ["armRegionName", "location", "meterId", "meterName", "productId", "skuId", "productName", "skuName", "serviceName", "serviceId", "serviceFamily", "priceType", "armSkuName"];
+
+### build/index.d.ts#AZURE_HOST
+export declare const AZURE_HOST = "prices.azure.com";
+
+### build/index.d.ts#AZURE_PACE_MS
+export declare const AZURE_PACE_MS = 6e3;
+
+### build/index.d.ts#AZURE_PAGE_LIMIT
+export declare const AZURE_PAGE_LIMIT = 10;
+
+### build/index.d.ts#AZURE_PRICES_URL
+export declare const AZURE_PRICES_URL = "https://prices.azure.com/api/retail/prices";
+
+### build/index.d.ts#AZURE_PROVIDER
+export declare const AZURE_PROVIDER = "azure";
+
+### build/index.d.ts#AZURE_SOURCE
+export declare const AZURE_SOURCE = "azure";
+
+### build/index.d.ts#AZURE_TERMS
+export declare const AZURE_TERMS: SourceTerms;
+
+### build/index.d.ts#AzureClient
+interface AzureClient<S extends Signal> {
+  prices(filter: AzureFilter, options?: AzureReadOptions, signal?: S): Promise<MeteredParseResult>;
+  more(next: string, pages?: number, signal?: S): Promise<MeteredParseResult>;
+}
+
+### build/index.d.ts#AzureClientOptions
+interface AzureClientOptions<S extends Signal> {
+  readonly transport: Transport<S>;
+  readonly pace: Pace<S>;
+}
+
+### build/index.d.ts#AzureFilter
+type AzureFilter = { readonly [Field in AzureFilterField]?: string; };
+
+### build/index.d.ts#AzureFilterField
+type AzureFilterField = (typeof AZURE_FILTER_FIELDS)[number];
+
+### build/index.d.ts#AzureReadOptions
+interface AzureReadOptions {
+  readonly pages?: number | undefined;
+  readonly currency?: string | undefined;
+}
+
+### build/index.d.ts#AzureUnit
+interface AzureUnit {
+  readonly count: number;
+  readonly unit: string;
+}
 
 ### build/index.d.ts#BEST_BUY_HOST
 export declare const BEST_BUY_HOST = "api.bestbuy.com";
@@ -178,6 +259,14 @@ interface EbayClientOptions<S extends Signal> {
   readonly marketplace?: string | undefined;
 }
 
+### build/index.d.ts#MeteredParseResult
+type MeteredParseResult = {
+  readonly ok: true;
+  readonly observations: readonly MeteredObservation[];
+  readonly notes: readonly string[];
+  readonly next: string | null;
+} | Refused;
+
 ### build/index.d.ts#ParseResult
 type ParseResult = {
   readonly ok: true;
@@ -194,8 +283,20 @@ export declare const SECRET_MARK = "[secret]";
 ### build/index.d.ts#SOURCE_TERMS
 export declare const SOURCE_TERMS: readonly SourceTerms[];
 
+### build/index.d.ts#azureNextPage
+export declare function azureNextPage(answer: unknown): string | null;
+
+### build/index.d.ts#azurePricesUrl
+export declare function azurePricesUrl(filter: AzureFilter, currency?: string): string;
+
+### build/index.d.ts#azureUnit
+export declare function azureUnit(unitOfMeasure: string): AzureUnit | undefined;
+
 ### build/index.d.ts#bestBuyCondition
 export declare function bestBuyCondition(condition: unknown, preowned: unknown): Condition;
+
+### build/index.d.ts#createAzureClient
+export declare function createAzureClient<S extends Signal>(options: AzureClientOptions<S>): AzureClient<S>;
 
 ### build/index.d.ts#createBestBuyClient
 export declare function createBestBuyClient<S extends Signal>(options: BestBuyClientOptions<S>): BestBuyClient<S>;
@@ -208,6 +309,15 @@ export declare function createEbayClient<S extends Signal>(options: EbayClientOp
 
 ### build/index.d.ts#ebayCondition
 export declare function ebayCondition(conditionId: unknown): Condition;
+
+### build/index.d.ts#isAzurePricesUrl
+export declare function isAzurePricesUrl(link: string): boolean;
+
+### build/index.d.ts#parseAzureRetailPricePages
+export declare function parseAzureRetailPricePages(answers: readonly unknown[], at: string): MeteredParseResult;
+
+### build/index.d.ts#parseAzureRetailPrices
+export declare function parseAzureRetailPrices(answer: unknown, at: string): MeteredParseResult;
 
 ### build/index.d.ts#parseBestBuyOpenBox
 export declare function parseBestBuyOpenBox(answer: unknown, at: string): ParseResult;

@@ -1,8 +1,12 @@
 import {
   instantSchema,
+  meteredObservationSchema,
   moneySchema,
   offerSchema,
   priceReadingSchema,
+  type MeteredObservation,
+  type MeteredOffer,
+  type MeteredReading,
   type Observation,
   type Offer,
   type PriceReading,
@@ -13,6 +17,9 @@ import { z } from "zod";
 /** One offer of a source, and its price reading at the instant of the answer. `@mark1russell7/market` has the type. */
 export type { Observation };
 
+/** One metered offer of a source, and its reading at the instant of the answer. `@mark1russell7/market` has the type. */
+export type { MeteredObservation };
+
 /**
  * The result of a parser. With `ok`, the answer has the documented shape. Each observation is valid under the
  * schemas of `@mark1russell7/market`, and each note tells why the parser skipped a record or a field. Without
@@ -21,6 +28,23 @@ export type { Observation };
 export type ParseResult =
   | { readonly ok: true; readonly observations: readonly Observation[]; readonly notes: readonly string[] }
   | { readonly ok: false; readonly problems: readonly string[] };
+
+/** The result of a parser for an answer that does not have the documented shape. */
+export type Refused = Extract<ParseResult, { readonly ok: false }>;
+
+/**
+ * The result of a parser of metered prices. With `ok`, each observation is valid under the schemas of
+ * `@mark1russell7/market`, and `next` is the link of the next page of the answer, or null. Without `ok`, the
+ * answer does not have the documented shape, and `problems` tells why.
+ */
+export type MeteredParseResult =
+  | {
+      readonly ok: true;
+      readonly observations: readonly MeteredObservation[];
+      readonly notes: readonly string[];
+      readonly next: string | null;
+    }
+  | Refused;
 
 /** A value that a reader found, or the reason that it found none. */
 export type Read<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly why: string };
@@ -153,6 +177,19 @@ export function observe(offer: Offer, reading: PriceReading, notes: string[]): O
   return { offer: checkedOffer.data, reading: checkedReading.data };
 }
 
+/**
+ * This function examines a metered offer and its reading with the schemas of `@mark1russell7/market`. It gives
+ * the observation, or it adds a note and gives undefined.
+ */
+export function observeMetered(offer: MeteredOffer, reading: MeteredReading, notes: string[]): MeteredObservation | undefined {
+  const checked = meteredObservationSchema.safeParse({ offer: compact(offer), reading: compact(reading) });
+  if (!checked.success) {
+    notes.push(`The offer ${offer.id} is skipped: the schema refuses it (${issues(checked.error)}).`);
+    return undefined;
+  }
+  return checked.data;
+}
+
 /** This function gives a result with the observations. An offer that the answer repeats counts once. */
 export function done(observations: readonly Observation[], notes: readonly string[]): ParseResult {
   const seen = new Set<string>();
@@ -165,6 +202,6 @@ export function done(observations: readonly Observation[], notes: readonly strin
 }
 
 /** This function gives a result for an answer that does not have the documented shape. */
-export function refused(...problems: readonly string[]): ParseResult {
+export function refused(...problems: readonly string[]): Refused {
   return { ok: false, problems };
 }

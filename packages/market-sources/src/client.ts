@@ -8,7 +8,7 @@
  */
 import { redactSecrets } from "@mark1russell7/text/redact";
 import { statusLine, type Answer, type Send } from "polite-crawler/api";
-import { refused, type ParseResult } from "./parse.ts";
+import { refused, type ParseResult, type Refused } from "./parse.ts";
 
 export {
   ApiError,
@@ -83,6 +83,25 @@ export function formBody(fields: Readonly<Record<string, string>>): string {
     .join("&");
 }
 
+/** The JSON of an answer, or the problems of an answer that is not a 2xx or not JSON. */
+export type JsonRead = { readonly ok: true; readonly json: unknown } | Refused;
+
+/**
+ * This function reads the JSON of an answer. An answer that is not a 2xx gives a problem with its status line,
+ * and no part of its body.
+ */
+export function readJson(answer: Answer, input: Pick<Send, "source" | "what" | "secrets">): JsonRead {
+  const { reply } = answer;
+  if (reply.status < 200 || reply.status > 299) {
+    return refused(redact(`${input.source} answered ${statusLine(reply)} to ${input.what}.`, input.secrets ?? []));
+  }
+  try {
+    return { ok: true, json: JSON.parse(reply.body) as unknown };
+  } catch {
+    return refused(`The answer of ${input.source} to ${input.what} is not JSON.`);
+  }
+}
+
 /**
  * This function reads an answer with a parser of this package at the instant `at`. An answer that is not a 2xx
  * gives a problem with its status line, and no part of its body.
@@ -93,17 +112,8 @@ export function readAnswer(
   parse: (json: unknown, at: string) => ParseResult,
   at: string,
 ): ParseResult {
-  const { reply } = answer;
-  if (reply.status < 200 || reply.status > 299) {
-    return refused(redact(`${input.source} answered ${statusLine(reply)} to ${input.what}.`, input.secrets ?? []));
-  }
-  let json: unknown;
-  try {
-    json = JSON.parse(reply.body);
-  } catch {
-    return refused(`The answer of ${input.source} to ${input.what} is not JSON.`);
-  }
-  return parse(json, at);
+  const read = readJson(answer, input);
+  return read.ok ? parse(read.json, at) : read;
 }
 
 /** This function gives the instant of a time in milliseconds since the epoch, in the ISO 8601 form in UTC. */

@@ -1,5 +1,7 @@
 import { Buffer } from "node:buffer";
 import { describe, expect, it } from "vitest";
+import { AZURE_PACE_MS, createAzureClient } from "./azure-client.ts";
+import { azurePricesUrl, parseAzureRetailPricePages } from "./azure.ts";
 import { createBestBuyClient } from "./bestbuy-client.ts";
 import { parseBestBuyOpenBox, parseBestBuyProduct, parseBestBuyProducts } from "./bestbuy.ts";
 import { SECRET_MARK, ApiError, instantOf, type Exchange, type Reply } from "./client.ts";
@@ -8,7 +10,16 @@ import { parseDigiKeyKeywordSearch, parseDigiKeyProductDetails } from "./digikey
 import { createEbayClient } from "./ebay-client.ts";
 import { parseEbayItem, parseEbaySearch } from "./ebay.ts";
 import { failure, fakePace, fakeTransport, reply, type Sent } from "../test/fakes.ts";
-import { bestBuyOpenBox, bestBuyProduct, bestBuyProducts, digiKeyDetails, digiKeyKeyword, ebayItem, ebaySearch } from "../test/fixtures.ts";
+import {
+  azurePage,
+  bestBuyOpenBox,
+  bestBuyProduct,
+  bestBuyProducts,
+  digiKeyDetails,
+  digiKeyKeyword,
+  ebayItem,
+  ebaySearch,
+} from "../test/fixtures.ts";
 
 const CLIENT_ID = "client-id-0001";
 const CLIENT_SECRET = "client-secret-0001";
@@ -281,5 +292,73 @@ describe("the Best Buy client", () => {
     expect(error.message).toBe(
       `Best Buy gave no answer to the product 6534613: fetch failed: https://api.bestbuy.com/v1/products/6534613.json?apiKey=${SECRET_MARK}`,
     );
+  });
+});
+
+describe("the Azure client", () => {
+  const filter = { armRegionName: "southcentralus", armSkuName: "Standard_E64_v4" };
+  const next = (page: number) => `https://prices.azure.com:443/api/retail/prices?api-version=2023-01-01-preview&$skip=${page * 1000}`;
+
+  function setup(handler: (exchange: Exchange, index: number) => Reply | Error) {
+    const { pace, clock } = fakePace();
+    const { transport, sent } = fakeTransport(clock, handler);
+    const client = createAzureClient({ transport, pace });
+    return { client, sent, clock };
+  }
+
+  it("reads one page of a filter with no key, and parses it", async () => {
+    const { client, sent, clock } = setup(() => reply(200, azurePage));
+    const result = await client.prices(filter);
+    expect(result).toEqual(parseAzureRetailPricePages([azurePage], instantOf(clock.now())));
+    expect(sent.map(({ exchange }) => exchange)).toEqual([
+      { method: "GET", url: azurePricesUrl(filter), headers: { accept: "application/json" }, body: null },
+    ]);
+  });
+
+  it("follows the link of the next page up to the count of pages, 6 s apart, and gives the link of the last page", async () => {
+    const pages = [
+      { Items: azurePage.Items.slice(0, 2), NextPageLink: next(1) },
+      { Items: azurePage.Items.slice(2, 7), NextPageLink: next(2) },
+      { Items: azurePage.Items.slice(7), NextPageLink: null },
+    ];
+    const { client, sent, clock } = setup((_, index) => reply(200, pages[index]));
+    const result = await client.prices(filter, { pages: 2, currency: "USD" });
+    expect(result).toEqual(parseAzureRetailPricePages(pages.slice(0, 2), instantOf(clock.now())));
+    expect(result.ok && result.next).toBe(next(2));
+    expect(sent.map(({ exchange }) => exchange.url)).toEqual([azurePricesUrl(filter, "USD"), next(1)]);
+    expect(sent[1]!.at - sent[0]!.at).toBe(AZURE_PACE_MS);
+    const rest = await client.more(next(2), 10);
+    expect(rest).toEqual(parseAzureRetailPricePages(pages.slice(2), instantOf(clock.now())));
+    expect(sent.map(({ exchange }) => exchange.url)).toEqual([azurePricesUrl(filter, "USD"), next(1), next(2)]);
+  });
+
+  it("does not follow a link to another address", async () => {
+    const { client, sent } = setup(() => reply(200, { ...azurePage, NextPageLink: "https://example.com/next" }));
+    const result = await client.prices(filter, { pages: 3 });
+    expect(sent).toHaveLength(1);
+    expect(result.ok && result.next).toBeNull();
+  });
+
+  it("refuses a link of another address, a bad count of pages and a bad filter, before a request", async () => {
+    const { client, sent } = setup(() => reply(200, azurePage));
+    await expect(client.more("https://example.com/api/retail/prices")).rejects.toThrow("is not a link of the Azure Retail Prices API");
+    for (const pages of [0, 11, 1.5]) {
+      await expect(client.prices(filter, { pages })).rejects.toThrow(RangeError);
+      await expect(client.more(next(1), pages)).rejects.toThrow(RangeError);
+    }
+    await expect(client.prices({})).rejects.toThrow("large crawl");
+    expect(sent).toHaveLength(0);
+  });
+
+  it("gives a problem for an answer that is not a 2xx or not JSON, with no part of the body", async () => {
+    const { client } = setup((_, index) => (index === 0 ? reply(400, { Error: "secret detail" }, {}, "Bad Request") : reply(200, "<html>")));
+    expect(await client.prices(filter)).toEqual({
+      ok: false,
+      problems: ["Azure Retail Prices answered 400 Bad Request to the prices of a filter."],
+    });
+    expect(await client.prices(filter)).toEqual({
+      ok: false,
+      problems: ["The answer of Azure Retail Prices to the prices of a filter is not JSON."],
+    });
   });
 });
