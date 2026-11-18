@@ -38,13 +38,14 @@ for (const note of result.notes) console.warn(note);
 | `parseDigiKeyKeywordSearch` | `KeywordSearch` of the Digi-Key Product Information API v4 |
 | `parseAzureRetailPrices` | one page of the Azure Retail Prices API: `GET /api/retail/prices` |
 | `parseAzureRetailPricePages` | all the pages of one read of the Azure Retail Prices API |
+| `parsePlanLists` | all the pages of the plan list of a provider record, for example `GET /v2/plans` of the Vultr API |
 
 Each parser takes the JSON of the answer and the instant `at` of the answer. It gives one of two results:
 
 - `{ ok: true, observations, notes }`. The answer has the documented shape. Each observation is an offer and its reading, and the schemas of `@mark1russell7/market` accept both. Each note tells why the parser skipped a record or a field.
 - `{ ok: false, problems }`. The answer does not have the documented shape, for example the error body of an API.
 
-The Azure parsers give metered observations of `@mark1russell7/market`, and `next`. The field `next` is the link of the next page, or `null`.
+The Azure parsers and the plan parser give metered observations of `@mark1russell7/market`, and `next`. The field `next` is the link of the next page, or `null`.
 
 A parser throws a `RangeError` only when `at` is not an ISO 8601 instant in UTC. It does not throw on the answer, for any JSON value.
 
@@ -118,6 +119,27 @@ These rows give a note, and the parser skips them:
 
 A reservation and a savings plan cover a fixed amount of use. The metered model has no limit of coverage. Thus give the usage of a committed offer only for the covered hours.
 
+### Plan lists
+
+A plan list is an API that gives each plan of virtual machines with its prices and its regions. A `PlanProvider` record tells where the API keeps each value. Each value is at a path of names with dots, for example `price.hourly`. Thus a new provider is a record of data, and not new code. `parsePlanProvider` examines a record, for example a record from a JSON file.
+
+| Record | API | Regions | Prices of a region | Terms |
+| --- | --- | --- | --- | --- |
+| `VULTR_PLANS` | `GET /v2/plans` of the Vultr API v2 | the list `locations` of each plan | the object `location_cost` | `on-demand` when `deploy_ondemand` is true, `spot` when `deploy_preemptible` is true |
+| `LINODE_PLANS` | `GET /v4/linode/types` of the Linode API v4 of Akamai Cloud | the rows of `GET /v4/regions/availability` with `available: true` | the list `region_prices` | `on-demand` |
+
+| Field | Rule |
+| --- | --- |
+| Offers | Each plan in each available region on each term is one offer, with the source id `{plan}/{region}/{term}`. A plan with no available region gives a note. |
+| Meter | The meter `compute` counts the hours of use in 1 month. Its first tier is the hourly price. A tier at the price 0 starts at the monthly price over the hourly price. |
+| Cost | Thus the cost of a month is the smaller of the hourly cost and the monthly price. A plan with no monthly price has only the hourly tier. |
+| Prices of a region | The price of a region replaces the price of the plan. A field that the price of a region does not have comes from the plan. |
+| Specs | Each spec of the record, with its unit, for example `memory` with the value `1024 MiB`. The spec `pricing` has the key of the term. |
+| Availability | The rows of the list of regions with no plan, no region or no `available` of true or false count in one note. The pairs that are not available count in one note. |
+| Transfer | The included transfer is a spec. The plan lists do not give the price of the transfer above it. Thus an offer has no meter of transfer. |
+
+`parsePlanLists(provider, { plans, regions }, at)` takes the pages of the plan list. A record with regions of the kind `list` also needs the pages of that list. The field `next` of the result is always `null`, because the client reads each page before the parse.
+
 ## The clients
 
 | Client | Methods | Pace | Access |
@@ -126,6 +148,7 @@ A reservation and a savings plan cover a fixed amount of use. The metered model 
 | `createEbayClient` | `item(itemId)`, `search(words, limit)` | 1 s | OAuth 2.0 client credentials with Basic, the scope `api_scope` |
 | `createBestBuyClient` | `product(sku)`, `search(words, pageSize)`, `openBox(sku)` | 1 s | the API key in the query |
 | `createAzureClient` | `prices(filter, { pages, currency })`, `more(next, pages)` | 6 s | no key |
+| `createPlanClient` | `plans(provider, { pages })` | the pace of the record, 2 s for each record of the package | no key |
 
 ```ts
 import { HostScheduler, realClock } from "polite-crawler/politeness";
@@ -157,6 +180,7 @@ The package uses no type of a platform. Thus the host gives each port:
 - **Secrets.** No message of a client has a key, a secret or a token. The text `[secret]` is in the place of each one, also in its URL form, its form-body form and its Basic form. `redact` uses `redactSecrets` of `@mark1russell7/text`.
 - **Inputs.** A client refuses a bad key, a bad product number, a bad SKU and a limit out of range with a `RangeError`, before a request.
 - **Pages.** The Azure client follows the link of the next page only to the same API, up to 10 pages. An empty filter is a `RangeError`, because a read of all the prices is a large crawl.
+- **Plan lists.** The plan client makes each address from the record. An answer gives only the number or the cursor of the next page. A list with more pages than the limit gives a problem, because a part of a list gives wrong regions. The limit is 20 pages. A cursor that comes again also gives a problem.
 - **Pace of Azure.** Each answer of Azure tells the requests that remain in a window of 60 seconds, from 10. Thus the client sends 1 request in 6 seconds at most.
 
 The clients send each request with `send` of `polite-crawler/api`. It has the scheduler, the classifier and the reaction of the crawler to an answer, with no page store. The entry also gives the token store and the grant. The clients do not use the `Crawler`. The crawler keeps a copy of each page, and the terms of Digi-Key permit no store. The crawler also sends only `GET`, and a token request is a `POST`.
@@ -171,8 +195,12 @@ Each source has its terms as a `SourceTerms` record of `@mark1russell7/market`, 
 | `bestbuy` | `BEST_BUY_TERMS` | 72 hours | kept until the limit | no |
 | `digikey` | `DIGIKEY_TERMS` | no store | not applicable | no |
 | `azure` | `AZURE_TERMS` | no limit | kept | yes |
+| `linode` | `LINODE_TERMS` | no store | not applicable | no |
+| `vultr` | `VULTR_TERMS` | no store | not applicable | no |
 
-`SOURCE_TERMS` has the four records.
+`SOURCE_TERMS` has the six records.
+
+The terms pages of Vultr and of Akamai refused an automated read on 2026-11-18. Thus `LINODE_TERMS` and `VULTR_TERMS` have the strictest rules: no store and no model of prices. A person reads the terms before a rule changes. The Linode API reference tells that the reads of the plan list need no permissions.
 
 The Microsoft APIs Terms of Use permit copies of the Azure prices only as the application needs them. They forbid the redistribution and the resale of the data.
 
@@ -182,5 +210,6 @@ The Microsoft APIs Terms of Use permit copies of the Azure prices only as the ap
 - The Azure parser has a test of a page of 18 real public rows, read on 2026-11-18. Each row has only the fields that the parser reads. The tests also find the cost of each offer with `meteredCost`.
 - Property tests with `fast-check` mutate each documented answer: they delete fields, and put edge values and random JSON in their place. Each result has only valid records, and each reading belongs to its offer.
 - A property test gives each parser random JSON values. No parser throws.
+- The plan parser has tests of plans from public answers of Vultr and Linode, read on 2026-11-18. Property tests mutate each answer. A property test holds the cost of each offer: the smaller of the hourly cost and the monthly price.
 - The tests of the clients use a fake transport and a real scheduler of `polite-crawler` on a fake clock. They hold each rule of the clients: the pace, the waits, the stops, the tokens and the secrets. `polite-crawler/api` has the tests of the send and of the token store.
 - A property test puts a random secret in random texts. No text that `redact` gives has the secret.
