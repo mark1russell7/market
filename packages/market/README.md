@@ -1,6 +1,6 @@
 # @mark1russell7/market
 
-The records of a market: a product, an offer of a seller and a price reading, with their checks. The package also has the GTIN check, the match keys of a record, the cost of an order and the storage rules of a source. The offers of a part and the best offer join the observations of the sources to the parts that a buyer wants. The board keeps the current prices within the terms of each source, and plans the reads of a watch. A buy plan gives the best baskets of the parts that a need names.
+The records of a market: a product, an offer of a seller and a price reading, with their checks. The package also has the GTIN check, the match keys of a record, the cost of an order and the storage rules of a source. The offers of a part and the best offer join the observations of the sources to the parts that a buyer wants. The board keeps the current prices within the terms of each source, and plans the reads of a watch. A buy plan gives the best baskets of the parts that a need names. A metered price gives the cost of a cloud resource from its usage, with tiers, free amounts and terms.
 
 ```sh
 pnpm add @mark1russell7/market
@@ -112,6 +112,66 @@ const plan = planBuys(need, observations);
 plan.front.map((choice) => [choice.price.value, choice.values["minutes"]]); // [[120, 20], [200, 50], [280, 80], [420, 100]]
 ```
 
+## Metered prices
+
+A cloud resource has a metered price: a price for each unit of an amount that the provider meters. A metered amount is a `time` (the hours of a machine), a `data-time` (stored data in GiB-months), a `data` (a transfer) or a `count` (requests).
+
+| Record | Schema | What it has |
+| --- | --- | --- |
+| Metered offer | `meteredOfferSchema` | One resource of a provider in one location, on one term: the source, the id at the source, the location, the term and the specifications. |
+| Metered reading | `meteredReadingSchema` | The metered prices of one offer at one instant: the billing period, the meters, and the upfront money of a committed term. |
+| Metered observation | `meteredObservationSchema` | A metered offer and a reading of that offer. |
+
+- **Prices.** A metered price is a quantity with a compound unit of `@mark1russell7/quantity`, for example `USD/h`, `USD/GiB`, `USD/(GiB·mo)` or `USD/{request}`. `meteredKindOf(unit)` gives the kind of its metered amount.
+- **Meters.** A reading has one meter or more, each with its own name. A meter has its tiers, and a free amount as an option.
+- **Tiers.** A tier has its start and its price for each unit. The first tier starts at zero, and the starts increase. A start can have another unit of the same amount, for example `TiB` with prices in `USD/GiB`.
+- **Free amounts.** A free amount is for each billing period. Its scope tells which usage shares it: the `account`, each `region` or each `resource`.
+- **Terms.** The term of an offer is `on-demand`, `spot` or `committed`. The provider can end a `spot` use at any time, after the `notice`. A preemptible use is a `spot` use. A `committed` term has its `length`, and its readings can have `upfront` money.
+- **Location.** The location of an offer has the provider, its region and its zone. The region and the zone are the ids of the provider. A source gives each location and each term its own offer id, so the readings of one offer make one series.
+- **Terms of a source.** A metered reading has `offerId` and `at`, as a price reading has. Thus `keepUntil`, `isKept`, `permitsHistory` and `permitsTrend` apply to it.
+
+`meteredCost(observation, usage, { freeUsed })` gives the cost of an offer for one period. `usage` has the amount of each meter in that period, by the name of the meter.
+
+1. The free amount comes off the usage first. `freeUsed` is the part of the free amount that other usage in its scope used.
+2. The tiers count the rest of the usage from zero. Each tier applies its price to its part of the usage.
+3. A committed term adds its upfront money, times the period, divided by the length.
+
+The arithmetic is exact, and the function does not round the cost to the cent. A meter with no usage costs zero. The result has the cost of each meter, the part of the upfront money, and the total.
+
+```ts
+import { meteredCost, type MeteredObservation } from "@mark1russell7/market";
+
+const id = "example-cloud:egress/region-1";
+const observation: MeteredObservation = {
+  offer: {
+    id,
+    source: "example-cloud",
+    sourceId: "egress/region-1",
+    title: "Data out to the internet",
+    location: { provider: "example-cloud", region: "region-1" },
+    term: { kind: "on-demand" },
+    specs: [],
+  },
+  reading: {
+    offerId: id,
+    at: "2026-11-12T18:00:00Z",
+    period: { value: 1, unit: "mo" },
+    meters: [
+      {
+        name: "egress",
+        tiers: [
+          { from: { value: 0, unit: "GiB" }, unitPrice: { value: 0.09, unit: "USD/GiB" } },
+          { from: { value: 10, unit: "TiB" }, unitPrice: { value: 0.085, unit: "USD/GiB" } },
+        ],
+        free: { amount: { value: 100, unit: "GiB" }, scope: "account" },
+      },
+    ],
+  },
+};
+// The free 100 GiB come off first. Then 10,240 GiB cost $0.09 each, and 1 GiB costs $0.085.
+meteredCost(observation, { egress: { value: 10_341, unit: "GiB" } }).total; // { value: 921.685, unit: "USD" }
+```
+
 ## Example
 
 ```ts
@@ -141,6 +201,9 @@ isKept(terms, reading, "2026-11-16T00:00:00Z"); // false
 - The match keys do not know the aliases of a brand. `Western Digital` and `WD` give two keys. A want of a part names each form of the brand.
 - A part number of a want matches each longer part number that starts with it. A want gives the full part number of the maker.
 - The money of the quantity package has one currency: the US dollar.
+- A month of the quantity package is 730.485 hours, the mean month of the calendar. Many providers bill a month as 730 hours. Give the usage in the unit of the price.
+- The quantity package has no prefix for a count. Thus a price for each million requests is a price for each request: `0.0000004 USD/{request}`.
+- `meteredCost` gives the cost of one offer. When offers share a free amount, the caller divides the free amount with `freeUsed`.
 - The price of a basket adds the cost of each item. Each item is one order with its own shipping, so the plan does not know a shared shipping cost.
 - A buy plan does not compare the count of an item with the count of the available units of its offer.
 - The package has no history of prices yet. Roadmap item R5 adds it, after the owner chooses its source.

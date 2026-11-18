@@ -3,6 +3,7 @@
  * also has the GTIN check, the match keys of a record, the cost of an order and the storage rules of a source.
  * The offers of a part and the best offer join the observations of the sources to the parts that a buyer wants.
  * The board keeps the current prices within the terms of each source, and plans the reads of a watch.
+ * A metered offer has a price for each unit of a metered amount, in tiers, with a free amount and a term.
  */
 export {
   BOARD_FORMAT,
@@ -43,6 +44,35 @@ export {
   type OfferChoice,
   type PartWant,
 } from "./offers.ts";
+export {
+  FREE_SCOPES,
+  freeAmountSchema,
+  locationSchema,
+  METERED_KINDS,
+  meteredCost,
+  meteredKindOf,
+  meteredObservationSchema,
+  meteredOfferSchema,
+  meteredPriceSchema,
+  meteredReadingSchema,
+  meterSchema,
+  priceTermSchema,
+  tierSchema,
+  type FreeAmount,
+  type FreeScope,
+  type Location,
+  type Meter,
+  type MeterCost,
+  type MeteredCost,
+  type MeteredCostOptions,
+  type MeteredKind,
+  type MeteredObservation,
+  type MeteredOffer,
+  type MeteredReading,
+  type MeteredUsage,
+  type PriceTerm,
+  type Tier,
+} from "./metered.ts";
 export { costOf, unitPriceFor } from "./price.ts";
 export {
   AVAILABILITIES,

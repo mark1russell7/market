@@ -18,10 +18,24 @@ CONDITIONS: build/offers.chunk.d.ts#CONDITIONS
 type Condition: build/offers.chunk.d.ts#Condition
 type Dropped: build/index.d.ts#Dropped
 FORMATS: build/offers.chunk.d.ts#FORMATS
+FREE_SCOPES: build/index.d.ts#FREE_SCOPES
 type Format: build/offers.chunk.d.ts#Format
+type FreeAmount: build/index.d.ts#FreeAmount
+type FreeScope: build/index.d.ts#FreeScope
 type Identifiers: build/offers.chunk.d.ts#Identifiers
 type KeepOptions: build/index.d.ts#KeepOptions
 type Kept: build/index.d.ts#Kept
+type Location: build/index.d.ts#Location
+METERED_KINDS: build/index.d.ts#METERED_KINDS
+type Meter: build/index.d.ts#Meter
+type MeterCost: build/index.d.ts#MeterCost
+type MeteredCost: build/index.d.ts#MeteredCost
+type MeteredCostOptions: build/index.d.ts#MeteredCostOptions
+type MeteredKind: build/index.d.ts#MeteredKind
+type MeteredObservation: build/index.d.ts#MeteredObservation
+type MeteredOffer: build/index.d.ts#MeteredOffer
+type MeteredReading: build/index.d.ts#MeteredReading
+type MeteredUsage: build/index.d.ts#MeteredUsage
 type Observation: build/offers.chunk.d.ts#Observation
 type Offer: build/offers.chunk.d.ts#Offer
 type OfferChoice: build/offers.chunk.d.ts#OfferChoice
@@ -29,6 +43,7 @@ type PartNumber: build/offers.chunk.d.ts#PartNumber
 type PartWant: build/offers.chunk.d.ts#PartWant
 type PriceBreak: build/offers.chunk.d.ts#PriceBreak
 type PriceReading: build/offers.chunk.d.ts#PriceReading
+type PriceTerm: build/index.d.ts#PriceTerm
 type Product: build/offers.chunk.d.ts#Product
 type Rating: build/offers.chunk.d.ts#Rating
 type ReadInterval: build/index.d.ts#ReadInterval
@@ -41,6 +56,7 @@ type Settled: build/index.d.ts#Settled
 type Shipping: build/offers.chunk.d.ts#Shipping
 type SourceTerms: build/index.d.ts#SourceTerms
 type Spec: build/offers.chunk.d.ts#Spec
+type Tier: build/index.d.ts#Tier
 type WatchEntry: build/index.d.ts#WatchEntry
 bestOffer: build/offers.chunk.d.ts#bestOffer
 boardObservations: build/index.d.ts#boardObservations
@@ -48,6 +64,7 @@ boardReadSchema: build/index.d.ts#boardReadSchema
 boardSchema: build/index.d.ts#boardSchema
 costOf: build/index.d.ts#costOf
 foldCode: build/offers.chunk.d.ts#foldCode
+freeAmountSchema: build/index.d.ts#freeAmountSchema
 gtinCheckDigit: build/index.d.ts#gtinCheckDigit
 gtinSchema: build/offers.chunk.d.ts#gtinSchema
 instantSchema: build/offers.chunk.d.ts#instantSchema
@@ -56,7 +73,15 @@ keepObservations: build/index.d.ts#keepObservations
 keepUntil: build/index.d.ts#keepUntil
 lastReads: build/index.d.ts#lastReads
 latestObservations: build/offers.chunk.d.ts#latestObservations
+locationSchema: build/index.d.ts#locationSchema
 matchKeys: build/offers.chunk.d.ts#matchKeys
+meterSchema: build/index.d.ts#meterSchema
+meteredCost: build/index.d.ts#meteredCost
+meteredKindOf: build/index.d.ts#meteredKindOf
+meteredObservationSchema: build/index.d.ts#meteredObservationSchema
+meteredOfferSchema: build/index.d.ts#meteredOfferSchema
+meteredPriceSchema: build/index.d.ts#meteredPriceSchema
+meteredReadingSchema: build/index.d.ts#meteredReadingSchema
 moneySchema: build/offers.chunk.d.ts#moneySchema
 observationSchema: build/index.d.ts#observationSchema
 offerId: build/offers.chunk.d.ts#offerId
@@ -70,6 +95,7 @@ permitsTrend: build/index.d.ts#permitsTrend
 planReads: build/index.d.ts#planReads
 priceBreakSchema: build/offers.chunk.d.ts#priceBreakSchema
 priceReadingSchema: build/offers.chunk.d.ts#priceReadingSchema
+priceTermSchema: build/index.d.ts#priceTermSchema
 productSchema: build/offers.chunk.d.ts#productSchema
 readInterval: build/index.d.ts#readInterval
 retentionSchema: build/index.d.ts#retentionSchema
@@ -81,6 +107,7 @@ sourceSchema: build/offers.chunk.d.ts#sourceSchema
 sourceTermsSchema: build/index.d.ts#sourceTermsSchema
 specSchema: build/offers.chunk.d.ts#specSchema
 textSchema: build/offers.chunk.d.ts#textSchema
+tierSchema: build/index.d.ts#tierSchema
 unitPriceFor: build/index.d.ts#unitPriceFor
 watchEntrySchema: build/index.d.ts#watchEntrySchema
 watchProblems: build/index.d.ts#watchProblems
@@ -139,6 +166,18 @@ interface Dropped {
   readonly why: string;
 }
 
+### build/index.d.ts#FREE_SCOPES
+export declare const FREE_SCOPES: readonly ["account", "region", "resource"];
+
+### build/index.d.ts#FreeAmount
+interface FreeAmount {
+  readonly amount: Quantity;
+  readonly scope: FreeScope;
+}
+
+### build/index.d.ts#FreeScope
+type FreeScope = (typeof FREE_SCOPES)[number];
+
 ### build/index.d.ts#KeepOptions
 interface KeepOptions {
   readonly terms: readonly SourceTerms[];
@@ -151,6 +190,86 @@ interface Kept {
   readonly kept: readonly Observation[];
   readonly dropped: readonly Dropped[];
 }
+
+### build/index.d.ts#Location
+interface Location {
+  readonly provider: string;
+  readonly region: string;
+  readonly zone?: string | undefined;
+}
+
+### build/index.d.ts#METERED_KINDS
+export declare const METERED_KINDS: readonly ["time", "data-time", "data", "count"];
+
+### build/index.d.ts#Meter
+interface Meter {
+  readonly name: string;
+  readonly tiers: readonly Tier[];
+  readonly free?: FreeAmount | undefined;
+}
+
+### build/index.d.ts#MeterCost
+interface MeterCost {
+  readonly name: string;
+  readonly cost: Quantity;
+}
+
+### build/index.d.ts#MeteredCost
+interface MeteredCost {
+  readonly meters: readonly MeterCost[];
+  readonly upfront: Quantity;
+  readonly total: Quantity;
+}
+
+### build/index.d.ts#MeteredCostOptions
+interface MeteredCostOptions {
+  readonly freeUsed?: MeteredUsage | undefined;
+}
+
+### build/index.d.ts#MeteredKind
+type MeteredKind = (typeof METERED_KINDS)[number];
+
+### build/index.d.ts#MeteredObservation
+interface MeteredObservation {
+  readonly offer: MeteredOffer;
+  readonly reading: MeteredReading;
+}
+
+### build/index.d.ts#MeteredOffer
+interface MeteredOffer {
+  readonly id: string;
+  readonly source: string;
+  readonly sourceId: string;
+  readonly productId?: string | undefined;
+  readonly title: string;
+  readonly url?: string | undefined;
+  readonly location: Location;
+  readonly term: PriceTerm;
+  readonly specs: readonly Spec[];
+}
+
+### build/index.d.ts#MeteredReading
+interface MeteredReading {
+  readonly offerId: string;
+  readonly at: string;
+  readonly period: Quantity;
+  readonly meters: readonly Meter[];
+  readonly upfront?: Quantity | undefined;
+}
+
+### build/index.d.ts#MeteredUsage
+type MeteredUsage = Readonly<Record<string, Quantity>>;
+
+### build/index.d.ts#PriceTerm
+type PriceTerm = {
+  readonly kind: "on-demand";
+} | {
+  readonly kind: "spot";
+  readonly notice?: Quantity | undefined;
+} | {
+  readonly kind: "committed";
+  readonly length: Quantity;
+};
 
 ### build/index.d.ts#ReadInterval
 type ReadInterval = {
@@ -204,6 +323,12 @@ interface SourceTerms {
   readonly clause: string;
 }
 
+### build/index.d.ts#Tier
+interface Tier {
+  readonly from: Quantity;
+  readonly unitPrice: Quantity;
+}
+
 ### build/index.d.ts#WatchEntry
 interface WatchEntry {
   readonly name: string;
@@ -222,6 +347,9 @@ export declare const boardSchema: z.ZodType<Board>;
 
 ### build/index.d.ts#costOf
 export declare function costOf(reading: PriceReading, count: number): Quantity | null;
+
+### build/index.d.ts#freeAmountSchema
+export declare const freeAmountSchema: z.ZodType<FreeAmount>;
 
 ### build/index.d.ts#gtinCheckDigit
 export declare function gtinCheckDigit(body: string): number;
@@ -242,6 +370,30 @@ export declare function keepUntil(terms: SourceTerms, reading: {
 ### build/index.d.ts#lastReads
 export declare function lastReads(board: Board): Record<string, string>;
 
+### build/index.d.ts#locationSchema
+export declare const locationSchema: z.ZodType<Location>;
+
+### build/index.d.ts#meterSchema
+export declare const meterSchema: z.ZodType<Meter>;
+
+### build/index.d.ts#meteredCost
+export declare function meteredCost(observation: MeteredObservation, usage: MeteredUsage, options?: MeteredCostOptions): MeteredCost;
+
+### build/index.d.ts#meteredKindOf
+export declare function meteredKindOf(unit: string): MeteredKind;
+
+### build/index.d.ts#meteredObservationSchema
+export declare const meteredObservationSchema: z.ZodType<MeteredObservation>;
+
+### build/index.d.ts#meteredOfferSchema
+export declare const meteredOfferSchema: z.ZodType<MeteredOffer>;
+
+### build/index.d.ts#meteredPriceSchema
+export declare const meteredPriceSchema: z.ZodType<Quantity, Quantity>;
+
+### build/index.d.ts#meteredReadingSchema
+export declare const meteredReadingSchema: z.ZodType<MeteredReading>;
+
 ### build/index.d.ts#observationSchema
 export declare const observationSchema: z.ZodType<Observation>;
 
@@ -257,6 +409,9 @@ export declare function permitsTrend(terms: SourceTerms): boolean;
 ### build/index.d.ts#planReads
 export declare function planReads(entries: readonly WatchEntry[], last: Readonly<Record<string, string>>, now: string, options: ScheduleOptions): ReadPlan;
 
+### build/index.d.ts#priceTermSchema
+export declare const priceTermSchema: z.ZodType<PriceTerm>;
+
 ### build/index.d.ts#readInterval
 export declare function readInterval(entry: WatchEntry, options: ScheduleOptions): ReadInterval;
 
@@ -268,6 +423,9 @@ export declare function settleBoard(board: Board, options: SettleOptions, read?:
 
 ### build/index.d.ts#sourceTermsSchema
 export declare const sourceTermsSchema: z.ZodType<SourceTerms>;
+
+### build/index.d.ts#tierSchema
+export declare const tierSchema: z.ZodType<Tier>;
 
 ### build/index.d.ts#unitPriceFor
 export declare function unitPriceFor(reading: PriceReading, count: number): Quantity;
