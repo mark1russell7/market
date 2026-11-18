@@ -119,6 +119,14 @@ describe("parsePlanLists with the Vultr record", () => {
     expect(meteredObservations(result).some((observation) => observation.offer.id.endsWith("/ewr/on-demand") && observation.offer.id.includes("h100"))).toBe(false);
   });
 
+  it("skips an offer with an hourly price of 0 and a monthly price, which would look free, and keeps a free plan", () => {
+    const priced = parsePlanLists(VULTR_PLANS, { plans: [vultrWith(0, { hourly_cost: 0, monthly_cost: 5, location_cost: {} })] }, AT);
+    expect(meteredObservations(priced)).toEqual([]);
+    expect(meteredNotes(priced)).toContain("The offer vultr:vc2-1c-1gb/ewr/on-demand is skipped: its hourly price is 0 and its monthly price is 5.");
+    const free = parsePlanLists(VULTR_PLANS, { plans: [vultrWith(0, { hourly_cost: 0, monthly_cost: 0, location_cost: {} })] }, AT);
+    expect(meteredObservations(free).map((observation) => observation.offer.id)).toEqual(["vultr:vc2-1c-1gb/ewr/on-demand", "vultr:vc2-1c-1gb/ams/on-demand", "vultr:vc2-1c-1gb/sao/on-demand"]);
+  });
+
   it("skips an offer with a bad price, with a note", () => {
     const result = parsePlanLists(VULTR_PLANS, { plans: [vultrWith(0, { hourly_cost: "-1", monthly_cost: 5 })] }, AT);
     expect(meteredObservations(result).map((observation) => observation.offer.id)).toEqual(["vultr:vc2-1c-1gb/sao/on-demand"]);
@@ -209,13 +217,23 @@ describe("the addresses of the pages of a list", () => {
     expect(planListUrl(VULTR_PLANS, none, "2")).toBe("https://api.vultr.com/v2/plans");
   });
 
-  it("gives the cursor or the number of the next page, or null at the end", () => {
-    expect(planNextPage(VULTR_PLANS.plans, vultrPlans, 1)).toBeNull();
-    expect(planNextPage(VULTR_PLANS.plans, { meta: { links: { next: "bmV4dA==" } } }, 1)).toBe("bmV4dA==");
+  it("gives the cursor or the number of the next page, or the end", () => {
+    expect(planNextPage(VULTR_PLANS.plans, vultrPlans, 1)).toEqual({ kind: "end" });
+    expect(planNextPage(VULTR_PLANS.plans, { meta: { links: { next: "bmV4dA==" } } }, 1)).toEqual({ kind: "next", after: "bmV4dA==" });
+    expect(planNextPage(VULTR_PLANS.plans, { meta: { links: { next: null } } }, 1)).toEqual({ kind: "end" });
+    expect(planNextPage(VULTR_PLANS.plans, { meta: { links: { next: "  " } } }, 1)).toEqual({ kind: "end" });
     const [first, second] = linodeAvailability;
-    expect(planNextPage(LINODE_PLANS.plans, first, 1)).toBe("2");
-    expect(planNextPage(LINODE_PLANS.plans, second, 2)).toBeNull();
-    expect(planNextPage(LINODE_PLANS.plans, { pages: "2" }, 1)).toBeNull();
+    expect(planNextPage(LINODE_PLANS.plans, first, 1)).toEqual({ kind: "next", after: "2" });
+    expect(planNextPage(LINODE_PLANS.plans, second, 2)).toEqual({ kind: "end" });
+    expect(planNextPage({ ...VULTR_PLANS.plans, paging: { kind: "none" } }, {}, 1)).toEqual({ kind: "end" });
+  });
+
+  it("gives a fault, not the end, for a paging field that is missing or of a wrong type", () => {
+    for (const pages of ["2", undefined, -1, 1.5, null]) {
+      expect(planNextPage(LINODE_PLANS.plans, { pages }, 1)).toEqual({ kind: "fault", why: `The count of pages ${pages === undefined ? "undefined" : JSON.stringify(pages)} at "pages" is not a whole number.` });
+    }
+    expect(planNextPage(VULTR_PLANS.plans, { meta: { links: {} } }, 1)).toEqual({ kind: "fault", why: `The cursor undefined at "meta.links.next" is not text or null.` });
+    expect(planNextPage(VULTR_PLANS.plans, { meta: { links: { next: 2 } } }, 1)).toEqual({ kind: "fault", why: `The cursor 2 at "meta.links.next" is not text or null.` });
   });
 });
 

@@ -60,9 +60,10 @@ export function createPlanClient<S extends Signal>(options: PlanClientOptions<S>
       if (!json.ok) return json;
       pages.push(json.json);
       const next = planNextPage(read, json.json, page);
-      if (next === null) return { ok: true, pages };
-      if (next === after) return refused(`The read stops: ${what} gives the cursor of its page ${page} again.`);
-      after = next;
+      if (next.kind === "end") return { ok: true, pages };
+      if (next.kind === "fault") return refused(`The read stops at the page ${page} of ${what}. ${next.why}`);
+      if (next.after === after) return refused(`The read stops: ${what} gives the cursor of its page ${page} again.`);
+      after = next.after;
     }
     return refused(`The read stops: ${what} has more pages than the limit of ${limit}.`);
   };

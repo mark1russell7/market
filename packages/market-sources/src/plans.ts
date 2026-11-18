@@ -64,7 +64,7 @@ export interface PlanListRead {
 /**
  * The price of a plan on one term. Each field is a path of names with dots in a plan, for example `price.hourly`.
  * A plan has the term only when the field `when` is `true`. The fields `regionHourly` and `regionMonthly` are the
- * paths in a price of one region. Their defaults are `hourly` and `monthly`.
+ * paths in a price of one region. Without them, the paths in the fields `hourly` and `monthly` of the term apply.
  */
 export interface PlanTerm {
   readonly key: string;
@@ -240,17 +240,33 @@ export function planListUrl(provider: PlanProvider, read: PlanListRead, after?: 
 }
 
 /**
- * This function gives the value of the paging parameter of the page after an answer, or null when the answer is the
- * last page. `page` is the number of the page of the answer, from 1.
+ * The page after an answer. The kind `next` has the value of the paging parameter of the next page. The kind `end`
+ * tells that the answer is the last page. The kind `fault` tells that the answer has no valid paging field.
  */
-export function planNextPage(read: PlanListRead, answer: unknown, page: number): string | null {
+export type PlanNextPage =
+  | { readonly kind: "next"; readonly after: string }
+  | { readonly kind: "end" }
+  | { readonly kind: "fault"; readonly why: string };
+
+/**
+ * This function gives the page after an answer. `page` is the number of the page of the answer, from 1. A paging
+ * field that is missing or of a wrong type gives a fault, not the end. A part of a list gives wrong offers. A cursor
+ * of empty text or null is the end.
+ */
+export function planNextPage(read: PlanListRead, answer: unknown, page: number): PlanNextPage {
   const { paging } = read;
-  if (paging.kind === "none") return null;
+  if (paging.kind === "none") return { kind: "end" };
   if (paging.kind === "page") {
-    const pages = wholeNumber(dig(answer, paging.pages));
-    return pages !== undefined && page < pages ? String(page + 1) : null;
+    const raw = dig(answer, paging.pages);
+    const pages = wholeNumber(raw);
+    if (pages === undefined) return { kind: "fault", why: `The count of pages ${show(raw)} at ${show(paging.pages)} is not a whole number.` };
+    return page < pages ? { kind: "next", after: String(page + 1) } : { kind: "end" };
   }
-  return text(dig(answer, paging.next)) ?? null;
+  const raw = dig(answer, paging.next);
+  if (raw === null || (typeof raw === "string" && raw.trim() === "")) return { kind: "end" };
+  const after = text(raw);
+  if (after === undefined) return { kind: "fault", why: `The cursor ${show(raw)} at ${show(paging.next)} is not text or null.` };
+  return { kind: "next", after };
 }
 
 function itemsOf(pages: readonly unknown[], read: PlanListRead, what: string): Read<readonly unknown[]> {
@@ -359,6 +375,11 @@ function observationOf(
   const monthly = rawMonthly === undefined || rawMonthly === null ? undefined : decimal(rawMonthly);
   if (rawMonthly !== undefined && rawMonthly !== null && monthly === undefined) {
     notes.push(`The offer ${id} is skipped: its monthly price ${show(rawMonthly)} is not a number of 0 or more.`);
+    return undefined;
+  }
+  // An hourly meter of price 0 cannot give a monthly price, and the offer would look free.
+  if (hourly === 0 && monthly !== undefined && monthly > 0) {
+    notes.push(`The offer ${id} is skipped: its hourly price is 0 and its monthly price is ${String(monthly)}.`);
     return undefined;
   }
   return observeMetered(
