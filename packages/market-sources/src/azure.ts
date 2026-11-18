@@ -122,24 +122,14 @@ export function azurePricesUrl(filter: AzureFilter, currency?: string): string {
 }
 
 /**
- * This function tells if a link goes to the Azure Retail Prices API: `https`, the host `prices.azure.com`, the
- * port 443 and the path `/api/retail/prices`.
+ * The pattern of a link to the Azure Retail Prices API: `https`, the host `prices.azure.com`, no port or the port 443,
+ * the path `/api/retail/prices` and an optional query. The pattern refuses a user name, a password and a fragment.
  */
+const AZURE_PRICES_LINK = /^https:\/\/prices\.azure\.com(?::443)?\/api\/retail\/prices(?:\?[^#\s]*)?$/;
+
+/** This function tells if a link goes to the Azure Retail Prices API (`AZURE_PRICES_LINK`). */
 export function isAzurePricesUrl(link: string): boolean {
-  let url: URL;
-  try {
-    url = new URL(link);
-  } catch {
-    return false;
-  }
-  return (
-    url.protocol === "https:" &&
-    url.hostname === "prices.azure.com" &&
-    url.port === "" &&
-    url.pathname === "/api/retail/prices" &&
-    url.username === "" &&
-    url.password === ""
-  );
+  return AZURE_PRICES_LINK.test(link);
 }
 
 /** This function gives the link of the next page of an answer, or null. A link to another address gives null. */
