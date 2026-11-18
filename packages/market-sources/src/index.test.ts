@@ -37,8 +37,18 @@ describe("the entry", () => {
       "EBAY_SOURCE",
       "EBAY_TERMS",
       "EBAY_US",
+      "LINODE_PLANS",
+      "LINODE_SOURCE",
+      "LINODE_TERMS",
+      "PLAN_METER",
+      "PLAN_PAGE_LIMIT",
+      "PLAN_PRICING_SPEC",
+      "PLAN_PROVIDERS",
       "SECRET_MARK",
       "SOURCE_TERMS",
+      "VULTR_PLANS",
+      "VULTR_SOURCE",
+      "VULTR_TERMS",
       "azureNextPage",
       "azurePricesUrl",
       "azureUnit",
@@ -47,6 +57,7 @@ describe("the entry", () => {
       "createBestBuyClient",
       "createDigiKeyClient",
       "createEbayClient",
+      "createPlanClient",
       "ebayCondition",
       "isAzurePricesUrl",
       "parseAzureRetailPricePages",
@@ -58,6 +69,11 @@ describe("the entry", () => {
       "parseDigiKeyProductDetails",
       "parseEbayItem",
       "parseEbaySearch",
+      "parsePlanLists",
+      "parsePlanProvider",
+      "planListUrl",
+      "planNextPage",
+      "planProviderSchema",
       "redact",
     ]);
   });
@@ -71,11 +87,13 @@ describe("the terms of each source", () => {
       entry.BEST_BUY_SOURCE,
       entry.DIGIKEY_SOURCE,
       entry.AZURE_SOURCE,
+      entry.LINODE_SOURCE,
+      entry.VULTR_SOURCE,
     ]);
   });
 
-  it("permit no stored history and no trend for any seller", () => {
-    for (const terms of [EBAY_TERMS, BEST_BUY_TERMS, DIGIKEY_TERMS]) {
+  it("permit no stored history and no trend for any seller and any plan list", () => {
+    for (const terms of [EBAY_TERMS, BEST_BUY_TERMS, DIGIKEY_TERMS, entry.LINODE_TERMS, entry.VULTR_TERMS]) {
       expect(permitsHistory(terms)).toBe(false);
       expect(permitsTrend(terms)).toBe(false);
     }
