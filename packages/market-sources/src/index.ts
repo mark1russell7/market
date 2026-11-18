@@ -83,6 +83,7 @@ export {
   planProviderSchema,
   type PlanAnswers,
   type PlanListRead,
+  type PlanNextPage,
   type PlanPaging,
   type PlanProvider,
   type PlanProviderRead,

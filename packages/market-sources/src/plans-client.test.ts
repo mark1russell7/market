@@ -64,6 +64,15 @@ describe("createPlanClient", () => {
     });
   });
 
+  it("refuses a list whose page has no valid paging field, and sends no next request", async () => {
+    const { client, sent } = setup((exchange) => (exchange.url === LINODE_REGIONS ? reply(200, { ...(linodeAvailability[0] as object), pages: "2" }) : linode(exchange)));
+    expect(await client.plans(LINODE_PLANS)).toEqual({
+      ok: false,
+      problems: [`The read stops at the page 1 of the list of regions. The count of pages "2" at "pages" is not a whole number.`],
+    });
+    expect(sent).toHaveLength(2);
+  });
+
   it("gives the problem of an answer that is not a success, and sends no next request", async () => {
     const { client, sent } = setup(() => reply(400, { errors: [{ reason: "detail" }] }, {}, "Bad Request"));
     expect(await client.plans(LINODE_PLANS)).toEqual({ ok: false, problems: ["Linode answered 400 Bad Request to the plan list."] });

@@ -68,6 +68,7 @@ type PlanAnswers: build/index.d.ts#PlanAnswers
 type PlanClient: build/index.d.ts#PlanClient
 type PlanClientOptions: build/index.d.ts#PlanClientOptions
 type PlanListRead: build/index.d.ts#PlanListRead
+type PlanNextPage: build/index.d.ts#PlanNextPage
 type PlanPaging: build/index.d.ts#PlanPaging
 type PlanProvider: build/index.d.ts#PlanProvider
 type PlanProviderRead: build/index.d.ts#PlanProviderRead
@@ -351,6 +352,17 @@ interface PlanListRead {
   readonly paging: PlanPaging;
 }
 
+### build/index.d.ts#PlanNextPage
+type PlanNextPage = {
+  readonly kind: "next";
+  readonly after: string;
+} | {
+  readonly kind: "end";
+} | {
+  readonly kind: "fault";
+  readonly why: string;
+};
+
 ### build/index.d.ts#PlanPaging
 type PlanPaging = {
   readonly kind: "none";
@@ -523,7 +535,7 @@ export declare function parsePlanProvider(value: unknown): PlanProviderRead;
 export declare function planListUrl(provider: PlanProvider, read: PlanListRead, after?: string): string;
 
 ### build/index.d.ts#planNextPage
-export declare function planNextPage(read: PlanListRead, answer: unknown, page: number): string | null;
+export declare function planNextPage(read: PlanListRead, answer: unknown, page: number): PlanNextPage;
 
 ### build/index.d.ts#planProviderSchema
 export declare const planProviderSchema: z.ZodType<PlanProvider>;
