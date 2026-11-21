@@ -4,7 +4,7 @@ import { spaceSize, STRATEGY_SPACE_SCHEMA, type SpaceParam, type StrategyConfig,
 import { compile, isFieldName, parse, space, type AnyDomain, type Program } from "@mark1russell7/vex";
 import { BoolDomain, NumDomain, TextDomain } from "@mark1russell7/vex-domains";
 import { z } from "zod";
-import { bestOffer, offersOfPart, type Observation, type OfferChoice, type PartWant } from "./offers.ts";
+import { offersOfPart, priceOf, type Observation, type PartWant, type Priced } from "./offers.ts";
 import { CONDITIONS, textSchema, type Condition } from "./records.ts";
 
 /*
@@ -263,6 +263,8 @@ export interface BuyPlan {
   readonly unpriced: readonly UnpricedPart[];
 }
 
+export { buyCandidates, orderBuys, type BuyCandidate, type BuyCandidates, type BuyOrder, type CandidateOptions, type OrderBuy, type OrderOptions, type OrderStage, type OrderStageResult, type ProductWant } from "./order.ts";
+
 /** These options change the search of a plan. */
 export interface PlanOptions {
   /** The largest count of evaluations. A space with no more baskets gets a grid of each basket. The default is `PLAN_EVALUATIONS`. */
@@ -273,8 +275,6 @@ export interface PlanOptions {
   readonly population?: number | undefined;
 }
 
-/** The offer to buy for one count of a part, or the reason that no offer is usable. */
-type Priced = { readonly ok: true; readonly offerId: string; readonly cost: Quantity } | { readonly ok: false; readonly why: string };
 
 /** The breaks, the values and the items of one basket. */
 interface Assessed {
@@ -284,22 +284,6 @@ interface Assessed {
   readonly items: readonly BuyItem[];
 }
 
-/**
- * This function chooses the offer to buy for a count of a part: the in-stock offer with the lowest cost, with the
- * shipping. An offer with a cost that is not known is not usable. Equal costs keep the order of `bestOffer`.
- */
-function priceOf(observations: readonly Observation[], count: number, need: BuyNeed): Priced {
-  const choice = bestOffer(observations, { currency: need.currency, count, ...(need.conditions === undefined ? {} : { conditions: need.conditions }) });
-  let pick: (OfferChoice & { readonly cost: Quantity }) | undefined;
-  for (const offer of choice.offers) {
-    const cost = offer.cost;
-    if (offer.inStock && cost !== null && (pick === undefined || compare(cost, pick.cost) < 0)) pick = { ...offer, cost };
-  }
-  if (pick !== undefined) return { ok: true, offerId: pick.observation.offer.id, cost: pick.cost };
-  if (choice.offers.length > 0) return { ok: false, why: `No offer of ${String(count)} units is in stock with a known cost.` };
-  const first = choice.skipped[0];
-  return { ok: false, why: first === undefined ? "No offer matches the part." : `No offer is usable. The first offer that the choice skipped: ${first.why}` };
-}
 
 /**
  * This function makes a buy plan from a need and the observations of the offers. Each slot is a stage of a strategy
