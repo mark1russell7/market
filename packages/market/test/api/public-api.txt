@@ -115,10 +115,14 @@ watchProblems: build/index.d.ts#watchProblems
 ## ./plan (build/plan.d.ts): names
 
 BuyBreak: build/plan.d.ts#BuyBreak
+type BuyCandidate: build/plan.d.ts#BuyCandidate
+type BuyCandidates: build/plan.d.ts#BuyCandidates
 BuyChoice: build/plan.d.ts#BuyChoice
 BuyItem: build/plan.d.ts#BuyItem
 BuyNeed: build/plan.d.ts#BuyNeed
+type BuyOrder: build/plan.d.ts#BuyOrder
 BuyPlan: build/plan.d.ts#BuyPlan
+type CandidateOptions: build/plan.d.ts#CandidateOptions
 Fact: build/plan.d.ts#Fact
 NEED_FORMAT: build/plan.d.ts#NEED_FORMAT
 NEED_KEY: build/plan.d.ts#NEED_KEY
@@ -126,14 +130,21 @@ NeedMeasure: build/plan.d.ts#NeedMeasure
 NeedPart: build/plan.d.ts#NeedPart
 NeedRule: build/plan.d.ts#NeedRule
 NeedSlot: build/plan.d.ts#NeedSlot
+type OrderBuy: build/plan.d.ts#OrderBuy
+type OrderOptions: build/plan.d.ts#OrderOptions
+type OrderStage: build/plan.d.ts#OrderStage
+type OrderStageResult: build/plan.d.ts#OrderStageResult
 PLAN_EVALUATIONS: build/plan.d.ts#PLAN_EVALUATIONS
 PLAN_FORMAT: build/plan.d.ts#PLAN_FORMAT
 PlanOptions: build/plan.d.ts#PlanOptions
+type ProductWant: build/plan.d.ts#ProductWant
 SLOT_FIELDS: build/plan.d.ts#SLOT_FIELDS
 SlotCount: build/plan.d.ts#SlotCount
 UnpricedPart: build/plan.d.ts#UnpricedPart
+buyCandidates: build/plan.d.ts#buyCandidates
 buyNeedSchema: build/plan.d.ts#buyNeedSchema
 needProblems: build/plan.d.ts#needProblems
+orderBuys: build/plan.d.ts#orderBuys
 planBuys: build/plan.d.ts#planBuys
 
 ## Declarations
@@ -652,6 +663,24 @@ export interface BuyBreak {
   readonly why: string;
 }
 
+### build/plan.d.ts#BuyCandidate
+interface BuyCandidate {
+  readonly product: string;
+  readonly price: number;
+  readonly max: number;
+  readonly quote: string;
+}
+
+### build/plan.d.ts#BuyCandidates
+interface BuyCandidates {
+  readonly currency: string;
+  readonly candidates: readonly BuyCandidate[];
+  readonly unpriced: readonly {
+    readonly product: string;
+    readonly why: string;
+  }[];
+}
+
 ### build/plan.d.ts#BuyChoice
 export interface BuyChoice {
   readonly config: string;
@@ -681,6 +710,15 @@ export interface BuyNeed {
   readonly rules?: readonly NeedRule[] | undefined;
 }
 
+### build/plan.d.ts#BuyOrder
+interface BuyOrder {
+  readonly budget: number;
+  readonly spent: number;
+  readonly buys: readonly OrderBuy[];
+  readonly units: Selection;
+  readonly stages: readonly OrderStageResult[];
+}
+
 ### build/plan.d.ts#BuyPlan
 export interface BuyPlan {
   readonly format: typeof PLAN_FORMAT;
@@ -694,6 +732,12 @@ export interface BuyPlan {
   readonly front: readonly BuyChoice[];
   readonly breaks: readonly BuyBreak[];
   readonly unpriced: readonly UnpricedPart[];
+}
+
+### build/plan.d.ts#CandidateOptions
+interface CandidateOptions {
+  readonly currency: string;
+  readonly conditions?: readonly Condition[] | undefined;
 }
 
 ### build/plan.d.ts#Fact
@@ -735,6 +779,41 @@ export interface NeedSlot {
   readonly count?: SlotCount | undefined;
 }
 
+### build/plan.d.ts#OrderBuy
+interface OrderBuy {
+  readonly stage: string;
+  readonly product: string;
+  readonly quote: string;
+  readonly cost: number;
+  readonly gain: readonly number[];
+}
+
+### build/plan.d.ts#OrderOptions
+interface OrderOptions {
+  readonly budget: number;
+  readonly stages: readonly OrderStage[];
+  readonly goal?: Goal | undefined;
+  readonly start?: Selection | undefined;
+  readonly lazy?: boolean | undefined;
+}
+
+### build/plan.d.ts#OrderStage
+interface OrderStage {
+  readonly name: string;
+  readonly value: (units: Selection) => readonly number[];
+}
+
+### build/plan.d.ts#OrderStageResult
+interface OrderStageResult {
+  readonly name: string;
+  readonly method: "greedy" | "single";
+  readonly before: readonly number[];
+  readonly after: readonly number[];
+  readonly spent: number;
+  readonly stop: GreedyStop;
+  readonly evaluations: number;
+}
+
 ### build/plan.d.ts#PLAN_EVALUATIONS
 export declare const PLAN_EVALUATIONS = 2e3;
 
@@ -746,6 +825,13 @@ export interface PlanOptions {
   readonly evaluations?: number | undefined;
   readonly seed?: number | string | undefined;
   readonly population?: number | undefined;
+}
+
+### build/plan.d.ts#ProductWant
+interface ProductWant {
+  readonly product: string;
+  readonly want: PartWant;
+  readonly max?: number | undefined;
 }
 
 ### build/plan.d.ts#SLOT_FIELDS
@@ -764,11 +850,17 @@ export interface UnpricedPart {
   readonly why: string;
 }
 
+### build/plan.d.ts#buyCandidates
+export declare function buyCandidates(wants: readonly ProductWant[], observations: readonly Observation[], options: CandidateOptions): BuyCandidates;
+
 ### build/plan.d.ts#buyNeedSchema
 export declare const buyNeedSchema: z.ZodType<BuyNeed>;
 
 ### build/plan.d.ts#needProblems
 export declare function needProblems(need: BuyNeed): string[];
+
+### build/plan.d.ts#orderBuys
+export declare function orderBuys(candidates: readonly BuyCandidate[], options: OrderOptions): BuyOrder;
 
 ### build/plan.d.ts#planBuys
 export declare function planBuys(need: BuyNeed, observations: readonly Observation[], options?: PlanOptions): BuyPlan;

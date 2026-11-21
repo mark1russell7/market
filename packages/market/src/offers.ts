@@ -147,3 +147,23 @@ function byCost(a: Quantity | null, b: Quantity | null): number {
 function order(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
+
+/** The offer to buy for one count of a part, or the reason that no offer is usable. */
+export type Priced = { readonly ok: true; readonly offerId: string; readonly cost: Quantity } | { readonly ok: false; readonly why: string };
+
+/**
+ * This function chooses the offer to buy for a count of a part: the in-stock offer with the lowest cost, with the
+ * shipping. An offer with a cost that is not known is not usable. Equal costs keep the order of `bestOffer`.
+ */
+export function priceOf(observations: readonly Observation[], count: number, need: { readonly currency: string; readonly conditions?: readonly Condition[] | undefined }): Priced {
+  const choice = bestOffer(observations, { currency: need.currency, count, ...(need.conditions === undefined ? {} : { conditions: need.conditions }) });
+  let pick: (OfferChoice & { readonly cost: Quantity }) | undefined;
+  for (const offer of choice.offers) {
+    const cost = offer.cost;
+    if (offer.inStock && cost !== null && (pick === undefined || compare(cost, pick.cost) < 0)) pick = { ...offer, cost };
+  }
+  if (pick !== undefined) return { ok: true, offerId: pick.observation.offer.id, cost: pick.cost };
+  if (choice.offers.length > 0) return { ok: false, why: `No offer of ${String(count)} units is in stock with a known cost.` };
+  const first = choice.skipped[0];
+  return { ok: false, why: first === undefined ? "No offer matches the part." : `No offer is usable. The first offer that the choice skipped: ${first.why}` };
+}

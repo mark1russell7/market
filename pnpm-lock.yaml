@@ -264,8 +264,8 @@ importers:
         specifier: ^0.4.0
         version: 0.4.1(zod@4.6.7)
       '@mark1russell7/strategy-search':
-        specifier: ^0.1.0
-        version: 0.1.1
+        specifier: ^0.1.2
+        version: 0.1.2
       '@mark1russell7/strategy-space':
         specifier: ^0.1.0
         version: 0.1.1
@@ -714,8 +714,8 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/strategy-search@0.1.1':
-    resolution: {integrity: sha512-zOISPIDwyw5FO8MhiTKmFYjeRmVFtE6E/aXo7abKS75WUWoo2WnjYCjWCkQ8CkYX3kMH6Os+00QX0sYEBwVSzg==}
+  '@mark1russell7/strategy-search@0.1.2':
+    resolution: {integrity: sha512-xySDH50GJDw6e1NkR60KvdE0SNb+2BZ9n8DqzTcTp4SRI3V12TMDjkSnqs0YEseaxVPAyDWqtkuyJgx7Xz7CCA==}
     engines: {node: '>=22'}
 
   '@mark1russell7/strategy-space@0.1.1':
@@ -2244,7 +2244,7 @@ snapshots:
       '@mark1russell7/files': 0.0.4
       typescript: 6.0.3
 
-  '@mark1russell7/strategy-search@0.1.1':
+  '@mark1russell7/strategy-search@0.1.2':
     dependencies:
       '@mark1russell7/rigor-generators': 0.2.0
       '@mark1russell7/strategy-space': 0.1.1

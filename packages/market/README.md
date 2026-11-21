@@ -112,6 +112,30 @@ const plan = planBuys(need, observations);
 plan.front.map((choice) => [choice.price.value, choice.values["minutes"]]); // [[120, 20], [200, 50], [280, 80], [420, 100]]
 ```
 
+## A buy order under a budget
+
+A buy order chooses units of products, one unit at a time, under a budget. Each step buys the unit with the largest gain for each unit of money. The choice is `greedy` of `@mark1russell7/strategy-search`. The module knows no topic: the caller gives the value of a choice as a function.
+
+- `buyCandidates(wants, observations, { currency, conditions })` gives a candidate for each product with a usable offer. The price is the cost of one unit with its shipping, from the in-stock offer with the lowest cost. Each unit is one order, so the price is an upper limit of the cost of more units. `unpriced` names each product with no usable offer.
+- `orderBuys(candidates, { budget, stages, goal, start })` gives the order. Each stage has a name and a value function. A stage starts from the units of the stage before it, with the money that is left.
+- **The value.** A value is a list of numbers, the most important number first. Thus a gain on the first number comes before each gain on the second number. With `goal: "min"`, a smaller value is better, as for a shortfall.
+- **The stops.** A stage stops at `budget` when no unit fits the money that is left. It stops at `units` when each product is at its `max`. It stops at `no-gain` when no unit has a gain.
+- **The bound.** With gains that do not increase as the order grows, the order holds at least `(1 - 1/e) / 2` of the best value. When two products give more together than apart, set `lazy` to `false`.
+
+```ts
+import { orderBuys, type BuyCandidate } from "@mark1russell7/market/plan";
+
+const candidates: BuyCandidate[] = [
+  { product: "JUG", price: 4, max: 10, quote: "a:1" },
+  { product: "CAN", price: 1, max: 10, quote: "a:2" },
+];
+// The days short of a target: water first, then food. A jug gives 4/3 days, and a can gives 1 day.
+const short = (target: number) => (units: Readonly<Record<string, number>>) => [Math.max(0, target - ((units["JUG"] ?? 0) * 4) / 3), Math.max(0, target - (units["CAN"] ?? 0))];
+const order = orderBuys(candidates, { budget: 15, goal: "min", stages: [{ name: "2 days", value: short(2) }, { name: "5 days", value: short(5) }] });
+order.units; // { JUG: 3, CAN: 3 }
+order.stages.map((stage) => stage.spent); // [10, 5]
+```
+
 ## Metered prices
 
 A cloud resource has a metered price: a price for each unit of an amount that the provider meters. A metered amount is a `time` (the hours of a machine), a `data-time` (stored data in GiB-months), a `data` (a transfer) or a `count` (requests).
