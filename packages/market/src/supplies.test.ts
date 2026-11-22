@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buyCandidates } from "./order.ts";
-import { checkSupplies, giftsOf, supplyWants, type SupplyCatalog, type SupplyProduct } from "./supplies.ts";
+import type { AveragePrice } from "./average.ts";
+import { averageSupplyPrices, checkSupplies, giftsOf, supplyWants, type SupplyCatalog, type SupplyProduct } from "./supplies.ts";
 import { SUPPLY_CATALOG } from "./supplies-data.ts";
 
 const codes = (catalog: SupplyCatalog): string[] => checkSupplies(catalog).map((finding) => finding.code);
@@ -23,6 +24,7 @@ describe("the reference catalog of supplies", () => {
     const warnings = checkSupplies(SUPPLY_CATALOG).filter((finding) => finding.level === "warning");
     expect(warnings.map((finding) => `${finding.code} ${finding.id}`)).toEqual([
       "supplies-no-read water.jug-1gal",
+      "supplies-no-read food.oats-1kg",
       "supplies-no-read power.anker-737",
       "supplies-no-read power.anker-737",
     ]);
@@ -109,5 +111,65 @@ describe("the gate of the catalog", () => {
     };
     const unused = checkSupplies(catalog).filter((finding) => finding.code === "supplies-unused");
     expect(unused.map((finding) => `${finding.record} ${finding.id}`)).toEqual(["unit spare-fact", "source spare"]);
+  });
+});
+
+/** This function gives an average price of the rice series of BLS, with the shape of the parser of market-sources. */
+const ricePrice = (period: string, value: number, unit = "USD/lb", at = "2026-11-22T16:00:00Z"): AveragePrice => ({
+  id: `bls-ap:APU0000701312:${period}`,
+  source: "bls-ap",
+  series: "APU0000701312",
+  item: "Rice, white, long grain, uncooked, per lb. (453.6 gm)",
+  area: "U.S. city average",
+  period,
+  price: { value, unit },
+  at,
+});
+
+describe("the prices of the supplies from average prices", () => {
+  it("gives the price of 1 kg of rice from the last month of its series, and a no read for the oats", () => {
+    const prices = averageSupplyPrices(SUPPLY_CATALOG, [ricePrice("2026-09", 1.118), ricePrice("2026-10", 1.101)]);
+    expect(prices.map((each) => each.product)).toEqual(["food.rice-white-1kg", "food.oats-1kg"]);
+    const [rice, oats] = prices;
+    expect(rice).toMatchObject({ read: true, average: "bls-ap:APU0000701312:2026-10", period: "2026-10" });
+    if (rice?.read !== true) return;
+    expect(rice.price.unit).toBe("USD");
+    // 1 lb is exactly 0.45359237 kg, so 1 kg is 1 / 0.45359237 lb.
+    expect(rice.price.value).toBeCloseTo(1.101 / 0.45359237, 10);
+    expect(oats).toEqual({ product: "food.oats-1kg", read: false, why: "The known series of average prices have no series of oats yet." });
+  });
+
+  it("gives a no read, not 0, for a series with no price and for a unit that does not fit the product", () => {
+    expect(averageSupplyPrices(SUPPLY_CATALOG, [])[0]).toEqual({
+      product: "food.rice-white-1kg",
+      read: false,
+      why: "The prices have no average price of the series APU0000701312 of bls-ap.",
+    });
+    const [volume] = averageSupplyPrices(SUPPLY_CATALOG, [ricePrice("2026-10", 1.101, "USD/L")]);
+    expect(volume?.read).toBe(false);
+    expect(volume).not.toHaveProperty("price");
+    expect(volume?.read === false && volume.why).toContain("does not convert to USD/kg");
+    const unknownUnit = { ...rice, average: { read: true as const, source: "bls-ap", series: "APU0000701312", per: { read: true as const, amount: 1, unit: "foo", definition: "A test." } } };
+    expect(averageSupplyPrices(withProduct(unknownUnit), [ricePrice("2026-10", 1.101)])[0]).toMatchObject({ read: false });
+    expect(errors(withProduct(unknownUnit))).toEqual(["supplies-unit"]);
+  });
+
+  it("gives a no read for a last price before the month since, and refuses a since that is not a month", () => {
+    const prices = [ricePrice("2023-01", 0.95)];
+    expect(averageSupplyPrices(SUPPLY_CATALOG, prices, { since: "2026-01" })[0]).toEqual({
+      product: "food.rice-white-1kg",
+      read: false,
+      why: "The last average price of the series APU0000701312 of bls-ap is for 2023-01, before 2026-01.",
+    });
+    expect(averageSupplyPrices(SUPPLY_CATALOG, prices, { since: "2023-01" })[0]?.read).toBe(true);
+    expect(averageSupplyPrices(SUPPLY_CATALOG, prices)[0]?.read).toBe(true);
+    for (const since of ["2026", "2026-13", "x"]) expect(() => averageSupplyPrices(SUPPLY_CATALOG, prices, { since }), since).toThrow(RangeError);
+  });
+
+  it("examines the amount of the join as each other amount", () => {
+    const join = { read: true as const, source: "bls-ap", series: "APU0000701312" };
+    expect(errors(withProduct({ ...rice, average: { ...join, per: { read: true, amount: 0, unit: "kg", definition: "A test." } } }))).toEqual(["supplies-amount"]);
+    expect(errors(withProduct({ ...rice, average: { ...join, per: { read: true, amount: 1, unit: "kg", fact: "unknown" } } }))).toEqual(["supplies-fact"]);
+    expect(codes(withProduct({ ...rice, average: { read: false, why: "" } }))).toContain("supplies-no-reason");
   });
 });

@@ -8,7 +8,7 @@
 
 AVAILABILITIES: build/offers.chunk.d.ts#AVAILABILITIES
 type Availability: build/offers.chunk.d.ts#Availability
-type AveragePrice: build/index.d.ts#AveragePrice
+type AveragePrice: build/average.chunk.d.ts#AveragePrice
 BOARD_FORMAT: build/index.d.ts#BOARD_FORMAT
 type BestOffer: build/offers.chunk.d.ts#BestOffer
 type BestOfferOptions: build/offers.chunk.d.ts#BestOfferOptions
@@ -59,8 +59,8 @@ type SourceTerms: build/index.d.ts#SourceTerms
 type Spec: build/offers.chunk.d.ts#Spec
 type Tier: build/index.d.ts#Tier
 type WatchEntry: build/index.d.ts#WatchEntry
-averagePriceId: build/index.d.ts#averagePriceId
-averagePriceSchema: build/index.d.ts#averagePriceSchema
+averagePriceId: build/average.chunk.d.ts#averagePriceId
+averagePriceSchema: build/average.chunk.d.ts#averagePriceSchema
 bestOffer: build/offers.chunk.d.ts#bestOffer
 boardObservations: build/index.d.ts#boardObservations
 boardReadSchema: build/index.d.ts#boardReadSchema
@@ -75,7 +75,7 @@ isKept: build/index.d.ts#isKept
 keepObservations: build/index.d.ts#keepObservations
 keepUntil: build/index.d.ts#keepUntil
 lastReads: build/index.d.ts#lastReads
-latestAverages: build/index.d.ts#latestAverages
+latestAverages: build/average.chunk.d.ts#latestAverages
 latestObservations: build/offers.chunk.d.ts#latestObservations
 locationSchema: build/index.d.ts#locationSchema
 matchKeys: build/offers.chunk.d.ts#matchKeys
@@ -87,7 +87,7 @@ meteredOfferSchema: build/index.d.ts#meteredOfferSchema
 meteredPriceSchema: build/index.d.ts#meteredPriceSchema
 meteredReadingSchema: build/index.d.ts#meteredReadingSchema
 moneySchema: build/offers.chunk.d.ts#moneySchema
-monthSchema: build/index.d.ts#monthSchema
+monthSchema: build/average.chunk.d.ts#monthSchema
 observationSchema: build/index.d.ts#observationSchema
 offerId: build/offers.chunk.d.ts#offerId
 offerSchema: build/offers.chunk.d.ts#offerSchema
@@ -114,7 +114,7 @@ specSchema: build/offers.chunk.d.ts#specSchema
 textSchema: build/offers.chunk.d.ts#textSchema
 tierSchema: build/index.d.ts#tierSchema
 unitPriceFor: build/index.d.ts#unitPriceFor
-unitPriceSchema: build/index.d.ts#unitPriceSchema
+unitPriceSchema: build/average.chunk.d.ts#unitPriceSchema
 watchEntrySchema: build/index.d.ts#watchEntrySchema
 watchProblems: build/index.d.ts#watchProblems
 
@@ -155,7 +155,15 @@ planBuys: build/plan.d.ts#planBuys
 
 ## ./supplies (build/supplies-entry.d.ts): names
 
+type AverageJoin: build/supplies-entry.d.ts#AverageJoin
 type CitedAmount: build/supplies-entry.d.ts#CitedAmount
+FOOD_PLANS: build/supplies-entry.d.ts#FOOD_PLANS
+FOOD_PLAN_GROUPS: build/supplies-entry.d.ts#FOOD_PLAN_GROUPS
+type FoodPlan: build/supplies-entry.d.ts#FoodPlan
+type FoodPlanCheck: build/supplies-entry.d.ts#FoodPlanCheck
+type FoodPlanGroup: build/supplies-entry.d.ts#FoodPlanGroup
+type FoodPlanMember: build/supplies-entry.d.ts#FoodPlanMember
+type FoodPlanSize: build/supplies-entry.d.ts#FoodPlanSize
 type GiftOf: build/supplies-entry.d.ts#GiftOf
 type NoRead: build/supplies-entry.d.ts#NoRead
 SUPPLY_CATALOG: build/supplies-entry.d.ts#SUPPLY_CATALOG
@@ -168,15 +176,19 @@ type SupplyCode: build/supplies-entry.d.ts#SupplyCode
 type SupplyFinding: build/supplies-entry.d.ts#SupplyFinding
 type SupplyGift: build/supplies-entry.d.ts#SupplyGift
 type SupplyKind: build/supplies-entry.d.ts#SupplyKind
+type SupplyPrice: build/supplies-entry.d.ts#SupplyPrice
 type SupplyProduct: build/supplies-entry.d.ts#SupplyProduct
 type SupplyResource: build/supplies-entry.d.ts#SupplyResource
+averageSupplyPrices: build/supplies-entry.d.ts#averageSupplyPrices
 checkSupplies: build/supplies-entry.d.ts#checkSupplies
+foodPlanCheck: build/supplies-entry.d.ts#foodPlanCheck
+foodPlanCost: build/supplies-entry.d.ts#foodPlanCost
 giftsOf: build/supplies-entry.d.ts#giftsOf
 supplyWants: build/supplies-entry.d.ts#supplyWants
 
 ## Declarations
 
-### build/index.d.ts#AveragePrice
+### build/average.chunk.d.ts#AveragePrice
 interface AveragePrice {
   readonly id: string;
   readonly source: string;
@@ -188,6 +200,21 @@ interface AveragePrice {
   readonly at: string;
   readonly footnotes?: readonly string[] | undefined;
 }
+
+### build/average.chunk.d.ts#averagePriceId
+declare function averagePriceId(source: string, series: string, period: string): string;
+
+### build/average.chunk.d.ts#averagePriceSchema
+declare const averagePriceSchema: z.ZodType<AveragePrice>;
+
+### build/average.chunk.d.ts#latestAverages
+declare function latestAverages(prices: readonly AveragePrice[]): readonly AveragePrice[];
+
+### build/average.chunk.d.ts#monthSchema
+declare const monthSchema: z.ZodType<string>;
+
+### build/average.chunk.d.ts#unitPriceSchema
+declare const unitPriceSchema: z.ZodType<Quantity, Quantity>;
 
 ### build/index.d.ts#BOARD_FORMAT
 export declare const BOARD_FORMAT = "price-board/1";
@@ -387,12 +414,6 @@ interface WatchEntry {
   readonly every: Quantity;
 }
 
-### build/index.d.ts#averagePriceId
-export declare function averagePriceId(source: string, series: string, period: string): string;
-
-### build/index.d.ts#averagePriceSchema
-export declare const averagePriceSchema: z.ZodType<AveragePrice>;
-
 ### build/index.d.ts#boardObservations
 export declare function boardObservations(board: Board, options: KeepOptions): Observation[];
 
@@ -427,9 +448,6 @@ export declare function keepUntil(terms: SourceTerms, reading: {
 ### build/index.d.ts#lastReads
 export declare function lastReads(board: Board): Record<string, string>;
 
-### build/index.d.ts#latestAverages
-export declare function latestAverages(prices: readonly AveragePrice[]): readonly AveragePrice[];
-
 ### build/index.d.ts#locationSchema
 export declare const locationSchema: z.ZodType<Location>;
 
@@ -453,9 +471,6 @@ export declare const meteredPriceSchema: z.ZodType<Quantity, Quantity>;
 
 ### build/index.d.ts#meteredReadingSchema
 export declare const meteredReadingSchema: z.ZodType<MeteredReading>;
-
-### build/index.d.ts#monthSchema
-export declare const monthSchema: z.ZodType<string>;
 
 ### build/index.d.ts#observationSchema
 export declare const observationSchema: z.ZodType<Observation>;
@@ -492,9 +507,6 @@ export declare const tierSchema: z.ZodType<Tier>;
 
 ### build/index.d.ts#unitPriceFor
 export declare function unitPriceFor(reading: PriceReading, count: number): Quantity;
-
-### build/index.d.ts#unitPriceSchema
-export declare const unitPriceSchema: z.ZodType<Quantity, Quantity>;
 
 ### build/index.d.ts#watchEntrySchema
 export declare const watchEntrySchema: z.ZodType<WatchEntry>;
@@ -920,6 +932,14 @@ export declare function needProblems(need: BuyNeed): string[];
 ### build/plan.d.ts#planBuys
 export declare function planBuys(need: BuyNeed, observations: readonly Observation[], options?: PlanOptions): BuyPlan;
 
+### build/supplies-entry.d.ts#AverageJoin
+interface AverageJoin {
+  readonly read: true;
+  readonly source: string;
+  readonly series: string;
+  readonly per: CitedAmount;
+}
+
 ### build/supplies-entry.d.ts#CitedAmount
 type CitedAmount = {
   readonly read: true;
@@ -934,6 +954,48 @@ type CitedAmount = {
   readonly definition: string;
   readonly fact?: never;
 };
+
+### build/supplies-entry.d.ts#FOOD_PLANS
+export declare const FOOD_PLANS: readonly FoodPlan[];
+
+### build/supplies-entry.d.ts#FOOD_PLAN_GROUPS
+export declare const FOOD_PLAN_GROUPS: readonly ["child-1", "child-2-3", "child-4-5", "child-6-8", "child-9-11", "female-12-13", "female-14-19", "female-20-50", "female-51-70", "female-71-up", "male-12-13", "male-14-19", "male-20-50", "male-51-70", "male-71-up"];
+
+### build/supplies-entry.d.ts#FoodPlan
+interface FoodPlan {
+  readonly id: string;
+  readonly title: string;
+  readonly area: string;
+  readonly period: string;
+  readonly source: Source;
+  readonly locator: string;
+  readonly weekly: Readonly<Record<FoodPlanGroup, Quantity>>;
+  readonly sizes: readonly FoodPlanSize[];
+}
+
+### build/supplies-entry.d.ts#FoodPlanCheck
+interface FoodPlanCheck {
+  readonly plan: Quantity;
+  readonly cost: Quantity;
+  readonly ratio: number;
+  readonly above: boolean;
+}
+
+### build/supplies-entry.d.ts#FoodPlanGroup
+type FoodPlanGroup = (typeof FOOD_PLAN_GROUPS)[number];
+
+### build/supplies-entry.d.ts#FoodPlanMember
+interface FoodPlanMember {
+  readonly group: FoodPlanGroup;
+  readonly count: number;
+}
+
+### build/supplies-entry.d.ts#FoodPlanSize
+interface FoodPlanSize {
+  readonly from: number;
+  readonly to?: number | undefined;
+  readonly change: number;
+}
 
 ### build/supplies-entry.d.ts#GiftOf
 type GiftOf = {
@@ -995,6 +1057,19 @@ interface SupplyGift {
 ### build/supplies-entry.d.ts#SupplyKind
 type SupplyKind = (typeof SUPPLY_KINDS)[number];
 
+### build/supplies-entry.d.ts#SupplyPrice
+type SupplyPrice = {
+  readonly product: string;
+  readonly read: true;
+  readonly price: Quantity;
+  readonly average: string;
+  readonly period: string;
+} | {
+  readonly product: string;
+  readonly read: false;
+  readonly why: string;
+};
+
 ### build/supplies-entry.d.ts#SupplyProduct
 interface SupplyProduct {
   readonly id: string;
@@ -1004,6 +1079,7 @@ interface SupplyProduct {
   readonly gives: readonly SupplyGift[];
   readonly energy?: CitedAmount | NoRead | undefined;
   readonly shelf: ShelfLife;
+  readonly average?: AverageJoin | NoRead | undefined;
 }
 
 ### build/supplies-entry.d.ts#SupplyResource
@@ -1013,8 +1089,19 @@ interface SupplyResource {
   readonly title: string;
 }
 
+### build/supplies-entry.d.ts#averageSupplyPrices
+export declare function averageSupplyPrices(catalog: SupplyCatalog, prices: readonly AveragePrice[], options?: {
+  readonly since?: string | undefined;
+}): SupplyPrice[];
+
 ### build/supplies-entry.d.ts#checkSupplies
 export declare function checkSupplies(catalog: SupplyCatalog, options?: GateOptions): SupplyFinding[];
+
+### build/supplies-entry.d.ts#foodPlanCheck
+export declare function foodPlanCheck(cost: Quantity, plan: FoodPlan, members: readonly FoodPlanMember[], days: number): FoodPlanCheck;
+
+### build/supplies-entry.d.ts#foodPlanCost
+export declare function foodPlanCost(plan: FoodPlan, members: readonly FoodPlanMember[], days: number): Quantity;
 
 ### build/supplies-entry.d.ts#giftsOf
 export declare function giftsOf(catalog: SupplyCatalog, id: string, units: number): GiftOf[];

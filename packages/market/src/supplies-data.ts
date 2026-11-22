@@ -63,6 +63,12 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       gives: [{ resource: "food.grain-dry", amount: { read: true, amount: 1, unit: "kg", definition: "The product is 1 kg of dry rice." } }],
       energy: { read: true, amount: 3650, unit: "kcal", fact: "fdc.rice-white" },
       shelf: { read: true, foodKeeper: 338 },
+      average: {
+        read: true,
+        source: "bls-ap",
+        series: "APU0000701312",
+        per: { read: true, amount: 1, unit: "kg", definition: "The product is 1 kg of dry white long-grain rice, the item of the series." },
+      },
     },
     {
       id: "food.oats-1kg",
@@ -71,6 +77,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       gives: [{ resource: "food.grain-dry", amount: { read: true, amount: 1, unit: "kg", definition: "The product is 1 kg of dry oats." } }],
       energy: { read: true, amount: 3790, unit: "kcal", fact: "fdc.oats" },
       shelf: { read: true, foodKeeper: 375 },
+      average: { read: false, why: "The known series of average prices have no series of oats yet." },
     },
     {
       id: "power.anker-737",

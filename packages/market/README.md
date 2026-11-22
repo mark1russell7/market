@@ -145,6 +145,7 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The facts and their sources are the records of [`@mark1russell7/guidebook`](https://www.npmjs.com/package/@mark1russell7/guidebook). Its gate examines each license and each address.
 - The shelf life of a food is the id of a product of the FoodKeeper data of USDA FSIS. The entry `/foodkeeper` of `@mark1russell7/stock` gives its due rule.
 - The resource codes are the codes of a store of `@mark1russell7/stack-endurance`, for example `water.stored` in `L`.
+- A product can join a series of average prices. The join names the source, the series and the amount of the item in one unit, with its reason. A product with no series has a no read with its reason.
 - The gate does not examine the joins to other packages. It does not find a FoodKeeper id that is not in `@mark1russell7/stock`, or a resource code that a layer of stores does not have. The code that joins the catalog to stock or to a layer of stores gives those gates. market depends on neither package.
 
 | Function | What it does |
@@ -152,12 +153,18 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 | `checkSupplies(catalog, options)` | It gives the findings of the catalog: the errors of the gate, and a warning for each no read and for each fact or source that no product uses. |
 | `supplyWants(catalog, max)` | It gives the wants of the products with a part, for `buyCandidates`. A product with no part has no offer, so it has no price. |
 | `giftsOf(catalog, id, units)` | It gives the resources of a count of units, each in the unit of its resource. A unit converts exactly, so 1 gal gives 3.785411784 L. |
+| `averageSupplyPrices(catalog, prices, { since })` | It gives the price of one unit of each product with a join, from the last month of its series. A series with no price and a unit that does not fit give a no read. With `since`, so does a last price before that month. |
+| `foodPlanCost(plan, members, days)` | It gives the cost of a food plan for the members of a household and a count of days. It applies the change for the size of the household. |
+| `foodPlanCheck(cost, plan, members, days)` | It compares the cost of the food of a buy list with the cost of the plan. A ratio above 1 tells that a price or an amount is possibly wrong. |
 
 `SUPPLY_CATALOG` is the reference catalog. Its facts come from Ready.gov (FEMA, a US federal work) and from FoodData Central (USDA, CC0 1.0). It has gaps:
 
 - The energy of the power bank is no read. The page of the maker gives 24,000 mAh and no Wh, and a charge does not convert to energy without its voltage.
 - The kinds `light`, `heat`, `first-aid` and `communication` have no product yet.
 - The shelf life of commercially bottled water is no read. The source gives no time, so the date on the label applies.
+- The oats have no series of average prices. The rice joins the BLS series `APU0000701312` in `USD/lb`, so 1 kg of rice costs 2.2046 times the price of 1 lb.
+
+`FOOD_PLANS` has the costs of the Thrifty Food Plan of USDA for October 2026, in the U.S. average. The costs come from the monthly report of the cost of food (a US federal work). Each cost is for one person of an age and sex group, in a household of four. The changes for the other sizes come from footnote 2 of the report. The plan is a full diet, so a list of dry staples costs much less than the plan. A low ratio is normal. The check of the amount of food is a check of its energy, not of its cost. The members of a household are input data.
 
 ## Metered prices
 
