@@ -152,8 +152,15 @@ describe("bestOffer", () => {
 
   it("refuses a count that is not a whole number of 1 or more, and a currency that is not a unit of money", () => {
     for (const count of [0, -1, 1.5, Number.NaN]) expect(() => bestOffer([], { currency: "USD", count })).toThrow(RangeError);
-    expect(() => bestOffer([], { currency: "EUR" })).toThrow("The currency EUR is not a unit of money of @mark1russell7/quantity.");
+    expect(() => bestOffer([], { currency: "ZZZ" })).toThrow("The currency ZZZ is not a unit of money of @mark1russell7/quantity.");
     expect(() => bestOffer([], { currency: "W" })).toThrow(RangeError);
+  });
+
+  it("keeps the offers in EUR for a call in EUR, and skips the offers in USD", () => {
+    const list = [observation({ id: "e:1", price: 10, unit: "EUR" }), observation({ id: "e:2", price: 8 })];
+    const chosen = bestOffer(list, { currency: "EUR" });
+    expect(chosen.best?.observation.offer.id).toBe("e:1");
+    expect(chosen.skipped).toEqual([{ offerId: "e:2", why: "The price is in USD, not in EUR." }]);
   });
 
   it("gives one choice for each order of the observations, and the best has the lowest price of the offers in stock", () => {

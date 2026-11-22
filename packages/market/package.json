@@ -45,7 +45,7 @@
   },
   "dependencies": {
     "@mark1russell7/guidebook": "^0.1.1",
-    "@mark1russell7/quantity": "^0.4.0",
+    "@mark1russell7/quantity": "^0.4.4",
     "@mark1russell7/strategy-search": "^0.1.2",
     "@mark1russell7/strategy-space": "^0.1.0",
     "@mark1russell7/vex": "^0.19.1",

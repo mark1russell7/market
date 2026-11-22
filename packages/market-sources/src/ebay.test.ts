@@ -184,9 +184,9 @@ describe("parseEbayItem", () => {
     });
 
     it("skips a price in a currency that quantity does not know, and names the currency", () => {
-      const result = parseEbayItem(item({ price: { value: "10.00", currency: "GBP" } }), AT);
+      const result = parseEbayItem(item({ price: { value: "10.00", currency: "ZZZ" } }), AT);
       expect(observations(result)).toEqual([]);
-      expect(notes(result)[0]).toContain('the currency "GBP" is not a money unit');
+      expect(notes(result)[0]).toContain('the currency "ZZZ" is not a money unit');
     });
 
     it("skips an item with no price", () => {
