@@ -44,8 +44,14 @@ describe("the reference catalog of supplies", () => {
     const radio = SUPPLY_CATALOG.products.find((product) => product.id === "communication.noaa-radio")!;
     const products = (basis: string | undefined): SupplyCatalog => ({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === radio.id ? { ...radio, basis } : each)) });
     expect(errors(products("unknown"))).toEqual(["supplies-fact"]);
+    expect(errors(products(undefined))).toEqual(["supplies-basis"]);
+    expect(errors({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === radio.id ? { ...radio, basis: undefined, gives: rice.gives } : each)) })).toEqual([]);
     const unused = checkSupplies(products(undefined)).filter((finding) => finding.code === "supplies-unused");
     expect(unused.map((finding) => finding.id)).toEqual(["ready.kit-radio"]);
+  });
+
+  it("gives the food energy of peanut butter in kcal, because it goes to the food need with no converter", () => {
+    expect(giftsOf(SUPPLY_CATALOG, "food.peanut-butter-1kg", 2)).toEqual([{ resource: "food.no-cook", read: true, amount: 11960, unit: "kcal" }]);
   });
 
   it("gives the water of a jug of 1 gal in litres, exactly as the definition of the gallon", () => {

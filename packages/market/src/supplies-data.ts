@@ -83,7 +83,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
     { code: "water.stored", unit: "L", title: "Stored drinking water" },
     { code: "food.grain-dry", unit: "kg", title: "Dry grain, to cook with water and fuel" },
     { code: "food.legume-dry", unit: "kg", title: "Dry beans, to cook with water and fuel" },
-    { code: "food.no-cook", unit: "kg", title: "Food to eat with no water and no fuel" },
+    { code: "food.no-cook", unit: "kcal", title: "Food energy to eat with no water and no fuel" },
     { code: "energy.battery", unit: "Wh", title: "Energy in a battery" },
   ],
   products: [
@@ -142,7 +142,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       id: "food.peanut-butter-1kg",
       title: "Peanut butter, smooth, 1 kg",
       kind: "food",
-      gives: [{ resource: "food.no-cook", amount: { read: true, amount: 1, unit: "kg", definition: "The product is 1 kg of peanut butter." } }],
+      gives: [{ resource: "food.no-cook", amount: { read: true, amount: 5980, unit: "kcal", fact: "fdc.peanut-butter" } }],
       energy: { read: true, amount: 5980, unit: "kcal", fact: "fdc.peanut-butter" },
       shelf: { read: true, foodKeeper: 387 },
       average: { read: false, why: "The known series of average prices have no series of peanut butter yet." },

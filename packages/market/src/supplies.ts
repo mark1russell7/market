@@ -105,6 +105,7 @@ export const SUPPLY_CODES = [
   "supplies-kind",
   "supplies-resource",
   "supplies-fact",
+  "supplies-basis",
   "supplies-amount",
   "supplies-unit",
   "supplies-shelf",
@@ -139,6 +140,7 @@ const SHELF_UNIT = "d";
  * `@mark1russell7/guidebook`), and the findings of the products:
  *
  * - An error for a product or a resource two times, a kind that is not a supply kind, and a gift of an unknown resource.
+ * - An error for a product that gives no resource and has no basis.
  * - An error for a fact that is not a fact of the catalog, and for an amount that is not more than 0. The basis of a
  *   product is also a fact.
  * - An error for an amount with no reason, with two reasons, or with a blank definition. A catalog from JSON can have them.
@@ -207,6 +209,7 @@ export function checkSupplies(catalog: SupplyCatalog, options: GateOptions = {})
       if (resource === undefined) error("supplies-resource", "product", product.id, `The product ${product.id} gives the resource ${gift.resource}, and the catalog has no such resource.`);
       else amount(product.id, `gift of ${gift.resource}`, gift.amount, resource.unit);
     }
+    if (product.gives.length === 0 && product.basis === undefined) error("supplies-basis", "product", product.id, `The product ${product.id} gives no resource and has no basis. A product that gives no resource cites a fact in its basis.`);
     if (product.basis !== undefined) {
       const fact = facts.get(product.basis);
       if (fact === undefined || fact.use !== "fact") error("supplies-fact", "product", product.id, `The basis of the product ${product.id} cites ${String(product.basis)}, and the catalog has no fact with that id.`);
