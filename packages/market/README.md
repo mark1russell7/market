@@ -173,7 +173,8 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 `buyListEnergy` gives only the data of the catalog. The energy of a line is the field `energy` of the product times its count of units.
 
 - A product with a no read gives a line with no read. A no read is not 0. Then the sum is a lower limit.
-- A food product with no field `energy` also gives a no read. A product of another kind with no energy, for example water, gives no line.
+- A food product with no field `energy` also gives a no read. A product of another kind gives no line, for example water. The gate refuses a field `energy` on a product that is not food.
+- For the food energy of a product, use its field `energy`. A no-cook product also gives its energy as a gift of `food.no-cook`, for the model of the endurance of the stores. Do not add the two: that counts the energy two times.
 - Each line has the resource codes of the product. A caller can thus split the energy of `food.no-cook` from the energy of the dry foods.
 - The energy need of the members, the days of food and the shortfall are not in this package. The days depend on the water and the fuel that a case leaves. The model of the endurance of the stores gives them.
 

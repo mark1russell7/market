@@ -141,6 +141,7 @@ const SHELF_UNIT = "d";
  *
  * - An error for a product or a resource two times, a kind that is not a supply kind, and a gift of an unknown resource.
  * - An error for a product that gives no resource and has no basis.
+ * - An error for a field `energy` on a product that is not food. The field is the food energy of one unit.
  * - An error for a fact that is not a fact of the catalog, and for an amount that is not more than 0. The basis of a
  *   product is also a fact.
  * - An error for an amount with no reason, with two reasons, or with a blank definition. A catalog from JSON can have them.
@@ -215,6 +216,7 @@ export function checkSupplies(catalog: SupplyCatalog, options: GateOptions = {})
       if (fact === undefined || fact.use !== "fact") error("supplies-fact", "product", product.id, `The basis of the product ${product.id} cites ${String(product.basis)}, and the catalog has no fact with that id.`);
       used.add(product.basis);
     }
+    if (product.energy !== undefined && product.kind !== "food") error("supplies-kind", "product", product.id, `The product ${product.id} has a food energy, and its kind is ${String(product.kind)}. Only a product of the kind food has a food energy.`);
     if (product.energy !== undefined) amount(product.id, "food energy", product.energy, ENERGY_UNIT);
     if (product.average !== undefined) amount(product.id, "average price", product.average.read ? product.average.per : product.average, product.average.read ? product.average.per.unit : "");
     if ("foodKeeper" in product.shelf) {

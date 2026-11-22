@@ -53,6 +53,13 @@ describe("the food energy of a buy list", () => {
     expect(buyListEnergy(SUPPLY_CATALOG, {})).toEqual({ lines: [], read: true, energy: { value: 0, unit: "kcal" } });
   });
 
+  it("adds no energy of a product that is not food to the sum, also when the product has a field energy", () => {
+    const battery: SupplyProduct = { id: "power.battery", title: "A battery", kind: "power", gives: [], basis: "ready.kit-flashlight", energy: { read: true, amount: 100, unit: "W*h", definition: "A test battery." }, shelf: noLabel };
+    const energy = buyListEnergy(withProducts(battery), { "power.battery": 1, "food.rice-white-1kg": 1 });
+    expect(energy.lines.map((line) => line.product)).toEqual(["food.rice-white-1kg"]);
+    expect(energy.energy.value).toBe(3650);
+  });
+
   it("refuses an unknown product and a bad count of units", () => {
     expect(() => buyListEnergy(SUPPLY_CATALOG, { "food.unknown": 1 })).toThrow(RangeError);
     for (const units of [-1, Number.NaN, Number.POSITIVE_INFINITY]) expect(() => buyListEnergy(SUPPLY_CATALOG, { "food.oats-1kg": units }), String(units)).toThrow(RangeError);

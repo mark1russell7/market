@@ -35,7 +35,8 @@ export interface BuyListEnergy {
  *
  * - A product with a no read for its energy gives a line with no read. A no read is not 0.
  * - A food product with no field `energy` also gives a line with no read.
- * - A product of another kind with no field `energy` is not food, for example water. It gives no line.
+ * - A product of another kind is not food, for example water or a battery. It gives no line, also when it has a
+ *   field `energy`. The gate of the catalog refuses that field on a product that is not food.
  * - A product with 0 units gives no line.
  *
  * The list can be the `units` of a buy order.
@@ -52,7 +53,7 @@ export function buyListEnergy(catalog: SupplyCatalog, units: Readonly<Record<str
     // `giftsOf` refuses a bad count of units and an unknown product.
     const resources = giftsOf(catalog, id, count).map((gift) => gift.resource);
     const product = catalog.products.find((each) => each.id === id);
-    if (product === undefined || count === 0) continue;
+    if (product === undefined || count === 0 || product.kind !== "food") continue;
     const energy = product.energy;
     if (energy === undefined) {
       if (product.kind === "food") lines.push({ product: id, units: count, resources, read: false, why: `The catalog has no food energy for the product ${id}.` });
