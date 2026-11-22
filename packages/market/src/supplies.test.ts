@@ -91,6 +91,11 @@ describe("the gate of the catalog", () => {
     expect(errors(withProduct({ ...rice, gives: [{ ...rice.gives[0]!, resource: "food.unknown" }] }))).toEqual(["supplies-resource"]);
   });
 
+  it("refuses a food energy on a product that is not food, also in a unit that converts to kcal", () => {
+    const battery = { ...rice, kind: "power" as const, energy: { read: true as const, amount: 100, unit: "W*h", definition: "A test battery." } };
+    expect(errors(withProduct(battery))).toEqual(["supplies-kind"]);
+  });
+
   it("refuses a cited amount with an unknown fact, an amount of 0 and a unit that does not convert", () => {
     const unknownFact = codes(withProduct({ ...rice, energy: { read: true, amount: 3650, unit: "kcal", fact: "unknown" } }));
     expect(unknownFact.filter((code) => code !== "supplies-no-read")).toEqual(["supplies-fact", "supplies-unused"]);

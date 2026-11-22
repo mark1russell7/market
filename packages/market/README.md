@@ -157,6 +157,7 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 | `averageSupplyPrices(catalog, prices, { since })` | It gives the price of one unit of each product with a join, from the last month of its series. A series with no price and a unit that does not fit give a no read. With `since`, so does a last price before that month. |
 | `foodPlanCost(plan, members, days)` | It gives the cost of a food plan for the members of a household and a count of days. It applies the change for the size of the household. |
 | `foodPlanCheck(cost, plan, members, days)` | It compares the cost of the food of a buy list with the cost of the plan. A ratio above 1 tells that a price or an amount is possibly wrong. |
+| `buyListEnergy(catalog, units)` | It gives the food energy of each line of a buy list in `kcal`, with the resources of the product, and their sum. |
 
 `SUPPLY_CATALOG` is the reference catalog. Its facts come from Ready.gov (FEMA, a US federal work) and from FoodData Central (USDA, CC0 1.0). It has gaps:
 
@@ -168,6 +169,14 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The oats have no series of average prices. The pasta has its own resource `food.pasta-dry`, because the cook drains its water, and rice and oats absorb their water. The dry beans, the pasta and the flour join the BLS series `APU0000714233`, `APU0000701322` and `APU0000701111` in `USD/lb`. The rice joins the BLS series `APU0000701312` in `USD/lb`, so 1 kg of rice costs 2.2046 times the price of 1 lb.
 
 `FOOD_PLANS` has the costs of the Thrifty Food Plan of USDA for October 2026, in the U.S. average. The costs come from the monthly report of the cost of food (a US federal work). Each cost is for one person of an age and sex group, in a household of four. The changes for the other sizes come from footnote 2 of the report. The plan is a full diet, so a list of dry staples costs much less than the plan. A low ratio is normal. The check of the amount of food is a check of its energy, not of its cost. The members of a household are input data.
+
+`buyListEnergy` gives only the data of the catalog. The energy of a line is the field `energy` of the product times its count of units.
+
+- A product with a no read gives a line with no read. A no read is not 0. Then the sum is a lower limit.
+- A food product with no field `energy` also gives a no read. A product of another kind gives no line, for example water. The gate refuses a field `energy` on a product that is not food.
+- For the food energy of a product, use its field `energy`. A no-cook product also gives its energy as a gift of `food.no-cook`, for the model of the endurance of the stores. Do not add the two: that counts the energy two times.
+- Each line has the resource codes of the product. A caller can thus split the energy of `food.no-cook` from the energy of the dry foods.
+- The energy need of the members, the days of food and the shortfall are not in this package. The days depend on the water and the fuel that a case leaves. The model of the endurance of the stores gives them.
 
 ## Metered prices
 

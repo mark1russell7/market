@@ -1,6 +1,7 @@
 /**
  * The catalog of supplies: the format, the gate, the wants of its products and the gifts of their units, and the
  * reference catalog. It also gives the price of a product from an average price, and the cost of a food plan of USDA.
+ * It also gives the food energy of a buy list.
  * Each value has a cited fact, the definition of the product, or a no read.
  */
 export {
@@ -37,3 +38,4 @@ export {
   type FoodPlanSize,
 } from "./food-plan.ts";
 export { FOOD_PLANS } from "./food-plan-data.ts";
+export { buyListEnergy, type BuyListEnergy, type BuyListEnergyLine } from "./buy-list-energy.ts";
