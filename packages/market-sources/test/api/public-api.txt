@@ -17,6 +17,7 @@ AZURE_SOURCE: build/index.d.ts#AZURE_SOURCE
 AZURE_TERMS: build/index.d.ts#AZURE_TERMS
 ApiError: polite-crawler/api#ApiError (external)
 type ApiScheduler: polite-crawler/api#ApiScheduler (external)
+type AverageParseResult: build/index.d.ts#AverageParseResult
 type AzureClient: build/index.d.ts#AzureClient
 type AzureClientOptions: build/index.d.ts#AzureClientOptions
 type AzureFilter: build/index.d.ts#AzureFilter
@@ -28,8 +29,20 @@ BEST_BUY_PACE_MS: build/index.d.ts#BEST_BUY_PACE_MS
 BEST_BUY_PAGE_LIMIT: build/index.d.ts#BEST_BUY_PAGE_LIMIT
 BEST_BUY_SOURCE: build/index.d.ts#BEST_BUY_SOURCE
 BEST_BUY_TERMS: build/index.d.ts#BEST_BUY_TERMS
+BLS_API_URL: build/index.d.ts#BLS_API_URL
+BLS_HOST: build/index.d.ts#BLS_HOST
+BLS_PACE_MS: build/index.d.ts#BLS_PACE_MS
+BLS_SERIES_LIMIT: build/index.d.ts#BLS_SERIES_LIMIT
+BLS_SOURCE: build/index.d.ts#BLS_SOURCE
+BLS_STAPLES: build/index.d.ts#BLS_STAPLES
+BLS_STATEMENT: build/index.d.ts#BLS_STATEMENT
+BLS_TERMS: build/index.d.ts#BLS_TERMS
+BLS_YEAR_LIMIT: build/index.d.ts#BLS_YEAR_LIMIT
 type BestBuyClient: build/index.d.ts#BestBuyClient
 type BestBuyClientOptions: build/index.d.ts#BestBuyClientOptions
+type BlsClient: build/index.d.ts#BlsClient
+type BlsClientOptions: build/index.d.ts#BlsClientOptions
+type BlsSeries: build/index.d.ts#BlsSeries
 DIGIKEY_HOST: build/index.d.ts#DIGIKEY_HOST
 DIGIKEY_PACE_MS: build/index.d.ts#DIGIKEY_PACE_MS
 DIGIKEY_SANDBOX_HOST: build/index.d.ts#DIGIKEY_SANDBOX_HOST
@@ -89,8 +102,10 @@ azureNextPage: build/index.d.ts#azureNextPage
 azurePricesUrl: build/index.d.ts#azurePricesUrl
 azureUnit: build/index.d.ts#azureUnit
 bestBuyCondition: build/index.d.ts#bestBuyCondition
+blsRequest: build/index.d.ts#blsRequest
 createAzureClient: build/index.d.ts#createAzureClient
 createBestBuyClient: build/index.d.ts#createBestBuyClient
+createBlsClient: build/index.d.ts#createBlsClient
 createDigiKeyClient: build/index.d.ts#createDigiKeyClient
 createEbayClient: build/index.d.ts#createEbayClient
 createPlanClient: build/index.d.ts#createPlanClient
@@ -101,6 +116,7 @@ parseAzureRetailPrices: build/index.d.ts#parseAzureRetailPrices
 parseBestBuyOpenBox: build/index.d.ts#parseBestBuyOpenBox
 parseBestBuyProduct: build/index.d.ts#parseBestBuyProduct
 parseBestBuyProducts: build/index.d.ts#parseBestBuyProducts
+parseBlsSeries: build/index.d.ts#parseBlsSeries
 parseDigiKeyKeywordSearch: build/index.d.ts#parseDigiKeyKeywordSearch
 parseDigiKeyProductDetails: build/index.d.ts#parseDigiKeyProductDetails
 parseEbayItem: build/index.d.ts#parseEbayItem
@@ -140,6 +156,15 @@ export declare const AZURE_SOURCE = "azure";
 
 ### build/index.d.ts#AZURE_TERMS
 export declare const AZURE_TERMS: SourceTerms;
+
+### build/index.d.ts#AverageParseResult
+type AverageParseResult = {
+  readonly ok: true;
+  readonly prices: readonly AveragePrice[];
+  readonly notes: readonly string[];
+} | (Refused & {
+  readonly threshold?: true | undefined;
+});
 
 ### build/index.d.ts#AzureClient
 interface AzureClient<S extends Signal> {
@@ -186,6 +211,33 @@ export declare const BEST_BUY_SOURCE = "bestbuy";
 ### build/index.d.ts#BEST_BUY_TERMS
 export declare const BEST_BUY_TERMS: SourceTerms;
 
+### build/index.d.ts#BLS_API_URL
+export declare const BLS_API_URL = "https://api.bls.gov/publicAPI/v1/timeseries/data/";
+
+### build/index.d.ts#BLS_HOST
+export declare const BLS_HOST = "api.bls.gov";
+
+### build/index.d.ts#BLS_PACE_MS
+export declare const BLS_PACE_MS: number;
+
+### build/index.d.ts#BLS_SERIES_LIMIT
+export declare const BLS_SERIES_LIMIT = 25;
+
+### build/index.d.ts#BLS_SOURCE
+export declare const BLS_SOURCE = "bls-ap";
+
+### build/index.d.ts#BLS_STAPLES
+export declare const BLS_STAPLES: readonly BlsSeries[];
+
+### build/index.d.ts#BLS_STATEMENT
+export declare const BLS_STATEMENT = "BLS.gov cannot vouch for the data or analyses derived from these data after the data have been retrieved from BLS.gov.";
+
+### build/index.d.ts#BLS_TERMS
+export declare const BLS_TERMS: SourceTerms;
+
+### build/index.d.ts#BLS_YEAR_LIMIT
+export declare const BLS_YEAR_LIMIT = 10;
+
 ### build/index.d.ts#BestBuyClient
 interface BestBuyClient<S extends Signal> {
   product(sku: string, signal?: S): Promise<ParseResult>;
@@ -198,6 +250,28 @@ interface BestBuyClientOptions<S extends Signal> {
   readonly apiKey: string;
   readonly transport: Transport<S>;
   readonly pace: Pace<S>;
+}
+
+### build/index.d.ts#BlsClient
+interface BlsClient<S extends Signal> {
+  averages(series?: readonly BlsSeries[], years?: {
+    readonly start: number;
+    readonly end: number;
+  }, signal?: S): Promise<AverageParseResult>;
+}
+
+### build/index.d.ts#BlsClientOptions
+interface BlsClientOptions<S extends Signal> {
+  readonly transport: Transport<S>;
+  readonly pace: Pace<S>;
+}
+
+### build/index.d.ts#BlsSeries
+interface BlsSeries {
+  readonly series: string;
+  readonly item: string;
+  readonly area: string;
+  readonly unit: string;
 }
 
 ### build/index.d.ts#DIGIKEY_HOST
@@ -477,11 +551,25 @@ export declare function azureUnit(unitOfMeasure: string): AzureUnit | undefined;
 ### build/index.d.ts#bestBuyCondition
 export declare function bestBuyCondition(condition: unknown, preowned: unknown): Condition;
 
+### build/index.d.ts#blsRequest
+export declare function blsRequest(series: readonly string[], years?: {
+  readonly start: number;
+  readonly end: number;
+}): {
+  readonly method: "POST";
+  readonly url: string;
+  readonly headers: Readonly<Record<string, string>>;
+  readonly body: string;
+};
+
 ### build/index.d.ts#createAzureClient
 export declare function createAzureClient<S extends Signal>(options: AzureClientOptions<S>): AzureClient<S>;
 
 ### build/index.d.ts#createBestBuyClient
 export declare function createBestBuyClient<S extends Signal>(options: BestBuyClientOptions<S>): BestBuyClient<S>;
+
+### build/index.d.ts#createBlsClient
+export declare function createBlsClient<S extends Signal>(options: BlsClientOptions<S>): BlsClient<S>;
 
 ### build/index.d.ts#createDigiKeyClient
 export declare function createDigiKeyClient<S extends Signal>(options: DigiKeyClientOptions<S>): DigiKeyClient<S>;
@@ -512,6 +600,9 @@ export declare function parseBestBuyProduct(answer: unknown, at: string): ParseR
 
 ### build/index.d.ts#parseBestBuyProducts
 export declare function parseBestBuyProducts(answer: unknown, at: string): ParseResult;
+
+### build/index.d.ts#parseBlsSeries
+export declare function parseBlsSeries(json: unknown, at: string, known?: readonly BlsSeries[]): AverageParseResult;
 
 ### build/index.d.ts#parseDigiKeyKeywordSearch
 export declare function parseDigiKeyKeywordSearch(answer: unknown, at: string): ParseResult;
