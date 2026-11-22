@@ -1019,7 +1019,7 @@ interface NoRead {
 export declare const SUPPLY_CATALOG: SupplyCatalog;
 
 ### build/supplies-entry.d.ts#SUPPLY_CODES
-export declare const SUPPLY_CODES: readonly ["supplies-format", "supplies-twice", "supplies-kind", "supplies-resource", "supplies-fact", "supplies-amount", "supplies-unit", "supplies-shelf", "supplies-unused", "supplies-no-read", "supplies-no-reason"];
+export declare const SUPPLY_CODES: readonly ["supplies-format", "supplies-twice", "supplies-kind", "supplies-resource", "supplies-fact", "supplies-basis", "supplies-amount", "supplies-unit", "supplies-shelf", "supplies-unused", "supplies-no-read", "supplies-no-reason"];
 
 ### build/supplies-entry.d.ts#SUPPLY_FORMAT
 export declare const SUPPLY_FORMAT = "supply-catalog/1";
