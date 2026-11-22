@@ -1,5 +1,6 @@
 import { checkSources, checkUnits, type CitedUnit, type Finding, type FindingCode, type GateOptions, type Source } from "@mark1russell7/guidebook";
-import { convertible, quantity, valueIn } from "@mark1russell7/quantity";
+import { convertible, quantity, valueIn, whyNotConvertible, type Quantity } from "@mark1russell7/quantity";
+import { latestAverages, moneyOf, type AveragePrice } from "./average.ts";
 import type { PartWant } from "./offers.ts";
 import type { ProductWant } from "./order.ts";
 
@@ -52,6 +53,20 @@ export interface SupplyGift {
  */
 export type ShelfLife = CitedAmount | { readonly read: true; readonly foodKeeper: number } | NoRead;
 
+/**
+ * The join of a product to a series of average prices: the source and the series, and the amount of the item of the
+ * series in one unit of the product. For example, 1 kg of dry rice is the amount of a series of rice in USD/lb.
+ */
+export interface AverageJoin {
+  readonly read: true;
+  /** The source of the average prices, for example `bls-ap`. */
+  readonly source: string;
+  /** The id of the series in the source, for example `APU0000701312`. */
+  readonly series: string;
+  /** The amount of the item of the series in one unit of the product, with its reason. */
+  readonly per: CitedAmount;
+}
+
 /** A product of the catalog. */
 export interface SupplyProduct {
   readonly id: string;
@@ -64,6 +79,11 @@ export interface SupplyProduct {
   /** The food energy of one unit, in a unit of energy. A cooking converter gives it. */
   readonly energy?: CitedAmount | NoRead | undefined;
   readonly shelf: ShelfLife;
+  /**
+   * The series of average prices that gives the price of one unit, or no read with the reason. A product with no join
+   * and no part has no price.
+   */
+  readonly average?: AverageJoin | NoRead | undefined;
 }
 
 /** A catalog of supplies: the sources, the cited facts, the resources and the products. */
@@ -120,6 +140,7 @@ const SHELF_UNIT = "d";
  * - An error for an amount with no reason, with two reasons, or with a blank definition. A catalog from JSON can have them.
  * - An error for a unit that is not a unit of `@mark1russell7/quantity`.
  * - An error for a unit that does not convert to the unit of its resource.
+ * - The amount of the item of an average price has the same checks as each other amount.
  * - A warning for each value with no read, and for a no read with a blank reason.
  * - A warning for each fact and each source that no product uses.
  *
@@ -183,6 +204,7 @@ export function checkSupplies(catalog: SupplyCatalog, options: GateOptions = {})
       else amount(product.id, `gift of ${gift.resource}`, gift.amount, resource.unit);
     }
     if (product.energy !== undefined) amount(product.id, "food energy", product.energy, ENERGY_UNIT);
+    if (product.average !== undefined) amount(product.id, "average price", product.average.read ? product.average.per : product.average, product.average.read ? product.average.per.unit : "");
     if ("foodKeeper" in product.shelf) {
       if (!(Number.isSafeInteger(product.shelf.foodKeeper) && product.shelf.foodKeeper > 0)) error("supplies-shelf", "product", product.id, `The FoodKeeper id of the product ${product.id} is ${String(product.shelf.foodKeeper)}. It must be a whole number more than 0.`);
     } else amount(product.id, "shelf life", product.shelf, SHELF_UNIT);
@@ -228,5 +250,42 @@ export function giftsOf(catalog: SupplyCatalog, id: string, units: number): Gift
     if (resource === undefined) throw new RangeError(`The product ${id} gives the resource ${gift.resource}, and the catalog has no such resource.`);
     if (!gift.amount.read) return { resource: gift.resource, read: false, why: gift.amount.why };
     return { resource: gift.resource, read: true, amount: units * valueIn(quantity(gift.amount.amount, gift.amount.unit), resource.unit), unit: resource.unit };
+  });
+}
+
+/** The price of one unit of a product from an average price, or no read with the reason. */
+export type SupplyPrice =
+  | { readonly product: string; readonly read: true; readonly price: Quantity; readonly average: string; readonly period: string }
+  | { readonly product: string; readonly read: false; readonly why: string };
+
+/**
+ * This function gives the price of one unit of each product with a join to a series, in the order of the catalog.
+ * It takes the last month of each series (`latestAverages`). The price is in the money of the average price.
+ *
+ * - A product with no join is not in the result.
+ * - A join with no read, a series with no price, and a unit that does not fit give no read. A no read is not 0.
+ * - The unit of the series must convert to the unit of the product, for example USD/lb to 1 kg.
+ *
+ * @param catalog - The catalog
+ * @param prices - The average prices, from one or more reads
+ * @returns The price of one unit of each product with a join, or no read with the reason
+ */
+export function averageSupplyPrices(catalog: SupplyCatalog, prices: readonly AveragePrice[]): SupplyPrice[] {
+  const last = new Map(latestAverages(prices).map((price) => [`${price.source}:${price.series}`, price]));
+  return catalog.products.flatMap((product): SupplyPrice[] => {
+    const join = product.average;
+    if (join === undefined) return [];
+    const none = (why: string): SupplyPrice[] => [{ product: product.id, read: false, why }];
+    if (!join.read) return none(join.why);
+    const average = last.get(`${join.source}:${join.series}`);
+    if (average === undefined) return none(`The prices have no average price of the series ${join.series} of ${join.source}.`);
+    const money = moneyOf(average.price.unit);
+    if (money === undefined) return none(`The unit ${average.price.unit} of ${average.id} is not a price for each unit of an amount.`);
+    if (!known(join.per.unit)) return none(`The unit ${String(join.per.unit)} of the product ${product.id} is not a known unit.`);
+    const unit = `${money}/${join.per.unit}`;
+    const why = whyNotConvertible(average.price.unit, unit);
+    if (why !== undefined) return none(`The average price ${average.id} is in ${average.price.unit}, and it does not convert to ${unit}: ${why}.`);
+    const price = quantity(valueIn(average.price, unit) * join.per.amount, money);
+    return [{ product: product.id, read: true, price, average: average.id, period: average.period }];
   });
 }

@@ -66,6 +66,15 @@ function unitPriceProblem(unit: string): string | undefined {
   return undefined;
 }
 
+/**
+ * This function gives the symbol of the money of a price for each unit of an amount, for example `USD` for `USD/lb`.
+ * It gives undefined for each other unit.
+ */
+export function moneyOf(unit: string): string | undefined {
+  if (unitPriceProblem(unit) !== undefined) return undefined;
+  return parseUnit(unit).components.find((component) => component.exponent > 0)?.atom?.symbol;
+}
+
 /** This schema accepts a price of more than 0 for each unit of an amount, for example `{ "value": 1.101, "unit": "USD/lb" }`. */
 export const unitPriceSchema: z.ZodType<Quantity, Quantity> = quantitySchema(undefined, { positive: true }).superRefine((price, context) => {
   const problem = unitPriceProblem(price.unit);
