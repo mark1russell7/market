@@ -1,0 +1,84 @@
+import { SUPPLY_FORMAT, type SupplyCatalog } from "./supplies.ts";
+
+// The reference catalog of supplies. Each value has a cited fact, the definition of the product, or a no read.
+// Each fact is in own words, not a quote. The shelf life of a food is a product of the FoodKeeper data of USDA FSIS:
+// the entry `/foodkeeper` of `@mark1russell7/stock` gives its due rule, so this catalog does not copy its times.
+
+const CHECKED = "2026-11-22";
+
+/** The reference catalog of supplies. A household adds its own products to a copy of it. */
+export const SUPPLY_CATALOG: SupplyCatalog = {
+  format: SUPPLY_FORMAT,
+  sources: [
+    { id: "ready.water", title: "Water", url: "https://www.ready.gov/water", license: "us-public-domain", checked: CHECKED, by: "FEMA (Ready.gov)" },
+    { id: "fdc.sr-legacy", title: "FoodData Central, SR Legacy", url: "https://fdc.nal.usda.gov/", license: "cc0", checked: CHECKED, by: "USDA Agricultural Research Service" },
+  ],
+  facts: [
+    {
+      id: "ready.water-replace",
+      use: "fact",
+      text: "The page tells to replace the stored water that is not commercially bottled each six months.",
+      source: "ready.water",
+      locator: "Water storage",
+    },
+    {
+      id: "fdc.rice-white",
+      use: "fact",
+      text: "The item 168877 (white long-grain rice, raw, enriched) gives 365 kcal in 100 g. Thus 1 kg gives 3650 kcal.",
+      source: "fdc.sr-legacy",
+      locator: "FDC ID 168877",
+    },
+    {
+      id: "fdc.oats",
+      use: "fact",
+      text: "The item 173904 (oats, regular and quick, not fortified, dry) gives 379 kcal in 100 g. Thus 1 kg gives 3790 kcal.",
+      source: "fdc.sr-legacy",
+      locator: "FDC ID 173904",
+    },
+  ],
+  resources: [
+    { code: "water.stored", unit: "L", title: "Stored drinking water" },
+    { code: "food.grain-dry", unit: "kg", title: "Dry grain, to cook with water and fuel" },
+    { code: "energy.battery", unit: "Wh", title: "Energy in a battery" },
+  ],
+  products: [
+    {
+      id: "water.jug-1gal",
+      title: "Drinking water, commercially bottled, in a jug of 1 gal",
+      kind: "water",
+      gives: [{ resource: "water.stored", amount: { read: true, amount: 1, unit: "gal", definition: "The product is a jug of 1 gal." } }],
+      shelf: { read: false, why: "The source tells to keep commercially bottled water sealed, and it gives no time. The date on the label applies." },
+    },
+    {
+      id: "water.container-1gal",
+      title: "A water container of 1 gal, filled from the tap",
+      kind: "water",
+      gives: [{ resource: "water.stored", amount: { read: true, amount: 1, unit: "gal", definition: "The product is a container of 1 gal." } }],
+      shelf: { read: true, amount: 6, unit: "mo", fact: "ready.water-replace" },
+    },
+    {
+      id: "food.rice-white-1kg",
+      title: "White long-grain rice, dry, 1 kg",
+      kind: "food",
+      gives: [{ resource: "food.grain-dry", amount: { read: true, amount: 1, unit: "kg", definition: "The product is 1 kg of dry rice." } }],
+      energy: { read: true, amount: 3650, unit: "kcal", fact: "fdc.rice-white" },
+      shelf: { read: true, foodKeeper: 338 },
+    },
+    {
+      id: "food.oats-1kg",
+      title: "Rolled oats, dry, 1 kg",
+      kind: "food",
+      gives: [{ resource: "food.grain-dry", amount: { read: true, amount: 1, unit: "kg", definition: "The product is 1 kg of dry oats." } }],
+      energy: { read: true, amount: 3790, unit: "kcal", fact: "fdc.oats" },
+      shelf: { read: true, foodKeeper: 375 },
+    },
+    {
+      id: "power.anker-737",
+      title: "Anker 737 Power Bank (PowerCore 24K)",
+      kind: "power",
+      want: { brands: ["Anker"], partNumbers: ["A1289"] },
+      gives: [{ resource: "energy.battery", amount: { read: false, why: "The page of the maker gives 24,000 mAh and no Wh. A charge does not convert to energy without its voltage." } }],
+      shelf: { read: false, why: "No source is read yet." },
+    },
+  ],
+};

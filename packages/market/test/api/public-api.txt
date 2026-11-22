@@ -115,14 +115,14 @@ watchProblems: build/index.d.ts#watchProblems
 ## ./plan (build/plan.d.ts): names
 
 BuyBreak: build/plan.d.ts#BuyBreak
-type BuyCandidate: build/plan.d.ts#BuyCandidate
-type BuyCandidates: build/plan.d.ts#BuyCandidates
+type BuyCandidate: build/order.chunk.d.ts#BuyCandidate
+type BuyCandidates: build/order.chunk.d.ts#BuyCandidates
 BuyChoice: build/plan.d.ts#BuyChoice
 BuyItem: build/plan.d.ts#BuyItem
 BuyNeed: build/plan.d.ts#BuyNeed
-type BuyOrder: build/plan.d.ts#BuyOrder
+type BuyOrder: build/order.chunk.d.ts#BuyOrder
 BuyPlan: build/plan.d.ts#BuyPlan
-type CandidateOptions: build/plan.d.ts#CandidateOptions
+type CandidateOptions: build/order.chunk.d.ts#CandidateOptions
 Fact: build/plan.d.ts#Fact
 NEED_FORMAT: build/plan.d.ts#NEED_FORMAT
 NEED_KEY: build/plan.d.ts#NEED_KEY
@@ -130,22 +130,43 @@ NeedMeasure: build/plan.d.ts#NeedMeasure
 NeedPart: build/plan.d.ts#NeedPart
 NeedRule: build/plan.d.ts#NeedRule
 NeedSlot: build/plan.d.ts#NeedSlot
-type OrderBuy: build/plan.d.ts#OrderBuy
-type OrderOptions: build/plan.d.ts#OrderOptions
-type OrderStage: build/plan.d.ts#OrderStage
-type OrderStageResult: build/plan.d.ts#OrderStageResult
+type OrderBuy: build/order.chunk.d.ts#OrderBuy
+type OrderOptions: build/order.chunk.d.ts#OrderOptions
+type OrderStage: build/order.chunk.d.ts#OrderStage
+type OrderStageResult: build/order.chunk.d.ts#OrderStageResult
 PLAN_EVALUATIONS: build/plan.d.ts#PLAN_EVALUATIONS
 PLAN_FORMAT: build/plan.d.ts#PLAN_FORMAT
 PlanOptions: build/plan.d.ts#PlanOptions
-type ProductWant: build/plan.d.ts#ProductWant
+type ProductWant: build/order.chunk.d.ts#ProductWant
 SLOT_FIELDS: build/plan.d.ts#SLOT_FIELDS
 SlotCount: build/plan.d.ts#SlotCount
 UnpricedPart: build/plan.d.ts#UnpricedPart
-buyCandidates: build/plan.d.ts#buyCandidates
+buyCandidates: build/order.chunk.d.ts#buyCandidates
 buyNeedSchema: build/plan.d.ts#buyNeedSchema
 needProblems: build/plan.d.ts#needProblems
-orderBuys: build/plan.d.ts#orderBuys
+orderBuys: build/order.chunk.d.ts#orderBuys
 planBuys: build/plan.d.ts#planBuys
+
+## ./supplies (build/supplies-entry.d.ts): names
+
+type CitedAmount: build/supplies-entry.d.ts#CitedAmount
+type GiftOf: build/supplies-entry.d.ts#GiftOf
+type NoRead: build/supplies-entry.d.ts#NoRead
+SUPPLY_CATALOG: build/supplies-entry.d.ts#SUPPLY_CATALOG
+SUPPLY_CODES: build/supplies-entry.d.ts#SUPPLY_CODES
+SUPPLY_FORMAT: build/supplies-entry.d.ts#SUPPLY_FORMAT
+SUPPLY_KINDS: build/supplies-entry.d.ts#SUPPLY_KINDS
+type ShelfLife: build/supplies-entry.d.ts#ShelfLife
+type SupplyCatalog: build/supplies-entry.d.ts#SupplyCatalog
+type SupplyCode: build/supplies-entry.d.ts#SupplyCode
+type SupplyFinding: build/supplies-entry.d.ts#SupplyFinding
+type SupplyGift: build/supplies-entry.d.ts#SupplyGift
+type SupplyKind: build/supplies-entry.d.ts#SupplyKind
+type SupplyProduct: build/supplies-entry.d.ts#SupplyProduct
+type SupplyResource: build/supplies-entry.d.ts#SupplyResource
+checkSupplies: build/supplies-entry.d.ts#checkSupplies
+giftsOf: build/supplies-entry.d.ts#giftsOf
+supplyWants: build/supplies-entry.d.ts#supplyWants
 
 ## Declarations
 
@@ -656,14 +677,7 @@ declare const specSchema: z.ZodType<Spec>;
 ### build/offers.chunk.d.ts#textSchema
 declare const textSchema: z.ZodType<string>;
 
-### build/plan.d.ts#BuyBreak
-export interface BuyBreak {
-  readonly name: string;
-  readonly count: number;
-  readonly why: string;
-}
-
-### build/plan.d.ts#BuyCandidate
+### build/order.chunk.d.ts#BuyCandidate
 interface BuyCandidate {
   readonly product: string;
   readonly price: number;
@@ -671,7 +685,7 @@ interface BuyCandidate {
   readonly quote: string;
 }
 
-### build/plan.d.ts#BuyCandidates
+### build/order.chunk.d.ts#BuyCandidates
 interface BuyCandidates {
   readonly currency: string;
   readonly candidates: readonly BuyCandidate[];
@@ -679,6 +693,76 @@ interface BuyCandidates {
     readonly product: string;
     readonly why: string;
   }[];
+}
+
+### build/order.chunk.d.ts#BuyOrder
+interface BuyOrder {
+  readonly budget: number;
+  readonly spent: number;
+  readonly buys: readonly OrderBuy[];
+  readonly units: Selection;
+  readonly stages: readonly OrderStageResult[];
+}
+
+### build/order.chunk.d.ts#CandidateOptions
+interface CandidateOptions {
+  readonly currency: string;
+  readonly conditions?: readonly Condition[] | undefined;
+}
+
+### build/order.chunk.d.ts#OrderBuy
+interface OrderBuy {
+  readonly stage: string;
+  readonly product: string;
+  readonly quote: string;
+  readonly cost: number;
+  readonly gain: readonly number[];
+}
+
+### build/order.chunk.d.ts#OrderOptions
+interface OrderOptions {
+  readonly budget: number;
+  readonly stages: readonly OrderStage[];
+  readonly goal?: Goal | undefined;
+  readonly start?: Selection | undefined;
+  readonly lazy?: boolean | undefined;
+}
+
+### build/order.chunk.d.ts#OrderStage
+interface OrderStage {
+  readonly name: string;
+  readonly value: (units: Selection) => readonly number[];
+}
+
+### build/order.chunk.d.ts#OrderStageResult
+interface OrderStageResult {
+  readonly name: string;
+  readonly method: "greedy" | "single";
+  readonly before: readonly number[];
+  readonly after: readonly number[];
+  readonly spent: number;
+  readonly stop: GreedyStop;
+  readonly evaluations: number;
+}
+
+### build/order.chunk.d.ts#ProductWant
+interface ProductWant {
+  readonly product: string;
+  readonly want: PartWant;
+  readonly max?: number | undefined;
+}
+
+### build/order.chunk.d.ts#buyCandidates
+declare function buyCandidates(wants: readonly ProductWant[], observations: readonly Observation[], options: CandidateOptions): BuyCandidates;
+
+### build/order.chunk.d.ts#orderBuys
+declare function orderBuys(candidates: readonly BuyCandidate[], options: OrderOptions): BuyOrder;
+
+### build/plan.d.ts#BuyBreak
+export interface BuyBreak {
+  readonly name: string;
+  readonly count: number;
+  readonly why: string;
 }
 
 ### build/plan.d.ts#BuyChoice
@@ -710,15 +794,6 @@ export interface BuyNeed {
   readonly rules?: readonly NeedRule[] | undefined;
 }
 
-### build/plan.d.ts#BuyOrder
-interface BuyOrder {
-  readonly budget: number;
-  readonly spent: number;
-  readonly buys: readonly OrderBuy[];
-  readonly units: Selection;
-  readonly stages: readonly OrderStageResult[];
-}
-
 ### build/plan.d.ts#BuyPlan
 export interface BuyPlan {
   readonly format: typeof PLAN_FORMAT;
@@ -732,12 +807,6 @@ export interface BuyPlan {
   readonly front: readonly BuyChoice[];
   readonly breaks: readonly BuyBreak[];
   readonly unpriced: readonly UnpricedPart[];
-}
-
-### build/plan.d.ts#CandidateOptions
-interface CandidateOptions {
-  readonly currency: string;
-  readonly conditions?: readonly Condition[] | undefined;
 }
 
 ### build/plan.d.ts#Fact
@@ -779,41 +848,6 @@ export interface NeedSlot {
   readonly count?: SlotCount | undefined;
 }
 
-### build/plan.d.ts#OrderBuy
-interface OrderBuy {
-  readonly stage: string;
-  readonly product: string;
-  readonly quote: string;
-  readonly cost: number;
-  readonly gain: readonly number[];
-}
-
-### build/plan.d.ts#OrderOptions
-interface OrderOptions {
-  readonly budget: number;
-  readonly stages: readonly OrderStage[];
-  readonly goal?: Goal | undefined;
-  readonly start?: Selection | undefined;
-  readonly lazy?: boolean | undefined;
-}
-
-### build/plan.d.ts#OrderStage
-interface OrderStage {
-  readonly name: string;
-  readonly value: (units: Selection) => readonly number[];
-}
-
-### build/plan.d.ts#OrderStageResult
-interface OrderStageResult {
-  readonly name: string;
-  readonly method: "greedy" | "single";
-  readonly before: readonly number[];
-  readonly after: readonly number[];
-  readonly spent: number;
-  readonly stop: GreedyStop;
-  readonly evaluations: number;
-}
-
 ### build/plan.d.ts#PLAN_EVALUATIONS
 export declare const PLAN_EVALUATIONS = 2e3;
 
@@ -825,13 +859,6 @@ export interface PlanOptions {
   readonly evaluations?: number | undefined;
   readonly seed?: number | string | undefined;
   readonly population?: number | undefined;
-}
-
-### build/plan.d.ts#ProductWant
-interface ProductWant {
-  readonly product: string;
-  readonly want: PartWant;
-  readonly max?: number | undefined;
 }
 
 ### build/plan.d.ts#SLOT_FIELDS
@@ -850,17 +877,113 @@ export interface UnpricedPart {
   readonly why: string;
 }
 
-### build/plan.d.ts#buyCandidates
-export declare function buyCandidates(wants: readonly ProductWant[], observations: readonly Observation[], options: CandidateOptions): BuyCandidates;
-
 ### build/plan.d.ts#buyNeedSchema
 export declare const buyNeedSchema: z.ZodType<BuyNeed>;
 
 ### build/plan.d.ts#needProblems
 export declare function needProblems(need: BuyNeed): string[];
 
-### build/plan.d.ts#orderBuys
-export declare function orderBuys(candidates: readonly BuyCandidate[], options: OrderOptions): BuyOrder;
-
 ### build/plan.d.ts#planBuys
 export declare function planBuys(need: BuyNeed, observations: readonly Observation[], options?: PlanOptions): BuyPlan;
+
+### build/supplies-entry.d.ts#CitedAmount
+type CitedAmount = {
+  readonly read: true;
+  readonly amount: number;
+  readonly unit: string;
+  readonly fact: string;
+  readonly definition?: never;
+} | {
+  readonly read: true;
+  readonly amount: number;
+  readonly unit: string;
+  readonly definition: string;
+  readonly fact?: never;
+};
+
+### build/supplies-entry.d.ts#GiftOf
+type GiftOf = {
+  readonly resource: string;
+  readonly read: true;
+  readonly amount: number;
+  readonly unit: string;
+} | {
+  readonly resource: string;
+  readonly read: false;
+  readonly why: string;
+};
+
+### build/supplies-entry.d.ts#NoRead
+interface NoRead {
+  readonly read: false;
+  readonly why: string;
+}
+
+### build/supplies-entry.d.ts#SUPPLY_CATALOG
+export declare const SUPPLY_CATALOG: SupplyCatalog;
+
+### build/supplies-entry.d.ts#SUPPLY_CODES
+export declare const SUPPLY_CODES: readonly ["supplies-format", "supplies-twice", "supplies-kind", "supplies-resource", "supplies-fact", "supplies-amount", "supplies-unit", "supplies-shelf", "supplies-unused", "supplies-no-read", "supplies-no-reason"];
+
+### build/supplies-entry.d.ts#SUPPLY_FORMAT
+export declare const SUPPLY_FORMAT = "supply-catalog/1";
+
+### build/supplies-entry.d.ts#SUPPLY_KINDS
+export declare const SUPPLY_KINDS: readonly ["water", "food", "power", "light", "heat", "first-aid", "communication"];
+
+### build/supplies-entry.d.ts#ShelfLife
+type ShelfLife = CitedAmount | {
+  readonly read: true;
+  readonly foodKeeper: number;
+} | NoRead;
+
+### build/supplies-entry.d.ts#SupplyCatalog
+interface SupplyCatalog {
+  readonly format: typeof SUPPLY_FORMAT;
+  readonly sources: readonly Source[];
+  readonly facts: readonly CitedUnit[];
+  readonly resources: readonly SupplyResource[];
+  readonly products: readonly SupplyProduct[];
+}
+
+### build/supplies-entry.d.ts#SupplyCode
+type SupplyCode = (typeof SUPPLY_CODES)[number];
+
+### build/supplies-entry.d.ts#SupplyFinding
+type SupplyFinding = Finding<SupplyCode | FindingCode, "source" | "unit" | "resource" | "product">;
+
+### build/supplies-entry.d.ts#SupplyGift
+interface SupplyGift {
+  readonly resource: string;
+  readonly amount: CitedAmount | NoRead;
+}
+
+### build/supplies-entry.d.ts#SupplyKind
+type SupplyKind = (typeof SUPPLY_KINDS)[number];
+
+### build/supplies-entry.d.ts#SupplyProduct
+interface SupplyProduct {
+  readonly id: string;
+  readonly title: string;
+  readonly kind: SupplyKind;
+  readonly want?: PartWant | undefined;
+  readonly gives: readonly SupplyGift[];
+  readonly energy?: CitedAmount | NoRead | undefined;
+  readonly shelf: ShelfLife;
+}
+
+### build/supplies-entry.d.ts#SupplyResource
+interface SupplyResource {
+  readonly code: string;
+  readonly unit: string;
+  readonly title: string;
+}
+
+### build/supplies-entry.d.ts#checkSupplies
+export declare function checkSupplies(catalog: SupplyCatalog, options?: GateOptions): SupplyFinding[];
+
+### build/supplies-entry.d.ts#giftsOf
+export declare function giftsOf(catalog: SupplyCatalog, id: string, units: number): GiftOf[];
+
+### build/supplies-entry.d.ts#supplyWants
+export declare function supplyWants(catalog: SupplyCatalog, max?: (product: SupplyProduct) => number): ProductWant[];
