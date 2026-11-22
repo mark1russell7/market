@@ -141,6 +141,7 @@ order.stages.map((stage) => stage.spent); // [10, 5]
 The entry `@mark1russell7/market/supplies` has the format and the gate of a catalog of supplies: the products that a household keeps for an emergency. It is an add-on: the core of the package names no supply.
 
 - A product has a kind (`water`, `food`, `power`, `light`, `heat`, `first-aid` or `communication`), the resources that one unit gives, its shelf life and, as an option, a part for the offers.
+- A product can give no stored resource, for example a radio. Its `basis` is the id of a fact that tells why a kit has it, and the gate examines that fact.
 - Each amount has a cited fact, the definition of the product, or a no read with its reason. A no read is not 0.
 - The facts and their sources are the records of [`@mark1russell7/guidebook`](https://www.npmjs.com/package/@mark1russell7/guidebook). Its gate examines each license and each address.
 - The shelf life of a food is the id of a product of the FoodKeeper data of USDA FSIS. The entry `/foodkeeper` of `@mark1russell7/stock` gives its due rule.
@@ -160,9 +161,10 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 `SUPPLY_CATALOG` is the reference catalog. Its facts come from Ready.gov (FEMA, a US federal work) and from FoodData Central (USDA, CC0 1.0). It has gaps:
 
 - The energy of the power bank is no read. The page of the maker gives 24,000 mAh and no Wh, and a charge does not convert to energy without its voltage.
-- The kinds `light`, `heat`, `first-aid` and `communication` have no product yet.
+- The flashlight, the sleeping bag, the first aid kit and the NOAA weather radio cite the kit list of Ready.gov. Their shelf life is no read, because the source gives no time.
+- Peanut butter gives food that needs no water and no fuel. This is important in a long power cut. It has no series of average prices yet.
 - The shelf life of commercially bottled water is no read. The source gives no time, so the date on the label applies.
-- The oats have no series of average prices. The rice joins the BLS series `APU0000701312` in `USD/lb`, so 1 kg of rice costs 2.2046 times the price of 1 lb.
+- The oats have no series of average prices. The dry beans join the BLS series `APU0000714233` in `USD/lb`. The rice joins the BLS series `APU0000701312` in `USD/lb`, so 1 kg of rice costs 2.2046 times the price of 1 lb.
 
 `FOOD_PLANS` has the costs of the Thrifty Food Plan of USDA for October 2026, in the U.S. average. The costs come from the monthly report of the cost of food (a US federal work). Each cost is for one person of an age and sex group, in a household of four. The changes for the other sizes come from footnote 2 of the report. The plan is a full diet, so a list of dry staples costs much less than the plan. A low ratio is normal. The check of the amount of food is a check of its energy, not of its cost. The members of a household are input data.
 

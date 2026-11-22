@@ -75,8 +75,10 @@ export interface SupplyProduct {
   readonly kind: SupplyKind;
   /** The part that the offers of a seller must match. A product with no part has no offer, so it has no price. */
   readonly want?: PartWant | undefined;
-  /** The resources that one unit gives. */
+  /** The resources that one unit gives. A product that gives no stored resource, for example a radio, gives none. */
   readonly gives: readonly SupplyGift[];
+  /** The `id` of a fact that tells why a kit has the product, for example the kit list of a public agency. */
+  readonly basis?: string | undefined;
   /** The food energy of one unit, in a unit of energy. A cooking converter gives it. */
   readonly energy?: CitedAmount | NoRead | undefined;
   readonly shelf: ShelfLife;
@@ -137,7 +139,8 @@ const SHELF_UNIT = "d";
  * `@mark1russell7/guidebook`), and the findings of the products:
  *
  * - An error for a product or a resource two times, a kind that is not a supply kind, and a gift of an unknown resource.
- * - An error for a fact that is not a fact of the catalog, and for an amount that is not more than 0.
+ * - An error for a fact that is not a fact of the catalog, and for an amount that is not more than 0. The basis of a
+ *   product is also a fact.
  * - An error for an amount with no reason, with two reasons, or with a blank definition. A catalog from JSON can have them.
  * - An error for a unit that is not a unit of `@mark1russell7/quantity`.
  * - An error for a unit that does not convert to the unit of its resource.
@@ -203,6 +206,11 @@ export function checkSupplies(catalog: SupplyCatalog, options: GateOptions = {})
       const resource = resources.get(gift.resource);
       if (resource === undefined) error("supplies-resource", "product", product.id, `The product ${product.id} gives the resource ${gift.resource}, and the catalog has no such resource.`);
       else amount(product.id, `gift of ${gift.resource}`, gift.amount, resource.unit);
+    }
+    if (product.basis !== undefined) {
+      const fact = facts.get(product.basis);
+      if (fact === undefined || fact.use !== "fact") error("supplies-fact", "product", product.id, `The basis of the product ${product.id} cites ${String(product.basis)}, and the catalog has no fact with that id.`);
+      used.add(product.basis);
     }
     if (product.energy !== undefined) amount(product.id, "food energy", product.energy, ENERGY_UNIT);
     if (product.average !== undefined) amount(product.id, "average price", product.average.read ? product.average.per : product.average, product.average.read ? product.average.per.unit : "");
