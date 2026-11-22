@@ -155,24 +155,10 @@ planBuys: build/plan.d.ts#planBuys
 
 ## ./supplies (build/supplies-entry.d.ts): names
 
-ACTIVITY_LEVELS: build/supplies-entry.d.ts#ACTIVITY_LEVELS
-type ActivityLevel: build/supplies-entry.d.ts#ActivityLevel
 type AverageJoin: build/supplies-entry.d.ts#AverageJoin
-CALORIE_AGES: build/supplies-entry.d.ts#CALORIE_AGES
-CALORIE_GROUPS: build/supplies-entry.d.ts#CALORIE_GROUPS
-CALORIE_SEXES: build/supplies-entry.d.ts#CALORIE_SEXES
-CALORIE_TABLES: build/supplies-entry.d.ts#CALORIE_TABLES
-type CalorieAge: build/supplies-entry.d.ts#CalorieAge
-type CalorieGroup: build/supplies-entry.d.ts#CalorieGroup
-type CalorieMember: build/supplies-entry.d.ts#CalorieMember
-type CalorieNeed: build/supplies-entry.d.ts#CalorieNeed
-type CalorieSex: build/supplies-entry.d.ts#CalorieSex
-type CalorieTable: build/supplies-entry.d.ts#CalorieTable
 type CitedAmount: build/supplies-entry.d.ts#CitedAmount
 FOOD_PLANS: build/supplies-entry.d.ts#FOOD_PLANS
 FOOD_PLAN_GROUPS: build/supplies-entry.d.ts#FOOD_PLAN_GROUPS
-type FoodEnergyCheck: build/supplies-entry.d.ts#FoodEnergyCheck
-type FoodEnergyLine: build/supplies-entry.d.ts#FoodEnergyLine
 type FoodPlan: build/supplies-entry.d.ts#FoodPlan
 type FoodPlanCheck: build/supplies-entry.d.ts#FoodPlanCheck
 type FoodPlanGroup: build/supplies-entry.d.ts#FoodPlanGroup
@@ -194,9 +180,7 @@ type SupplyPrice: build/supplies-entry.d.ts#SupplyPrice
 type SupplyProduct: build/supplies-entry.d.ts#SupplyProduct
 type SupplyResource: build/supplies-entry.d.ts#SupplyResource
 averageSupplyPrices: build/supplies-entry.d.ts#averageSupplyPrices
-calorieNeed: build/supplies-entry.d.ts#calorieNeed
 checkSupplies: build/supplies-entry.d.ts#checkSupplies
-foodEnergyCheck: build/supplies-entry.d.ts#foodEnergyCheck
 foodPlanCheck: build/supplies-entry.d.ts#foodPlanCheck
 foodPlanCost: build/supplies-entry.d.ts#foodPlanCost
 giftsOf: build/supplies-entry.d.ts#giftsOf
@@ -948,64 +932,12 @@ export declare function needProblems(need: BuyNeed): string[];
 ### build/plan.d.ts#planBuys
 export declare function planBuys(need: BuyNeed, observations: readonly Observation[], options?: PlanOptions): BuyPlan;
 
-### build/supplies-entry.d.ts#ACTIVITY_LEVELS
-export declare const ACTIVITY_LEVELS: readonly ["sedentary", "moderately-active", "active"];
-
-### build/supplies-entry.d.ts#ActivityLevel
-type ActivityLevel = (typeof ACTIVITY_LEVELS)[number];
-
 ### build/supplies-entry.d.ts#AverageJoin
 interface AverageJoin {
   readonly read: true;
   readonly source: string;
   readonly series: string;
   readonly per: CitedAmount;
-}
-
-### build/supplies-entry.d.ts#CALORIE_AGES
-export declare const CALORIE_AGES: readonly ["12-months", "15-months", "18-months", "21-23-months", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19-20", "21-25", "26-30", "31-35", "36-40", "41-45", "46-50", "51-55", "56-60", "61-65", "66-70", "71-75", "76-up"];
-
-### build/supplies-entry.d.ts#CALORIE_GROUPS
-export declare const CALORIE_GROUPS: readonly CalorieGroup[];
-
-### build/supplies-entry.d.ts#CALORIE_SEXES
-export declare const CALORIE_SEXES: readonly ["female", "male"];
-
-### build/supplies-entry.d.ts#CALORIE_TABLES
-export declare const CALORIE_TABLES: readonly CalorieTable[];
-
-### build/supplies-entry.d.ts#CalorieAge
-type CalorieAge = (typeof CALORIE_AGES)[number];
-
-### build/supplies-entry.d.ts#CalorieGroup
-type CalorieGroup = `${CalorieSex}-${CalorieAge}`;
-
-### build/supplies-entry.d.ts#CalorieMember
-interface CalorieMember {
-  readonly group: CalorieGroup;
-  readonly count: number;
-  readonly level?: ActivityLevel | undefined;
-}
-
-### build/supplies-entry.d.ts#CalorieNeed
-type CalorieNeed = {
-  readonly levels: Readonly<Record<ActivityLevel, Quantity>>;
-  readonly each?: never;
-} | {
-  readonly each: Quantity;
-  readonly levels?: never;
-};
-
-### build/supplies-entry.d.ts#CalorieSex
-type CalorieSex = (typeof CALORIE_SEXES)[number];
-
-### build/supplies-entry.d.ts#CalorieTable
-interface CalorieTable {
-  readonly id: string;
-  readonly title: string;
-  readonly source: Source;
-  readonly locator: string;
-  readonly needs: Readonly<Record<CalorieGroup, CalorieNeed>>;
 }
 
 ### build/supplies-entry.d.ts#CitedAmount
@@ -1028,31 +960,6 @@ export declare const FOOD_PLANS: readonly FoodPlan[];
 
 ### build/supplies-entry.d.ts#FOOD_PLAN_GROUPS
 export declare const FOOD_PLAN_GROUPS: readonly ["child-1", "child-2-3", "child-4-5", "child-6-8", "child-9-11", "female-12-13", "female-14-19", "female-20-50", "female-51-70", "female-71-up", "male-12-13", "male-14-19", "male-20-50", "male-51-70", "male-71-up"];
-
-### build/supplies-entry.d.ts#FoodEnergyCheck
-interface FoodEnergyCheck {
-  readonly daily: Quantity;
-  readonly need: Quantity;
-  readonly lines: readonly FoodEnergyLine[];
-  readonly read: boolean;
-  readonly energy: Quantity;
-  readonly days: number;
-  readonly shortfall: Quantity;
-  readonly enough: boolean;
-}
-
-### build/supplies-entry.d.ts#FoodEnergyLine
-type FoodEnergyLine = {
-  readonly product: string;
-  readonly units: number;
-  readonly read: true;
-  readonly energy: Quantity;
-} | {
-  readonly product: string;
-  readonly units: number;
-  readonly read: false;
-  readonly why: string;
-};
 
 ### build/supplies-entry.d.ts#FoodPlan
 interface FoodPlan {
@@ -1188,14 +1095,8 @@ export declare function averageSupplyPrices(catalog: SupplyCatalog, prices: read
   readonly since?: string | undefined;
 }): SupplyPrice[];
 
-### build/supplies-entry.d.ts#calorieNeed
-export declare function calorieNeed(table: CalorieTable, members: readonly CalorieMember[], level: ActivityLevel, days: number): Quantity;
-
 ### build/supplies-entry.d.ts#checkSupplies
 export declare function checkSupplies(catalog: SupplyCatalog, options?: GateOptions): SupplyFinding[];
-
-### build/supplies-entry.d.ts#foodEnergyCheck
-export declare function foodEnergyCheck(catalog: SupplyCatalog, units: Readonly<Record<string, number>>, table: CalorieTable, members: readonly CalorieMember[], level: ActivityLevel, days: number): FoodEnergyCheck;
 
 ### build/supplies-entry.d.ts#foodPlanCheck
 export declare function foodPlanCheck(cost: Quantity, plan: FoodPlan, members: readonly FoodPlanMember[], days: number): FoodPlanCheck;

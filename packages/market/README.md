@@ -157,8 +157,7 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 | `averageSupplyPrices(catalog, prices, { since })` | It gives the price of one unit of each product with a join, from the last month of its series. A series with no price and a unit that does not fit give a no read. With `since`, so does a last price before that month. |
 | `foodPlanCost(plan, members, days)` | It gives the cost of a food plan for the members of a household and a count of days. It applies the change for the size of the household. |
 | `foodPlanCheck(cost, plan, members, days)` | It compares the cost of the food of a buy list with the cost of the plan. A ratio above 1 tells that a price or an amount is possibly wrong. |
-| `calorieNeed(table, members, level, days)` | It gives the energy need of the members of a household for a count of days, in `kcal`, at an activity level. |
-| `foodEnergyCheck(catalog, units, table, members, level, days)` | It compares the food energy of a buy list with that need. It gives the days of food of the list and the shortfall. |
+| `buyListEnergy(catalog, units)` | It gives the food energy of each line of a buy list in `kcal`, with the resources of the product, and their sum. |
 
 `SUPPLY_CATALOG` is the reference catalog. Its facts come from Ready.gov (FEMA, a US federal work) and from FoodData Central (USDA, CC0 1.0). It has gaps:
 
@@ -171,16 +170,12 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 
 `FOOD_PLANS` has the costs of the Thrifty Food Plan of USDA for October 2026, in the U.S. average. The costs come from the monthly report of the cost of food (a US federal work). Each cost is for one person of an age and sex group, in a household of four. The changes for the other sizes come from footnote 2 of the report. The plan is a full diet, so a list of dry staples costs much less than the plan. A low ratio is normal. The check of the amount of food is a check of its energy, not of its cost. The members of a household are input data.
 
-`CALORIE_TABLES` has the estimated calorie needs of the Dietary Guidelines for Americans, 2020-2025 (a US federal work). The values come from Appendix 2 of the PDF: Table A2-1 for toddlers of 12 to 23 months, and Table A2-2 for ages of 2 years and more.
+`buyListEnergy` gives only the data of the catalog. The energy of a line is the field `energy` of the product times its count of units.
 
-- A row of Table A2-2 gives a need for each activity level: `sedentary`, `moderately-active` and `active`. Table A2-1 gives one need for each age and sex, so the level does not change the need of a toddler.
-- The activity level is an explicit input of each call. A member can also have its own level. This package has no default level.
-- The worst case of a long power cut is the choice of the planner, not of this package. Work can make the level higher, for example the carry of water.
-- The groups are the groups of the table, for example `female-31-35` or `male-12-months`. They are not the groups of `FOOD_PLAN_GROUPS`. The table has one row for each year from 2 to 18 years and adult groups of 5 years. The food plan has children of the two sexes in one group, and adult groups of 20 to 50 years. No source gives a map from one set of groups to the other.
-- The energy of a product is its field `energy` times its count of units. A product with a no read gives a line with no read. A no read is not 0. Then the energy and the days of the result are a lower limit.
+- A product with a no read gives a line with no read. A no read is not 0. Then the sum is a lower limit.
 - A food product with no field `energy` also gives a no read. A product of another kind with no energy, for example water, gives no line.
-- The text of Appendix 2 gives 700 to 1,000 calories for the toddlers, but the lowest value of Table A2-1 is 800. The data keeps the values of the table.
-- The tables give each need for a reference height and weight, to keep the weight of a person. Table A2-3 gives the change for pregnancy and lactation. This package does not have it yet.
+- Each line has the resource codes of the product. A caller can thus split the energy of `food.no-cook` from the energy of the dry foods.
+- The energy need of the members, the days of food and the shortfall are not in this package. The days depend on the water and the fuel that a case leaves. The model of the endurance of the stores gives them.
 
 ## Metered prices
 
