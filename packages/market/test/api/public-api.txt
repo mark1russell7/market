@@ -1077,6 +1077,7 @@ interface SupplyProduct {
   readonly kind: SupplyKind;
   readonly want?: PartWant | undefined;
   readonly gives: readonly SupplyGift[];
+  readonly basis?: string | undefined;
   readonly energy?: CitedAmount | NoRead | undefined;
   readonly shelf: ShelfLife;
   readonly average?: AverageJoin | NoRead | undefined;
