@@ -161,7 +161,7 @@ describe("the gate of the catalog", () => {
     const size = (value: unknown): SupplyCatalog => withProduct({ ...rice, size: value as SupplyProduct["size"] });
     expect(errors(size({ read: true, amount: 0, unit: "kg", definition: "A test." }))).toEqual(["supplies-amount"]);
     expect(errors(size({ read: true, amount: 1, unit: "kg", fact: "unknown" }))).toEqual(["supplies-fact"]);
-    for (const unit of ["h", "kcal", "USD"]) {
+    for (const unit of ["h", "kcal", "USD", "g/{each}", "L/{each}", "{each}/{can}"]) {
       expect(() => checkSupplies(size({ read: true, amount: 1, unit, definition: "A test." })), unit).not.toThrow();
       expect(errors(size({ read: true, amount: 1, unit, definition: "A test." })), unit).toEqual(["supplies-unit"]);
     }
