@@ -136,6 +136,28 @@ order.units; // { JUG: 3, CAN: 3 }
 order.stages.map((stage) => stage.spent); // [10, 5]
 ```
 
+## A catalog of supplies
+
+The entry `@mark1russell7/market/supplies` has the format and the gate of a catalog of supplies: the products that a household keeps for an emergency. It is an add-on: the core of the package names no supply.
+
+- A product has a kind (`water`, `food`, `power`, `light`, `heat`, `first-aid` or `communication`), the resources that one unit gives, its shelf life and, as an option, a part for the offers.
+- Each amount has a cited fact, the definition of the product, or a no read with its reason. A no read is not 0.
+- The facts and their sources are the records of [`@mark1russell7/guidebook`](https://www.npmjs.com/package/@mark1russell7/guidebook). Its gate examines each license and each address.
+- The shelf life of a food is the id of a product of the FoodKeeper data of USDA FSIS. The entry `/foodkeeper` of `@mark1russell7/stock` gives its due rule.
+- The resource codes are the codes of a store of `@mark1russell7/stack-endurance`, for example `water.stored` in `L`.
+
+| Function | What it does |
+| --- | --- |
+| `checkSupplies(catalog, options)` | It gives the findings of the catalog: the errors of the gate, and a warning for each no read and for each fact or source that no product uses. |
+| `supplyWants(catalog, max)` | It gives the wants of the products with a part, for `buyCandidates`. A product with no part has no offer, so it has no price. |
+| `giftsOf(catalog, id, units)` | It gives the resources of a count of units, each in the unit of its resource. A unit converts exactly, so 1 gal gives 3.785411784 L. |
+
+`SUPPLY_CATALOG` is the reference catalog. Its facts come from Ready.gov (FEMA, a US federal work) and from FoodData Central (USDA, CC0 1.0). It has gaps:
+
+- The energy of the power bank is no read. The page of the maker gives 24,000 mAh and no Wh, and a charge does not convert to energy without its voltage.
+- The kinds `light`, `heat`, `first-aid` and `communication` have no product yet.
+- The shelf life of commercially bottled water is no read. The source gives no time, so the date on the label applies.
+
 ## Metered prices
 
 A cloud resource has a metered price: a price for each unit of an amount that the provider meters. A metered amount is a `time` (the hours of a machine), a `data-time` (stored data in GiB-months), a `data` (a transfer) or a `count` (requests).
