@@ -66,7 +66,7 @@ describe("readMoney", () => {
     expect(readMoney("-1", "USD")).toEqual({ ok: false, why: 'the amount "-1" is not a decimal of zero or more' });
     expect(readMoney(-1, "USD")).toEqual({ ok: false, why: "the amount -1 is not a decimal of zero or more" });
     expect(readMoney("1", null)).toEqual({ ok: false, why: 'the amount "1" has no currency' });
-    expect(readMoney("1", "GBP")).toEqual({ ok: false, why: 'the currency "GBP" is not a money unit of @mark1russell7/quantity' });
+    expect(readMoney("1", "ZZZ")).toEqual({ ok: false, why: 'the currency "ZZZ" is not a money unit of @mark1russell7/quantity' });
   });
 
   it("knows the money units of quantity", () => {
