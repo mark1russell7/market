@@ -56,7 +56,7 @@ export function buyListEnergy(catalog: SupplyCatalog, units: Readonly<Record<str
     if (product === undefined || count === 0 || product.kind !== "food") continue;
     const energy = product.energy;
     if (energy === undefined) {
-      if (product.kind === "food") lines.push({ product: id, units: count, resources, read: false, why: `The catalog has no food energy for the product ${id}.` });
+      lines.push({ product: id, units: count, resources, read: false, why: `The catalog has no food energy for the product ${id}.` });
       continue;
     }
     if (!energy.read) lines.push({ product: id, units: count, resources, read: false, why: energy.why });
