@@ -8,6 +8,7 @@
 
 AVAILABILITIES: build/offers.chunk.d.ts#AVAILABILITIES
 type Availability: build/offers.chunk.d.ts#Availability
+type AveragePrice: build/index.d.ts#AveragePrice
 BOARD_FORMAT: build/index.d.ts#BOARD_FORMAT
 type BestOffer: build/offers.chunk.d.ts#BestOffer
 type BestOfferOptions: build/offers.chunk.d.ts#BestOfferOptions
@@ -58,6 +59,8 @@ type SourceTerms: build/index.d.ts#SourceTerms
 type Spec: build/offers.chunk.d.ts#Spec
 type Tier: build/index.d.ts#Tier
 type WatchEntry: build/index.d.ts#WatchEntry
+averagePriceId: build/index.d.ts#averagePriceId
+averagePriceSchema: build/index.d.ts#averagePriceSchema
 bestOffer: build/offers.chunk.d.ts#bestOffer
 boardObservations: build/index.d.ts#boardObservations
 boardReadSchema: build/index.d.ts#boardReadSchema
@@ -72,6 +75,7 @@ isKept: build/index.d.ts#isKept
 keepObservations: build/index.d.ts#keepObservations
 keepUntil: build/index.d.ts#keepUntil
 lastReads: build/index.d.ts#lastReads
+latestAverages: build/index.d.ts#latestAverages
 latestObservations: build/offers.chunk.d.ts#latestObservations
 locationSchema: build/index.d.ts#locationSchema
 matchKeys: build/offers.chunk.d.ts#matchKeys
@@ -83,6 +87,7 @@ meteredOfferSchema: build/index.d.ts#meteredOfferSchema
 meteredPriceSchema: build/index.d.ts#meteredPriceSchema
 meteredReadingSchema: build/index.d.ts#meteredReadingSchema
 moneySchema: build/offers.chunk.d.ts#moneySchema
+monthSchema: build/index.d.ts#monthSchema
 observationSchema: build/index.d.ts#observationSchema
 offerId: build/offers.chunk.d.ts#offerId
 offerSchema: build/offers.chunk.d.ts#offerSchema
@@ -109,6 +114,7 @@ specSchema: build/offers.chunk.d.ts#specSchema
 textSchema: build/offers.chunk.d.ts#textSchema
 tierSchema: build/index.d.ts#tierSchema
 unitPriceFor: build/index.d.ts#unitPriceFor
+unitPriceSchema: build/index.d.ts#unitPriceSchema
 watchEntrySchema: build/index.d.ts#watchEntrySchema
 watchProblems: build/index.d.ts#watchProblems
 
@@ -169,6 +175,19 @@ giftsOf: build/supplies-entry.d.ts#giftsOf
 supplyWants: build/supplies-entry.d.ts#supplyWants
 
 ## Declarations
+
+### build/index.d.ts#AveragePrice
+interface AveragePrice {
+  readonly id: string;
+  readonly source: string;
+  readonly series: string;
+  readonly item: string;
+  readonly area: string;
+  readonly period: string;
+  readonly price: Quantity;
+  readonly at: string;
+  readonly footnotes?: readonly string[] | undefined;
+}
 
 ### build/index.d.ts#BOARD_FORMAT
 export declare const BOARD_FORMAT = "price-board/1";
@@ -368,6 +387,12 @@ interface WatchEntry {
   readonly every: Quantity;
 }
 
+### build/index.d.ts#averagePriceId
+export declare function averagePriceId(source: string, series: string, period: string): string;
+
+### build/index.d.ts#averagePriceSchema
+export declare const averagePriceSchema: z.ZodType<AveragePrice>;
+
 ### build/index.d.ts#boardObservations
 export declare function boardObservations(board: Board, options: KeepOptions): Observation[];
 
@@ -402,6 +427,9 @@ export declare function keepUntil(terms: SourceTerms, reading: {
 ### build/index.d.ts#lastReads
 export declare function lastReads(board: Board): Record<string, string>;
 
+### build/index.d.ts#latestAverages
+export declare function latestAverages(prices: readonly AveragePrice[]): readonly AveragePrice[];
+
 ### build/index.d.ts#locationSchema
 export declare const locationSchema: z.ZodType<Location>;
 
@@ -425,6 +453,9 @@ export declare const meteredPriceSchema: z.ZodType<Quantity, Quantity>;
 
 ### build/index.d.ts#meteredReadingSchema
 export declare const meteredReadingSchema: z.ZodType<MeteredReading>;
+
+### build/index.d.ts#monthSchema
+export declare const monthSchema: z.ZodType<string>;
 
 ### build/index.d.ts#observationSchema
 export declare const observationSchema: z.ZodType<Observation>;
@@ -461,6 +492,9 @@ export declare const tierSchema: z.ZodType<Tier>;
 
 ### build/index.d.ts#unitPriceFor
 export declare function unitPriceFor(reading: PriceReading, count: number): Quantity;
+
+### build/index.d.ts#unitPriceSchema
+export declare const unitPriceSchema: z.ZodType<Quantity, Quantity>;
 
 ### build/index.d.ts#watchEntrySchema
 export declare const watchEntrySchema: z.ZodType<WatchEntry>;

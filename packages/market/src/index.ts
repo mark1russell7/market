@@ -4,7 +4,16 @@
  * The offers of a part and the best offer join the observations of the sources to the parts that a buyer wants.
  * The board keeps the current prices within the terms of each source, and plans the reads of a watch.
  * A metered offer has a price for each unit of a metered amount, in tiers, with a free amount and a term.
+ * An average price is the mean price of one item in one area and one month, from an official statistic.
  */
+export {
+  averagePriceId,
+  averagePriceSchema,
+  latestAverages,
+  monthSchema,
+  unitPriceSchema,
+  type AveragePrice,
+} from "./average.ts";
 export {
   BOARD_FORMAT,
   boardObservations,

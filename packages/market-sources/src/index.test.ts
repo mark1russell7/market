@@ -21,6 +21,15 @@ describe("the entry", () => {
       "BEST_BUY_PAGE_LIMIT",
       "BEST_BUY_SOURCE",
       "BEST_BUY_TERMS",
+      "BLS_API_URL",
+      "BLS_HOST",
+      "BLS_PACE_MS",
+      "BLS_SERIES_LIMIT",
+      "BLS_SOURCE",
+      "BLS_STAPLES",
+      "BLS_STATEMENT",
+      "BLS_TERMS",
+      "BLS_YEAR_LIMIT",
       "DIGIKEY_HOST",
       "DIGIKEY_PACE_MS",
       "DIGIKEY_SANDBOX_HOST",
@@ -53,8 +62,10 @@ describe("the entry", () => {
       "azurePricesUrl",
       "azureUnit",
       "bestBuyCondition",
+      "blsRequest",
       "createAzureClient",
       "createBestBuyClient",
+      "createBlsClient",
       "createDigiKeyClient",
       "createEbayClient",
       "createPlanClient",
@@ -65,6 +76,7 @@ describe("the entry", () => {
       "parseBestBuyOpenBox",
       "parseBestBuyProduct",
       "parseBestBuyProducts",
+      "parseBlsSeries",
       "parseDigiKeyKeywordSearch",
       "parseDigiKeyProductDetails",
       "parseEbayItem",
@@ -89,6 +101,7 @@ describe("the terms of each source", () => {
       entry.AZURE_SOURCE,
       entry.LINODE_SOURCE,
       entry.VULTR_SOURCE,
+      entry.BLS_SOURCE,
     ]);
   });
 
@@ -104,6 +117,13 @@ describe("the terms of each source", () => {
     expect(isKept(AZURE_TERMS, { at: "2026-11-12T12:00:00Z" }, "2027-11-12T12:00:00Z", true)).toBe(true);
     expect(permitsHistory(AZURE_TERMS)).toBe(true);
     expect(permitsTrend(AZURE_TERMS)).toBe(true);
+  });
+
+  it("keep each BLS average price, with a history and a trend", () => {
+    expect(keepUntil(entry.BLS_TERMS, { at: "2026-11-22T16:00:00Z" })).toBeNull();
+    expect(permitsHistory(entry.BLS_TERMS)).toBe(true);
+    expect(permitsTrend(entry.BLS_TERMS)).toBe(true);
+    expect(entry.BLS_TERMS.clause).toContain("BLS_STATEMENT");
   });
 
   it("keep an eBay reading for 6 hours, and no reading of an ended listing", () => {

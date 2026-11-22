@@ -3,6 +3,7 @@
  * gives the current offers and price readings as records of `@mark1russell7/market`. A parser keeps no store,
  * and it sends no request. Each source also has the terms of its API. The Azure parser gives the metered prices
  * of cloud resources as metered offers. The plan parser reads the plan list of each provider record as metered offers.
+ * The BLS parser reads the average prices of the Consumer Price Index as average prices of `@mark1russell7/market`.
  *
  * Each client sends the requests of one API through a transport that its host gives. The scheduler of
  * `polite-crawler/api` keeps the pace of each host. A client keeps no store, and no message of a client has a key.
@@ -10,6 +11,7 @@
 import type { SourceTerms } from "@mark1russell7/market";
 import { AZURE_TERMS } from "./azure.ts";
 import { BEST_BUY_TERMS } from "./bestbuy.ts";
+import { BLS_TERMS } from "./bls.ts";
 import { DIGIKEY_TERMS } from "./digikey.ts";
 import { EBAY_TERMS } from "./ebay.ts";
 import { LINODE_TERMS, VULTR_TERMS } from "./providers.ts";
@@ -31,6 +33,20 @@ export {
   type AzureFilterField,
   type AzureUnit,
 } from "./azure.ts";
+export {
+  BLS_API_URL,
+  BLS_SERIES_LIMIT,
+  BLS_SOURCE,
+  BLS_STAPLES,
+  BLS_STATEMENT,
+  BLS_TERMS,
+  BLS_YEAR_LIMIT,
+  blsRequest,
+  parseBlsSeries,
+  type AverageParseResult,
+  type BlsSeries,
+} from "./bls.ts";
+export { BLS_HOST, BLS_PACE_MS, createBlsClient, type BlsClient, type BlsClientOptions } from "./bls-client.ts";
 export {
   BEST_BUY_SOURCE,
   BEST_BUY_TERMS,
@@ -97,4 +113,4 @@ export { PLAN_PAGE_LIMIT, createPlanClient } from "./plans-client.ts";
 export type { PlanClient, PlanClientOptions, PlanReadOptions } from "./plans-client.ts";
 
 /** The terms of each source of this package: the sellers in the order of the hand crawl, then Azure, then the plan lists. */
-export const SOURCE_TERMS: readonly SourceTerms[] = [EBAY_TERMS, BEST_BUY_TERMS, DIGIKEY_TERMS, AZURE_TERMS, LINODE_TERMS, VULTR_TERMS];
+export const SOURCE_TERMS: readonly SourceTerms[] = [EBAY_TERMS, BEST_BUY_TERMS, DIGIKEY_TERMS, AZURE_TERMS, LINODE_TERMS, VULTR_TERMS, BLS_TERMS];
