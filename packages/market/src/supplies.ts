@@ -118,7 +118,8 @@ const SHELF_UNIT = "d";
  * - An error for a product or a resource two times, a kind that is not a supply kind, and a gift of an unknown resource.
  * - An error for a fact that is not a fact of the catalog, and for an amount that is not more than 0.
  * - An error for an amount with no reason, with two reasons, or with a blank definition. A catalog from JSON can have them.
- * - An error for a unit that is not a unit of `@mark1russell7/quantity`, and for a unit that does not convert to the unit of its resource.
+ * - An error for a unit that is not a unit of `@mark1russell7/quantity`.
+ * - An error for a unit that does not convert to the unit of its resource.
  * - A warning for each value with no read, and for a no read with a blank reason.
  * - A warning for each fact and each source that no product uses.
  *
