@@ -156,6 +156,8 @@ planBuys: build/plan.d.ts#planBuys
 ## ./supplies (build/supplies-entry.d.ts): names
 
 type AverageJoin: build/supplies-entry.d.ts#AverageJoin
+type BuyListEnergy: build/supplies-entry.d.ts#BuyListEnergy
+type BuyListEnergyLine: build/supplies-entry.d.ts#BuyListEnergyLine
 type CitedAmount: build/supplies-entry.d.ts#CitedAmount
 FOOD_PLANS: build/supplies-entry.d.ts#FOOD_PLANS
 FOOD_PLAN_GROUPS: build/supplies-entry.d.ts#FOOD_PLAN_GROUPS
@@ -180,6 +182,7 @@ type SupplyPrice: build/supplies-entry.d.ts#SupplyPrice
 type SupplyProduct: build/supplies-entry.d.ts#SupplyProduct
 type SupplyResource: build/supplies-entry.d.ts#SupplyResource
 averageSupplyPrices: build/supplies-entry.d.ts#averageSupplyPrices
+buyListEnergy: build/supplies-entry.d.ts#buyListEnergy
 checkSupplies: build/supplies-entry.d.ts#checkSupplies
 foodPlanCheck: build/supplies-entry.d.ts#foodPlanCheck
 foodPlanCost: build/supplies-entry.d.ts#foodPlanCost
@@ -940,6 +943,28 @@ interface AverageJoin {
   readonly per: CitedAmount;
 }
 
+### build/supplies-entry.d.ts#BuyListEnergy
+interface BuyListEnergy {
+  readonly lines: readonly BuyListEnergyLine[];
+  readonly read: boolean;
+  readonly energy: Quantity;
+}
+
+### build/supplies-entry.d.ts#BuyListEnergyLine
+type BuyListEnergyLine = {
+  readonly product: string;
+  readonly units: number;
+  readonly resources: readonly string[];
+  readonly read: true;
+  readonly energy: Quantity;
+} | {
+  readonly product: string;
+  readonly units: number;
+  readonly resources: readonly string[];
+  readonly read: false;
+  readonly why: string;
+};
+
 ### build/supplies-entry.d.ts#CitedAmount
 type CitedAmount = {
   readonly read: true;
@@ -1094,6 +1119,9 @@ interface SupplyResource {
 export declare function averageSupplyPrices(catalog: SupplyCatalog, prices: readonly AveragePrice[], options?: {
   readonly since?: string | undefined;
 }): SupplyPrice[];
+
+### build/supplies-entry.d.ts#buyListEnergy
+export declare function buyListEnergy(catalog: SupplyCatalog, units: Readonly<Record<string, number>>): BuyListEnergy;
 
 ### build/supplies-entry.d.ts#checkSupplies
 export declare function checkSupplies(catalog: SupplyCatalog, options?: GateOptions): SupplyFinding[];
