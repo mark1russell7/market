@@ -123,7 +123,6 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       title: "A water container of 1 gal, filled from the tap",
       kind: "water",
       gives: [{ resource: "water.stored", amount: { read: true, amount: 1, unit: "gal", definition: "The product is a container of 1 gal." } }],
-      size: { read: true, amount: 1, unit: "gal", definition: "The catalog item is defined as a container of 1 gal." },
       shelf: { read: true, amount: 6, unit: "mo", fact: "ready.water-replace" },
     },
     {

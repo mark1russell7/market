@@ -75,6 +75,7 @@ describe("the reference catalog of supplies", () => {
   it("gives a size to each product with a known size, and each size converts to kg, L or a count", () => {
     const sized = SUPPLY_CATALOG.products.filter((product) => product.size !== undefined);
     expect(SUPPLY_CATALOG.products.filter((product) => product.size === undefined).map((product) => product.id)).toEqual([
+      "water.container-1gal",
       "light.flashlight",
       "heat.sleeping-bag",
       "first-aid.kit",
