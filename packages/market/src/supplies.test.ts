@@ -26,7 +26,7 @@ describe("the reference catalog of supplies", () => {
       "supplies-no-read water.jug-1gal",
       "supplies-no-read food.oats-1kg",
       "supplies-no-read food.peanut-butter-1kg",
-      "supplies-no-read food.soup-can-527g",
+      "supplies-no-read food.soup-can",
       "supplies-no-read light.flashlight",
       "supplies-no-read heat.sleeping-bag",
       "supplies-no-read first-aid.kit",
@@ -154,7 +154,7 @@ const ricePrice = (period: string, value: number, unit = "USD/lb", at = "2026-11
 describe("the prices of the supplies from average prices", () => {
   it("gives the price of 1 kg of rice from the last month of its series, and a no read for the oats", () => {
     const prices = averageSupplyPrices(SUPPLY_CATALOG, [ricePrice("2026-09", 1.118), ricePrice("2026-10", 1.101)]);
-    expect(prices.map((each) => each.product)).toEqual(["food.rice-white-1kg", "food.oats-1kg", "food.beans-dry-1kg", "food.peanut-butter-1kg", "food.pasta-dry-1kg", "food.flour-white-1kg", "food.soup-can-527g"]);
+    expect(prices.map((each) => each.product)).toEqual(["food.rice-white-1kg", "food.oats-1kg", "food.beans-dry-1kg", "food.peanut-butter-1kg", "food.pasta-dry-1kg", "food.flour-white-1kg", "food.soup-can"]);
     const [rice, oats, beans] = prices;
     expect(beans).toEqual({ product: "food.beans-dry-1kg", read: false, why: "The prices have no average price of the series APU0000714233 of bls-ap." });
     expect(rice).toMatchObject({ read: true, average: "bls-ap:APU0000701312:2026-10", period: "2026-10" });
