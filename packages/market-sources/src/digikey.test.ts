@@ -145,9 +145,9 @@ describe("parseDigiKeyProductDetails", () => {
       ok: false,
       problems: ["The answer names no currency in SearchLocaleUsed.Currency."],
     });
-    expect(parseDigiKeyProductDetails({ ...digiKeyDetails, SearchLocaleUsed: { Currency: "EUR" } }, AT)).toEqual({
+    expect(parseDigiKeyProductDetails({ ...digiKeyDetails, SearchLocaleUsed: { Currency: "ZZZ" } }, AT)).toEqual({
       ok: false,
-      problems: ['The currency "EUR" of the answer is not a money unit of @mark1russell7/quantity.'],
+      problems: ['The currency "ZZZ" of the answer is not a money unit of @mark1russell7/quantity.'],
     });
     expect(parseDigiKeyProductDetails({ ...digiKeyDetails, Product: null }, AT).ok).toBe(false);
     expect(parseDigiKeyProductDetails("x", AT).ok).toBe(false);

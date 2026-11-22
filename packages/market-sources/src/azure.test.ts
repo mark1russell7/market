@@ -347,9 +347,9 @@ describe("the notes of parseAzureRetailPrices", () => {
   it("skips a meter with no tier at zero, a row in a currency that quantity does not have and a repeated reservation", () => {
     const egress = rowsOf("Standard Data Transfer Out");
     const reservation = azurePage.Items.find((row) => row.type === "Reservation")!;
-    const read = parseRows([...egress.slice(1), rowsOf("Standard Inter-Region Data Transfer")[0]!, { ...VM, currencyCode: "EUR" }, VM, reservation, reservation]);
+    const read = parseRows([...egress.slice(1), rowsOf("Standard Inter-Region Data Transfer")[0]!, { ...VM, currencyCode: "ZZZ" }, VM, reservation, reservation]);
     expect(meteredNotes(read)).toEqual([
-      'The row Items[6] is skipped: the currency "EUR" is not a money unit of @mark1russell7/quantity.',
+      'The row Items[6] is skipped: the currency "ZZZ" is not a money unit of @mark1russell7/quantity.',
       "The row Items[9] is skipped: it repeats the reservation azure:southcentralus/DZH318Z0D1L7/018J/reservation-1y.",
       'The meter "Standard Data Transfer Out" of the offer azure:westeurope/DZH318Z0BNVX/003F/consumption is skipped: it has no tier that starts at 0.',
     ]);

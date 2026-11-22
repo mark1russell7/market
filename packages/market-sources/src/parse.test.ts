@@ -74,6 +74,11 @@ describe("readMoney", () => {
     expect(isCurrency("usd")).toBe(false);
     expect(isCurrency("h")).toBe(false);
   });
+
+  // quantity 0.4.3 and older threw a TypeError for a key of Object.prototype (systems#653). From 0.4.4, each lookup reads an own key.
+  it("gives false for each key of Object.prototype", () => {
+    for (const unit of ["toString", "constructor", "__proto__", "hasOwnProperty", "valueOf"]) expect(isCurrency(unit)).toBe(false);
+  });
 });
 
 describe("the readers of JSON values", () => {
