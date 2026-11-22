@@ -37,7 +37,7 @@ export function averagePriceId(source: string, series: string, period: string): 
 
 /**
  * This function reads the unit of a price for each unit of an amount of an item. The unit has one unit of money
- * above. Below, it has a unit of an amount that is not money and not a time, for example `USD/lb` or `USD/L`.
+ * above. Below, it has a unit of an amount that is not money and not a pure time, for example `USD/lb`, `USD/L` or `USD/kWh`.
  * A count below must have an annotation, for example `USD/{each}`. Thus `USD/%` and `USD/h` are not prices of an item.
  */
 function unitPriceProblem(unit: string): string | undefined {
@@ -59,7 +59,8 @@ function unitPriceProblem(unit: string): string | undefined {
     const dimensions = component.atom?.vector;
     if (dimensions === undefined) return component.annotation !== undefined;
     const names = Object.keys(dimensions);
-    return names.length > 0 && !names.includes("money") && !names.includes("time");
+    const pureTime = names.length === 1 && names[0] === "time";
+    return names.length > 0 && !names.includes("money") && !pureTime;
   };
   if (below.length === 0 || !below.every(amountOf)) return refused;
   return undefined;

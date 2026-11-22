@@ -20,7 +20,7 @@ describe("the average prices", () => {
   });
 
   it("accepts a price for each unit of an amount of an item, and refuses money, a time and a bare number below", () => {
-    for (const unit of ["USD/lb", "USD/kg", "USD/L", "USD/gal", "USD/kWh", "USD/{each}"]) expect(unitPriceSchema.safeParse({ value: 1, unit }).success, unit).toBe(true);
+    for (const unit of ["USD/lb", "USD/kg", "USD/L", "USD/gal", "USD/kWh", "USD/W", "USD/{each}"]) expect(unitPriceSchema.safeParse({ value: 1, unit }).success, unit).toBe(true);
     for (const unit of ["USD", "lb", "USD/USD", "lb/USD", "foo/lb", "USD/%", "USD/h", "USD/d"]) expect(unitPriceSchema.safeParse({ value: 1, unit }).success, unit).toBe(false);
     expect(unitPriceSchema.safeParse({ value: 0, unit: "USD/lb" }).success).toBe(false);
   });
