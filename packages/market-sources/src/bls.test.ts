@@ -73,6 +73,7 @@ describe("the parser of the BLS average prices", () => {
     expect(parseBlsSeries({ status: "REQUEST_NOT_PROCESSED", message: ["Daily threshold reached."] }, AT)).toEqual({
       ok: false,
       problems: ['The status of the answer is "REQUEST_NOT_PROCESSED", not "REQUEST_SUCCEEDED".', "BLS: Daily threshold reached."],
+      threshold: true,
     });
     expect(parseBlsSeries({ status: "REQUEST_SUCCEEDED" }, AT).ok).toBe(false);
     for (const json of [null, 5, "text", [], {}]) expect(parseBlsSeries(json, AT).ok).toBe(false);
@@ -89,6 +90,19 @@ describe("the parser of the BLS average prices", () => {
       }),
       { numRuns: 300 },
     );
+  });
+
+  it("marks the answer of the daily threshold, so that a loop waits for the next day", () => {
+    // The shape of this answer is not in the documentation of BLS. The message is the form that users report.
+    const threshold = {
+      status: "REQUEST_NOT_PROCESSED",
+      responseTime: 0,
+      message: ["Request could not be serviced, as the daily threshold for total number of requests allocated to the user has been reached."],
+      Results: {},
+    };
+    const result = parseBlsSeries(threshold, AT);
+    expect(result).toMatchObject({ ok: false, threshold: true });
+    expect(parseBlsSeries({ status: "REQUEST_NOT_PROCESSED", message: ["Series does not exist."] }, AT)).not.toHaveProperty("threshold");
   });
 
   it("knows each staple once, with an item in pounds in the U.S. city average", () => {
@@ -134,12 +148,12 @@ describe("the BLS client", () => {
     expect(sent.map(({ exchange }) => exchange)).toEqual([blsRequest(BLS_STAPLES.map((each) => each.series))]);
   });
 
-  it("keeps the daily limit: a second query waits the pace of 25 queries each day", async () => {
+  it("keeps a margin under the daily limit of 25: a second query waits the pace of 20 queries each day", async () => {
     const { client, sent } = setup(() => reply(200, answer));
     await client.averages();
     await client.averages(BLS_STAPLES.slice(0, 1), { start: 2025, end: 2026 });
     expect(sent[1]!.at - sent[0]!.at).toBe(BLS_PACE_MS);
-    expect(BLS_PACE_MS * 25).toBe(86_400_000);
+    expect(BLS_PACE_MS * 20).toBe(86_400_000);
   });
 
   it("gives a problem with the status line for an answer that is not a 2xx with no part of the body, and for a body that is not JSON", async () => {

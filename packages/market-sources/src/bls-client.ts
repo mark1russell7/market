@@ -5,10 +5,11 @@ import { instantOf, readJson, redact, send, type Pace, type Signal, type Transpo
 export const BLS_HOST = "api.bls.gov";
 
 /**
- * The client sends one request each 57.6 minutes at most. Version 1 of the API permits 25 queries each day to a user
- * with no key, so this pace never passes the daily limit. One query reads up to 25 series and 10 years.
+ * The client sends one request each 72 minutes at most: 20 queries in each day. Version 1 of the API permits 25
+ * queries each day to a user with no key. Thus the pace keeps a margin of 5 queries in one process. Another process
+ * from the same address also counts, and the pace does not see it. One query reads up to 25 series and 10 years.
  */
-export const BLS_PACE_MS = 86_400_000 / 25;
+export const BLS_PACE_MS: number = 86_400_000 / 20;
 
 /** The options of a BLS client. Version 1 of the API needs no key. */
 export interface BlsClientOptions<S extends Signal> {

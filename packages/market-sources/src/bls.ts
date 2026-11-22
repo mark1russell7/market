@@ -11,7 +11,7 @@ import { checkAt, compact, decimal, field, list, refused, show, text, type Refus
 /** The name of the source. */
 export const BLS_SOURCE = "bls-ap";
 
-/** The statement that the terms of the API require of each user of the data. */
+/** The statement that the terms of the API make necessary for each user of the data. The layer that shows the prices shows it. */
 export const BLS_STATEMENT =
   "BLS.gov cannot vouch for the data or analyses derived from these data after the data have been retrieved from BLS.gov.";
 
@@ -63,7 +63,10 @@ export const BLS_STAPLES: readonly BlsSeries[] = [
  */
 export type AverageParseResult =
   | { readonly ok: true; readonly prices: readonly AveragePrice[]; readonly notes: readonly string[] }
-  | Refused;
+  | (Refused & { readonly threshold?: true | undefined });
+
+/** A message of BLS that tells that the daily threshold of the user is reached. */
+const THRESHOLD = /threshold/i;
 
 const SERIES_ID = /^[A-Z0-9]{1,30}$/;
 
@@ -71,8 +74,8 @@ const SERIES_ID = /^[A-Z0-9]{1,30}$/;
  * This function gives the request of version 1 of the API for some series, from a first year to a last year. The
  * API gives the last three years when the request has no years.
  *
- * @throws RangeError when the count of series is not from 1 to `BLS_SERIES_LIMIT`, when an id is not an id of BLS,
- * or when the years are not whole numbers in order with `BLS_YEAR_LIMIT` years at most
+ * @throws RangeError when the count of series is not from 1 to `BLS_SERIES_LIMIT`, or when an id is not an id of BLS.
+ * It also throws when the years are not whole numbers in order, or when they are more than `BLS_YEAR_LIMIT` years.
  */
 export function blsRequest(
   series: readonly string[],
@@ -81,14 +84,13 @@ export function blsRequest(
   if (series.length < 1 || series.length > BLS_SERIES_LIMIT) throw new RangeError(`The count of series is not from 1 to ${BLS_SERIES_LIMIT}.`);
   for (const id of series) if (typeof id !== "string" || !SERIES_ID.test(id)) throw new RangeError(`The series ${show(id)} is not an id of BLS.`);
   if (new Set(series).size !== series.length) throw new RangeError("A series is two times in the request.");
-  const body: Record<string, unknown> = { seriesid: series };
+  let body: { readonly seriesid: readonly string[]; readonly startyear?: string; readonly endyear?: string } = { seriesid: series };
   if (years !== undefined) {
     const { start, end } = years;
     if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start > end || end - start + 1 > BLS_YEAR_LIMIT) {
       throw new RangeError(`The years are not whole numbers in order, with ${BLS_YEAR_LIMIT} years at most.`);
     }
-    body.startyear = String(start);
-    body.endyear = String(end);
+    body = { seriesid: series, startyear: String(start), endyear: String(end) };
   }
   return { method: "POST", url: BLS_API_URL, headers: { accept: "application/json", "content-type": "application/json" }, body: JSON.stringify(body) };
 }
@@ -108,6 +110,8 @@ function footnotesOf(value: unknown): string[] {
  * - A series that is not in `known` gives a note, and no price.
  * - A value that is not a decimal, for example `-` for no data, gives a note. So does a period that is not a month.
  * - Each message of the answer gives a note, for example "No Data Available" for a year.
+ * - An answer that did not succeed gives problems. When a message names the daily threshold, the result also has
+ *   `threshold: true`. Then a loop waits for the next day. The documentation does not give the shape of this answer.
  *
  * @param json - The JSON of the answer
  * @param at - The instant of the answer
@@ -119,7 +123,8 @@ export function parseBlsSeries(json: unknown, at: string, known: readonly BlsSer
   const status = field(json, "status");
   const messages = (list(field(json, "message")) ?? []).map((message) => text(message)).filter((message): message is string => message !== undefined);
   if (status !== "REQUEST_SUCCEEDED") {
-    return refused(`The status of the answer is ${show(status)}, not "REQUEST_SUCCEEDED".`, ...messages.map((message) => `BLS: ${message}`));
+    const problems = refused(`The status of the answer is ${show(status)}, not "REQUEST_SUCCEEDED".`, ...messages.map((message) => `BLS: ${message}`));
+    return messages.some((message) => THRESHOLD.test(message)) ? { ...problems, threshold: true } : problems;
   }
   const series = list(field(field(json, "Results"), "series"));
   if (series === undefined) return refused("The answer has no list Results.series.");

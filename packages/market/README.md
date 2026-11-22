@@ -227,7 +227,8 @@ An average price is the mean price of one item in one area and one month, from a
 | --- | --- | --- |
 | Average price | `averagePriceSchema` | The source and its series. The item and the area, as the source names them. The month `YYYY-MM`, and the price for each unit of the item. The instant of the read, and the footnotes. |
 
-- **Price.** The unit has one unit of money above and the unit of an amount below, for example `USD/lb`, `USD/L` or `USD/{each}`. `unitPriceSchema` examines it. The value is more than 0.
+- **Price.** The unit has one unit of money above. Below, it has the unit of an amount of the item, for example `USD/lb`, `USD/L` or `USD/{each}`. A time, a bare number and money below are refused, for example `USD/h` and `USD/%`. `unitPriceSchema` examines it. The value is more than 0.
+- **The fit to a product.** The schema does not examine the fit of the unit to a product, for example `USD/lb` to a dry grain in `kg`. The join of a product to a series examines it.
 - **Id.** `averagePriceId(source, series, month)` gives the id `source:series:month`.
 - **The last price.** `latestAverages(prices)` gives the last month of each series. A later read of the same month replaces an earlier read, because a source can revise a value.
 

@@ -159,14 +159,15 @@ The answer of version 1 gives no title of a series. Thus the parser takes the it
 | --- | --- |
 | Price | The value of a month, in `USD` for each unit of the item, for example `{ value: 1.101, unit: "USD/lb" }`. `valueIn(price, "USD/kg")` of `@mark1russell7/quantity` gives the price of a kilogram. |
 | Month | The period `M01` to `M12` of a year, as `YYYY-MM`. Another period, for example the annual average `M13`, gives a note. |
-| No value | A value that is not a decimal, for example `-`, gives a note and no price. The price stays no read, never 0. |
+| No value | A value that is not a decimal, for example `-`, gives a note and no price. The price stays no read. It does not become 0. |
 | Messages | Each message of the answer gives a note, for example "No Data Available" for a year. |
 | Footnotes | The texts of the footnotes of a value, for example `Preliminary`. |
 | Status | An answer with a status that is not `REQUEST_SUCCEEDED` gives problems, with its messages. |
+| Daily threshold | When a message of a failed answer names the daily threshold, the result also has `threshold: true`. Then a loop waits for the next day. The documentation of BLS does not give the shape of this answer. |
 
 The Northeast series of these items exist, but they have no value since 2023. Thus the list has only the U.S. city average. `blsRequest(series, years)` gives the request: 25 series and 10 years at most.
 
-The terms require each user of the data to cite the date of its retrieval and to give the statement `BLS_STATEMENT`. The field `at` of each price is the instant of the read.
+The terms make two things necessary for each user of the data: the date of the retrieval, and the statement `BLS_STATEMENT`. The field `at` of each price is the instant of the read. No field of the record has the statement. The layer that shows the prices, for example a page or a printed list, shows it with the date.
 
 ## The clients
 
@@ -177,7 +178,7 @@ The terms require each user of the data to cite the date of its retrieval and to
 | `createBestBuyClient` | `product(sku)`, `search(words, pageSize)`, `openBox(sku)` | 1 s | the API key in the query |
 | `createAzureClient` | `prices(filter, { pages, currency })`, `more(next, pages)` | 6 s | no key |
 | `createPlanClient` | `plans(provider, { pages })` | the pace of the record, 2 s for each record of the package | no key |
-| `createBlsClient` | `averages(series, years)` | 57.6 min: 25 queries each day | no key (version 1) |
+| `createBlsClient` | `averages(series, years)` | 72 min: 20 queries each day in one process, under the limit of 25 | no key (version 1) |
 
 ```ts
 import { HostScheduler, realClock } from "polite-crawler/politeness";

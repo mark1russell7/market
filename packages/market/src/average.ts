@@ -36,8 +36,9 @@ export function averagePriceId(source: string, series: string, period: string): 
 }
 
 /**
- * This function reads the unit of a price for each unit of an amount. The unit has one unit of money above, and a
- * unit of an amount that is not money below, for example `USD/lb`, `USD/L` or `USD/{each}`.
+ * This function reads the unit of a price for each unit of an amount of an item. The unit has one unit of money
+ * above. Below, it has a unit of an amount that is not money and not a time, for example `USD/lb` or `USD/L`.
+ * A count below must have an annotation, for example `USD/{each}`. Thus `USD/%` and `USD/h` are not prices of an item.
  */
 function unitPriceProblem(unit: string): string | undefined {
   const refused = `The unit ${unit} is not a price for each unit of an amount, for example USD/lb.`;
@@ -54,7 +55,13 @@ function unitPriceProblem(unit: string): string | undefined {
   const isMoney = vector !== undefined && Object.keys(vector).length === 1 && vector.money === 1;
   if (above.length !== 1 || money?.exponent !== 1 || money.annotation !== undefined || !isMoney) return refused;
   const below = parsed.components.filter((component) => component.exponent < 0);
-  if (below.length === 0 || below.some((component) => component.atom?.vector.money !== undefined)) return refused;
+  const amountOf = (component: (typeof below)[number]): boolean => {
+    const dimensions = component.atom?.vector;
+    if (dimensions === undefined) return component.annotation !== undefined;
+    const names = Object.keys(dimensions);
+    return names.length > 0 && !names.includes("money") && !names.includes("time");
+  };
+  if (below.length === 0 || !below.every(amountOf)) return refused;
   return undefined;
 }
 
