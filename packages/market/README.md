@@ -148,11 +148,13 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The resource codes are the codes of a store of `@mark1russell7/stack-endurance`, for example `water.stored` in `L`.
 - A product can have a `size`: the amount of one unit as sold, for example 1 kg, 530 g or 1 gal. Its unit is a mass or a volume that converts to `kg` or `L`, or one bare count, for example `{each}`. A page can thus convert a size in a mass to `lb` with `valueIn` of `@mark1russell7/quantity`. The gate refuses a unit that does not convert, for example `g/{each}`. A no read is for a product that has a size, when the source of the size is not read yet. The gate examines a size as each other amount.
 - A product can join a series of average prices. The join names the source, the series and the amount of the item in one unit, with its reason. A product with no series has a no read with its reason.
-- The gate does not examine the joins to other packages. It does not find a FoodKeeper id that is not in `@mark1russell7/stock`, or a resource code that a layer of stores does not have. The code that joins the catalog to stock or to a layer of stores gives those gates. market depends on neither package.
+- With the option `foodKeeper`, the gate examines each FoodKeeper id of a shelf life. An id that is not in the known ids is the error `supplies-shelf`. The option is a set or a list of ids, for example the ids of `FOODKEEPER_PRODUCTS` of `@mark1russell7/stock/foodkeeper`. With no option, the gate does not examine the ids against the data.
+- market has no runtime dependency on `@mark1russell7/stock`. The code that calls the gate gives the ids. The tests of market gate the reference catalog with the ids of stock.
+- The gate does not examine a resource code against a layer of stores. The code that joins the catalog to a layer of stores gives that gate.
 
 | Function | What it does |
 | --- | --- |
-| `checkSupplies(catalog, options)` | It gives the findings of the catalog: the errors of the gate, and a warning for each no read and for each fact or source that no product uses. |
+| `checkSupplies(catalog, options)` | It gives the findings of the catalog: the errors of the gate, and a warning for each no read and for each fact or source that no product uses. The option `foodKeeper` gives the known FoodKeeper ids. |
 | `supplyWants(catalog, max)` | It gives the wants of the products with a part, for `buyCandidates`. A product with no part has no offer, so it has no price. |
 | `giftsOf(catalog, id, units)` | It gives the resources of a count of units, each in the unit of its resource. A unit converts exactly, so 1 gal gives 3.785411784 L. |
 | `averageSupplyPrices(catalog, prices, { since })` | It gives the price of one unit of each product with a join, from the last month of its series. A series with no price and a unit that does not fit give a no read. With `since`, so does a last price before that month. |

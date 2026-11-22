@@ -126,6 +126,18 @@ export type SupplyCode = (typeof SUPPLY_CODES)[number];
 /** A finding of the catalog gate, or of the gate of the facts and their sources. */
 export type SupplyFinding = Finding<SupplyCode | FindingCode, "source" | "unit" | "resource" | "product">;
 
+/**
+ * The options of the catalog gate: the options of the gate of the sources, and the known FoodKeeper ids.
+ */
+export interface SupplyGateOptions extends GateOptions {
+  /**
+   * The ids of the products of the FoodKeeper data, for example the ids of `FOODKEEPER_PRODUCTS` of the entry
+   * `/foodkeeper` of `@mark1russell7/stock`. With this option, a shelf life with an id that is not in the set is an
+   * error. With no option, the gate does not examine the ids against the data.
+   */
+  readonly foodKeeper?: ReadonlySet<number> | readonly number[] | undefined;
+}
+
 /** This function tells if a text is a unit of `@mark1russell7/quantity`. `convertible` throws for an unknown unit. */
 function known(unit: unknown): boolean {
   if (typeof unit !== "string") return false;
@@ -163,6 +175,7 @@ function sizeUnit(unit: string): boolean {
  * - An error for a unit that does not convert to the unit of its resource.
  * - An error for a size in a unit that is not a mass, a volume or a count, for example `h` or `kcal`.
  * - The amount of the item of an average price has the same checks as each other amount.
+ * - With the option `foodKeeper`, an error for a FoodKeeper id of a shelf life that is not in the known ids.
  * - A warning for each value with no read, and for a no read with a blank reason.
  * - A warning for each fact and each source that no product uses.
  *
@@ -170,10 +183,12 @@ function sizeUnit(unit: string): boolean {
  * example with the entry `/read` of `@mark1russell7/optional`. The gate then finds the values that the type does not hold.
  *
  * @param catalog - The catalog
- * @param options - The options of the gate of the sources, for example the date of the gate
+ * @param options - The options of the gate of the sources, for example the date of the gate, and the known FoodKeeper ids
  */
-export function checkSupplies(catalog: SupplyCatalog, options: GateOptions = {}): SupplyFinding[] {
-  const out: SupplyFinding[] = [...checkSources(catalog.sources, options), ...checkUnits(catalog.facts, catalog.sources, options)];
+export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions = {}): SupplyFinding[] {
+  const { foodKeeper: knownFoodKeeper, ...gate } = options;
+  const foodKeeper = knownFoodKeeper === undefined ? undefined : new Set<number>(knownFoodKeeper);
+  const out: SupplyFinding[] = [...checkSources(catalog.sources, gate), ...checkUnits(catalog.facts, catalog.sources, gate)];
   const error = (code: SupplyCode, record: "resource" | "product", id: string, message: string): void => {
     out.push({ level: "error", code, record, id, message });
   };
@@ -244,6 +259,8 @@ export function checkSupplies(catalog: SupplyCatalog, options: GateOptions = {})
     if (product.average !== undefined) amount(product.id, "average price", product.average.read ? product.average.per : product.average, product.average.read ? product.average.per.unit : "");
     if ("foodKeeper" in product.shelf) {
       if (!(Number.isSafeInteger(product.shelf.foodKeeper) && product.shelf.foodKeeper > 0)) error("supplies-shelf", "product", product.id, `The FoodKeeper id of the product ${product.id} is ${String(product.shelf.foodKeeper)}. It must be a whole number more than 0.`);
+      else if (foodKeeper !== undefined && !foodKeeper.has(product.shelf.foodKeeper))
+        error("supplies-shelf", "product", product.id, `The FoodKeeper id ${String(product.shelf.foodKeeper)} of the product ${product.id} is not in the known FoodKeeper ids.`);
     } else amount(product.id, "shelf life", product.shelf, SHELF_UNIT);
   }
 

@@ -1,4 +1,5 @@
 import { quantity, valueIn } from "@mark1russell7/quantity";
+import { FOODKEEPER_PRODUCTS } from "@mark1russell7/stock/foodkeeper";
 import { describe, expect, it } from "vitest";
 import { buyCandidates } from "./order.ts";
 import type { AveragePrice } from "./average.ts";
@@ -174,6 +175,31 @@ describe("the gate of the catalog", () => {
   it("refuses a FoodKeeper id that is not a whole number more than 0, and a shelf life in a unit that is not a time", () => {
     expect(errors(withProduct({ ...rice, shelf: { read: true, foodKeeper: 0 } }))).toEqual(["supplies-shelf"]);
     expect(errors(withProduct({ ...rice, shelf: { read: true, amount: 2, unit: "kg", definition: "A wrong unit." } }))).toEqual(["supplies-unit"]);
+  });
+
+  it("finds each FoodKeeper id of the reference catalog in the FoodKeeper data of @mark1russell7/stock", () => {
+    const foodKeeper = new Set(FOODKEEPER_PRODUCTS.map((product) => product.id));
+    expect(checkSupplies(SUPPLY_CATALOG, { foodKeeper }).filter((finding) => finding.level === "error")).toEqual([]);
+    expect(checkSupplies(SUPPLY_CATALOG, { foodKeeper: [...foodKeeper], at: "2026-11-22" }).filter((finding) => finding.level === "error")).toEqual([]);
+  });
+
+  it("refuses a FoodKeeper id that is not in the known ids, and examines no id with no option", () => {
+    const foodKeeper = new Set(FOODKEEPER_PRODUCTS.map((product) => product.id));
+    const missing = Math.max(...foodKeeper) + 1;
+    const catalog = withProduct({ ...rice, shelf: { read: true, foodKeeper: missing } });
+    const found = checkSupplies(catalog, { foodKeeper }).filter((finding) => finding.level === "error");
+    expect(found.map((finding) => `${finding.code} ${finding.id}`)).toEqual([`supplies-shelf ${rice.id}`]);
+    expect(found[0]?.message).toContain(`The FoodKeeper id ${String(missing)} of the product ${rice.id} is not in the known FoodKeeper ids.`);
+    expect(checkSupplies(catalog, { foodKeeper: [] }).map((finding) => finding.code)).toContain("supplies-shelf");
+    // With no option, the gate gives the same findings as before: it does not examine the id against the data.
+    expect(errors(catalog)).toEqual([]);
+    expect(checkSupplies(catalog)).toEqual(checkSupplies(SUPPLY_CATALOG));
+    expect(checkSupplies(SUPPLY_CATALOG, { foodKeeper })).toEqual(checkSupplies(SUPPLY_CATALOG));
+  });
+
+  it("gives one error for a FoodKeeper id that is not a whole number, also with the known ids", () => {
+    const foodKeeper = new Set(FOODKEEPER_PRODUCTS.map((product) => product.id));
+    expect(checkSupplies(withProduct({ ...rice, shelf: { read: true, foodKeeper: 1.5 } }), { foodKeeper }).filter((finding) => finding.level === "error").map((finding) => finding.code)).toEqual(["supplies-shelf"]);
   });
 
   it("gives the findings of the sources and the facts from the gate of the guidebook", () => {
