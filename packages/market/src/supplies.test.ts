@@ -81,6 +81,15 @@ describe("the gate of the catalog", () => {
     expect(codes(SUPPLY_CATALOG)).not.toContain("supplies-no-reason");
   });
 
+  it("refuses a unit from JSON that is not a known unit, in an amount and in a resource, and does not throw", () => {
+    const foo = withProduct({ ...rice, energy: { read: true, amount: 3650, unit: "foo", fact: "fdc.rice-white" } });
+    expect(errors(foo)).toEqual(["supplies-unit"]);
+    expect(checkSupplies(foo).find((finding) => finding.code === "supplies-unit")?.message).toContain("not a known unit");
+    expect(errors(withProduct({ ...rice, energy: { read: true, amount: 3650, unit: 5 as unknown as string, fact: "fdc.rice-white" } }))).toEqual(["supplies-unit"]);
+    const resources = SUPPLY_CATALOG.resources.map((each) => (each.code === "food.grain-dry" ? { ...each, unit: "foo" } : each));
+    expect(errors({ ...SUPPLY_CATALOG, resources })).toEqual(["supplies-unit"]);
+  });
+
   it("refuses a FoodKeeper id that is not a whole number more than 0, and a shelf life in a unit that is not a time", () => {
     expect(errors(withProduct({ ...rice, shelf: { read: true, foodKeeper: 0 } }))).toEqual(["supplies-shelf"]);
     expect(errors(withProduct({ ...rice, shelf: { read: true, amount: 2, unit: "kg", definition: "A wrong unit." } }))).toEqual(["supplies-unit"]);

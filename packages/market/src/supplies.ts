@@ -96,6 +96,16 @@ export type SupplyCode = (typeof SUPPLY_CODES)[number];
 /** A finding of the catalog gate, or of the gate of the facts and their sources. */
 export type SupplyFinding = Finding<SupplyCode | FindingCode, "source" | "unit" | "resource" | "product">;
 
+/** This function tells if a text is a unit of `@mark1russell7/quantity`. `convertible` throws for an unknown unit. */
+function known(unit: unknown): boolean {
+  if (typeof unit !== "string") return false;
+  try {
+    return convertible(unit, unit);
+  } catch {
+    return false;
+  }
+}
+
 /** The unit that each food energy converts to. */
 const ENERGY_UNIT = "kcal";
 /** The unit that each shelf life converts to. */
@@ -108,9 +118,12 @@ const SHELF_UNIT = "d";
  * - An error for a product or a resource two times, a kind that is not a supply kind, and a gift of an unknown resource.
  * - An error for a fact that is not a fact of the catalog, and for an amount that is not more than 0.
  * - An error for an amount with no reason, with two reasons, or with a blank definition. A catalog from JSON can have them.
- * - An error for a unit that does not convert to the unit of its resource.
+ * - An error for a unit that is not a unit of `@mark1russell7/quantity`, and for a unit that does not convert to the unit of its resource.
  * - A warning for each value with no read, and for a no read with a blank reason.
  * - A warning for each fact and each source that no product uses.
+ *
+ * The function takes a decoded catalog: each record has the fields of its type. Decode a catalog from JSON first, for
+ * example with the entry `/read` of `@mark1russell7/optional`. The gate then finds the values that the type does not hold.
  *
  * @param catalog - The catalog
  * @param options - The options of the gate of the sources, for example the date of the gate
@@ -128,6 +141,7 @@ export function checkSupplies(catalog: SupplyCatalog, options: GateOptions = {})
   const resources = new Map<string, SupplyResource>();
   for (const resource of catalog.resources) {
     if (resources.has(resource.code)) error("supplies-twice", "resource", resource.code, `The resource ${resource.code} is two times in the catalog.`);
+    if (!known(resource.unit)) error("supplies-unit", "resource", resource.code, `The unit ${String(resource.unit)} of the resource ${resource.code} is not a known unit.`);
     resources.set(resource.code, resource);
   }
   const facts = new Map(catalog.facts.map((fact) => [fact.id, fact]));
@@ -150,7 +164,8 @@ export function checkSupplies(catalog: SupplyCatalog, options: GateOptions = {})
       used.add(value.fact);
     }
     if (!(Number.isFinite(value.amount) && value.amount > 0)) error("supplies-amount", "product", product, `The ${what} of the product ${product} is ${String(value.amount)}. It must be a finite number more than 0.`);
-    if (!convertible(value.unit, unit)) error("supplies-unit", "product", product, `The ${what} of the product ${product} is in ${value.unit}, and ${value.unit} does not convert to ${unit}.`);
+    if (!known(value.unit)) error("supplies-unit", "product", product, `The unit ${String(value.unit)} of the ${what} of the product ${product} is not a known unit.`);
+    else if (known(unit) && !convertible(value.unit, unit)) error("supplies-unit", "product", product, `The ${what} of the product ${product} is in ${value.unit}, and ${value.unit} does not convert to ${unit}.`);
   };
 
   const products = new Set<string>();
