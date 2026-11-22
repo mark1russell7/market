@@ -1104,6 +1104,7 @@ interface SupplyProduct {
   readonly gives: readonly SupplyGift[];
   readonly basis?: string | undefined;
   readonly energy?: CitedAmount | NoRead | undefined;
+  readonly size?: CitedAmount | NoRead | undefined;
   readonly shelf: ShelfLife;
   readonly average?: AverageJoin | NoRead | undefined;
 }
