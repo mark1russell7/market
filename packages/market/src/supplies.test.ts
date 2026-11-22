@@ -154,6 +154,18 @@ describe("the prices of the supplies from average prices", () => {
     expect(errors(withProduct(unknownUnit))).toEqual(["supplies-unit"]);
   });
 
+  it("gives a no read for a last price before the month since, and refuses a since that is not a month", () => {
+    const prices = [ricePrice("2023-01", 0.95)];
+    expect(averageSupplyPrices(SUPPLY_CATALOG, prices, { since: "2026-01" })[0]).toEqual({
+      product: "food.rice-white-1kg",
+      read: false,
+      why: "The last average price of the series APU0000701312 of bls-ap is for 2023-01, before 2026-01.",
+    });
+    expect(averageSupplyPrices(SUPPLY_CATALOG, prices, { since: "2023-01" })[0]?.read).toBe(true);
+    expect(averageSupplyPrices(SUPPLY_CATALOG, prices)[0]?.read).toBe(true);
+    for (const since of ["2026", "2026-13", "x"]) expect(() => averageSupplyPrices(SUPPLY_CATALOG, prices, { since }), since).toThrow(RangeError);
+  });
+
   it("examines the amount of the join as each other amount", () => {
     const join = { read: true as const, source: "bls-ap", series: "APU0000701312" };
     expect(errors(withProduct({ ...rice, average: { ...join, per: { read: true, amount: 0, unit: "kg", definition: "A test." } } }))).toEqual(["supplies-amount"]);

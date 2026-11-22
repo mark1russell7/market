@@ -1,6 +1,6 @@
 import { checkSources, checkUnits, type CitedUnit, type Finding, type FindingCode, type GateOptions, type Source } from "@mark1russell7/guidebook";
 import { convertible, quantity, valueIn, whyNotConvertible, type Quantity } from "@mark1russell7/quantity";
-import { latestAverages, moneyOf, type AveragePrice } from "./average.ts";
+import { latestAverages, moneyOf, monthSchema, type AveragePrice } from "./average.ts";
 import type { PartWant } from "./offers.ts";
 import type { ProductWant } from "./order.ts";
 
@@ -54,8 +54,9 @@ export interface SupplyGift {
 export type ShelfLife = CitedAmount | { readonly read: true; readonly foodKeeper: number } | NoRead;
 
 /**
- * The join of a product to a series of average prices: the source and the series, and the amount of the item of the
- * series in one unit of the product. For example, 1 kg of dry rice is the amount of a series of rice in USD/lb.
+ * The join of a product to a series of average prices. It names the source and the series. It also gives the amount
+ * of the item of the series in one unit of the product. For example, 1 kg of dry rice is the amount of a series of
+ * rice in USD/lb.
  */
 export interface AverageJoin {
   readonly read: true;
@@ -265,12 +266,17 @@ export type SupplyPrice =
  * - A product with no join is not in the result.
  * - A join with no read, a series with no price, and a unit that does not fit give no read. A no read is not 0.
  * - The unit of the series must convert to the unit of the product, for example USD/lb to 1 kg.
+ * - With the option `since`, a last price before that month gives no read. A series that stops then gives no old price.
  *
  * @param catalog - The catalog
  * @param prices - The average prices, from one or more reads
+ * @param options - The option `since`: the first month of a price that the result can use, in the form `YYYY-MM`
  * @returns The price of one unit of each product with a join, or no read with the reason
+ * @throws RangeError when `since` is not a month in the form `YYYY-MM`
  */
-export function averageSupplyPrices(catalog: SupplyCatalog, prices: readonly AveragePrice[]): SupplyPrice[] {
+export function averageSupplyPrices(catalog: SupplyCatalog, prices: readonly AveragePrice[], options: { readonly since?: string | undefined } = {}): SupplyPrice[] {
+  const { since } = options;
+  if (since !== undefined && !monthSchema.safeParse(since).success) throw new RangeError(`The month ${String(since)} is not in the form YYYY-MM.`);
   const last = new Map(latestAverages(prices).map((price) => [`${price.source}:${price.series}`, price]));
   return catalog.products.flatMap((product): SupplyPrice[] => {
     const join = product.average;
@@ -279,6 +285,7 @@ export function averageSupplyPrices(catalog: SupplyCatalog, prices: readonly Ave
     if (!join.read) return none(join.why);
     const average = last.get(`${join.source}:${join.series}`);
     if (average === undefined) return none(`The prices have no average price of the series ${join.series} of ${join.source}.`);
+    if (since !== undefined && average.period < since) return none(`The last average price of the series ${join.series} of ${join.source} is for ${average.period}, before ${since}.`);
     const money = moneyOf(average.price.unit);
     if (money === undefined) return none(`The unit ${average.price.unit} of ${average.id} is not a price for each unit of an amount.`);
     if (!known(join.per.unit)) return none(`The unit ${String(join.per.unit)} of the product ${product.id} is not a known unit.`);

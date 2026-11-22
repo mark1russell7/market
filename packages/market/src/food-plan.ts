@@ -1,6 +1,12 @@
 import type { Source } from "@mark1russell7/guidebook";
-import { quantity, valueIn, type Quantity } from "@mark1russell7/quantity";
-import { moneyOf } from "./average.ts";
+import { convertible, quantity, valueIn, type Quantity } from "@mark1russell7/quantity";
+import { moneyAbove } from "./average.ts";
+
+/** This function gives the money of a cost for each unit of time, for example `USD` for `USD/wk`. */
+function moneyOfRate(unit: string): string | undefined {
+  const money = moneyAbove(unit);
+  return money !== undefined && convertible(unit, `${money}/d`) ? money : undefined;
+}
 
 /*
  * This module has the cost of a food plan: the cost of the food of one week for one person of each age and sex, from
@@ -72,7 +78,10 @@ export interface FoodPlanCheck {
   readonly cost: Quantity;
   /** The cost of the food divided by the cost of the plan. */
   readonly ratio: number;
-  /** True when the food costs more than the plan. */
+  /**
+   * True when the food costs more than the plan. The Thrifty plan is the lowest of the four plans of USDA. Thus a list
+   * above the cost of the Thrifty plan is not wrong when it has foods that cost more than staples.
+   */
   readonly above: boolean;
 }
 
@@ -95,8 +104,8 @@ export function foodPlanCost(plan: FoodPlan, members: readonly FoodPlanMember[],
   for (const member of members) {
     if (!(Number.isSafeInteger(member.count) && member.count >= 0)) throw new RangeError(`The count of the group ${member.group} is ${String(member.count)}. It must be a whole number of 0 or more.`);
     const weekly = plan.weekly[member.group] as Quantity | undefined;
-    const symbol = weekly === undefined ? undefined : moneyOf(weekly.unit);
-    if (weekly === undefined || symbol === undefined) throw new RangeError(`The plan ${plan.id} has no cost of the group ${String(member.group)}.`);
+    const symbol = weekly === undefined ? undefined : moneyOfRate(weekly.unit);
+    if (weekly === undefined || symbol === undefined) throw new RangeError(`The plan ${plan.id} has no cost for each unit of time of the group ${String(member.group)}.`);
     if (money !== undefined && symbol !== money) throw new RangeError(`The plan ${plan.id} has costs in ${money} and in ${symbol}.`);
     money = symbol;
     persons += member.count;
@@ -111,7 +120,8 @@ export function foodPlanCost(plan: FoodPlan, members: readonly FoodPlanMember[],
 /**
  * This function compares the cost of the food of a buy list with the cost of a food plan for the same members and
  * days. A list of dry staples costs less than the plan, because the plan is a full diet. A ratio above 1 tells that
- * a price or an amount of the list is possibly wrong.
+ * a price or an amount of the list is possibly wrong. A low ratio is normal, because a list can be any part of a diet.
+ * The check of the amount of food is a check of its energy, not of its cost.
  *
  * @param cost - The cost of the food, in a money that converts to the money of the plan
  * @param plan - The food plan
