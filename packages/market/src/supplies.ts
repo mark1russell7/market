@@ -1,5 +1,5 @@
 import { checkSources, checkUnits, type CitedUnit, type Finding, type FindingCode, type GateOptions, type Source } from "@mark1russell7/guidebook";
-import { convertible, quantity, valueIn, whyNotConvertible, type Quantity } from "@mark1russell7/quantity";
+import { convertible, kindOf, quantity, valueIn, whyNotConvertible, type Quantity } from "@mark1russell7/quantity";
 import { latestAverages, moneyOf, monthSchema, type AveragePrice } from "./average.ts";
 import type { PartWant } from "./offers.ts";
 import type { ProductWant } from "./order.ts";
@@ -81,6 +81,12 @@ export interface SupplyProduct {
   readonly basis?: string | undefined;
   /** The food energy of one unit, in a unit of energy. A cooking converter gives it. */
   readonly energy?: CitedAmount | NoRead | undefined;
+  /**
+   * The amount of one unit as sold: a mass, a volume or a count, for example 1 kg, 530 g or 1 gal.
+   * A product with no known size has no field `size`. A no read is for a product that has a size, when the source
+   * of the size is not read yet, for example a label.
+   */
+  readonly size?: CitedAmount | NoRead | undefined;
   readonly shelf: ShelfLife;
   /**
    * The series of average prices that gives the price of one unit, or no read with the reason. A product with no join
@@ -134,6 +140,14 @@ function known(unit: unknown): boolean {
 const ENERGY_UNIT = "kcal";
 /** The unit that each shelf life converts to. */
 const SHELF_UNIT = "d";
+/**
+ * This function gives true for the unit of a size. That is a mass or a volume that converts to `kg` or `L`, or one
+ * bare count, for example `{each}`. The kind of a unit is not sufficient. For example, `g/{each}` has the kind
+ * mass, and it does not convert to `kg`.
+ */
+function sizeUnit(unit: string): boolean {
+  return convertible(unit, "kg") || convertible(unit, "L") || (/^{[^{}/]+}$/.test(unit) && kindOf(unit) === "count");
+}
 
 /**
  * This function examines a catalog. It gives the findings of the sources and the facts (the gate of
@@ -147,6 +161,7 @@ const SHELF_UNIT = "d";
  * - An error for an amount with no reason, with two reasons, or with a blank definition. A catalog from JSON can have them.
  * - An error for a unit that is not a unit of `@mark1russell7/quantity`.
  * - An error for a unit that does not convert to the unit of its resource.
+ * - An error for a size in a unit that is not a mass, a volume or a count, for example `h` or `kcal`.
  * - The amount of the item of an average price has the same checks as each other amount.
  * - A warning for each value with no read, and for a no read with a blank reason.
  * - A warning for each fact and each source that no product uses.
@@ -219,6 +234,13 @@ export function checkSupplies(catalog: SupplyCatalog, options: GateOptions = {})
     // An unknown kind has its own error above, so this rule examines only a known kind that is not food.
     if (product.energy !== undefined && product.kind !== "food" && (SUPPLY_KINDS as readonly string[]).includes(product.kind)) error("supplies-kind", "product", product.id, `The product ${product.id} has a food energy, and its kind is ${String(product.kind)}. Only a product of the kind food has a food energy.`);
     if (product.energy !== undefined) amount(product.id, "food energy", product.energy, ENERGY_UNIT);
+    if (product.size !== undefined) {
+      // The size has no single unit to convert to. Its unit must be a mass, a volume or one bare count. An unknown unit
+      // has its own error.
+      amount(product.id, "size", product.size, "");
+      if (product.size.read && known(product.size.unit) && !sizeUnit(product.size.unit))
+        error("supplies-unit", "product", product.id, `The size of the product ${product.id} is in ${product.size.unit}. It must be a mass, a volume or a count.`);
+    }
     if (product.average !== undefined) amount(product.id, "average price", product.average.read ? product.average.per : product.average, product.average.read ? product.average.per.unit : "");
     if ("foodKeeper" in product.shelf) {
       if (!(Number.isSafeInteger(product.shelf.foodKeeper) && product.shelf.foodKeeper > 0)) error("supplies-shelf", "product", product.id, `The FoodKeeper id of the product ${product.id} is ${String(product.shelf.foodKeeper)}. It must be a whole number more than 0.`);

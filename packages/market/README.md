@@ -146,6 +146,7 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The facts and their sources are the records of [`@mark1russell7/guidebook`](https://www.npmjs.com/package/@mark1russell7/guidebook). Its gate examines each license and each address.
 - The shelf life of a food is the id of a product of the FoodKeeper data of USDA FSIS. The entry `/foodkeeper` of `@mark1russell7/stock` gives its due rule.
 - The resource codes are the codes of a store of `@mark1russell7/stack-endurance`, for example `water.stored` in `L`.
+- A product can have a `size`: the amount of one unit as sold, for example 1 kg, 530 g or 1 gal. Its unit is a mass or a volume that converts to `kg` or `L`, or one bare count, for example `{each}`. A page can thus convert a size in a mass to `lb` with `valueIn` of `@mark1russell7/quantity`. The gate refuses a unit that does not convert, for example `g/{each}`. A no read is for a product that has a size, when the source of the size is not read yet. The gate examines a size as each other amount.
 - A product can join a series of average prices. The join names the source, the series and the amount of the item in one unit, with its reason. A product with no series has a no read with its reason.
 - The gate does not examine the joins to other packages. It does not find a FoodKeeper id that is not in `@mark1russell7/stock`, or a resource code that a layer of stores does not have. The code that joins the catalog to stock or to a layer of stores gives those gates. market depends on neither package.
 
@@ -165,6 +166,8 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The flashlight, the sleeping bag, the first aid kit and the NOAA weather radio cite the kit list of Ready.gov. Their shelf life is no read, because the source gives no time.
 - Peanut butter gives `food.no-cook` in kcal: food that needs no water and no fuel. This is important in a long power cut. The unit of a resource is the unit that its next step takes. A cooking converter takes dry food in kg, and no-cook food goes to the food need in kcal. It has no series of average prices yet.
 - The canned soup is ready to serve, so it also gives `food.no-cook`. One can is 530 g, the portion of the FDC item, so it gives 217.3 kcal. It has no series of average prices yet.
+- Each product with a size in its definition has that size, and the soup has the 530 g of its FDC portion. A product with no known size has no field `size`. It does not have a no read. These products are the flashlight, the sleeping bag, the first aid kit, the radio and the power bank.
+- The water container has no size. It is sold empty, so 1 gal is its capacity and not an amount as sold. Its gift gives the 1 gal of water that it holds when it is full.
 - The shelf life of commercially bottled water is no read. The source gives no time, so the date on the label applies.
 - The oats have no series of average prices. The pasta has its own resource `food.pasta-dry`, because the cook drains its water, and rice and oats absorb their water. The dry beans, the pasta and the flour join the BLS series `APU0000714233`, `APU0000701322` and `APU0000701111` in `USD/lb`. The rice joins the BLS series `APU0000701312` in `USD/lb`, so 1 kg of rice costs 2.2046 times the price of 1 lb.
 
