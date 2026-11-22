@@ -176,6 +176,7 @@ type ShelfLife: build/supplies-entry.d.ts#ShelfLife
 type SupplyCatalog: build/supplies-entry.d.ts#SupplyCatalog
 type SupplyCode: build/supplies-entry.d.ts#SupplyCode
 type SupplyFinding: build/supplies-entry.d.ts#SupplyFinding
+type SupplyGateOptions: build/supplies-entry.d.ts#SupplyGateOptions
 type SupplyGift: build/supplies-entry.d.ts#SupplyGift
 type SupplyKind: build/supplies-entry.d.ts#SupplyKind
 type SupplyPrice: build/supplies-entry.d.ts#SupplyPrice
@@ -1073,6 +1074,11 @@ type SupplyCode = (typeof SUPPLY_CODES)[number];
 ### build/supplies-entry.d.ts#SupplyFinding
 type SupplyFinding = Finding<SupplyCode | FindingCode, "source" | "unit" | "resource" | "product">;
 
+### build/supplies-entry.d.ts#SupplyGateOptions
+interface SupplyGateOptions extends GateOptions {
+  readonly foodKeeper?: ReadonlySet<number> | readonly number[] | undefined;
+}
+
 ### build/supplies-entry.d.ts#SupplyGift
 interface SupplyGift {
   readonly resource: string;
@@ -1125,7 +1131,7 @@ export declare function averageSupplyPrices(catalog: SupplyCatalog, prices: read
 export declare function buyListEnergy(catalog: SupplyCatalog, units: Readonly<Record<string, number>>): BuyListEnergy;
 
 ### build/supplies-entry.d.ts#checkSupplies
-export declare function checkSupplies(catalog: SupplyCatalog, options?: GateOptions): SupplyFinding[];
+export declare function checkSupplies(catalog: SupplyCatalog, options?: SupplyGateOptions): SupplyFinding[];
 
 ### build/supplies-entry.d.ts#foodPlanCheck
 export declare function foodPlanCheck(cost: Quantity, plan: FoodPlan, members: readonly FoodPlanMember[], days: number): FoodPlanCheck;

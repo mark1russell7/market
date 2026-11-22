@@ -20,6 +20,7 @@ export {
   type SupplyCatalog,
   type SupplyCode,
   type SupplyFinding,
+  type SupplyGateOptions,
   type SupplyGift,
   type SupplyKind,
   type SupplyPrice,
