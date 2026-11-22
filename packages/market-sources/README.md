@@ -39,6 +39,7 @@ for (const note of result.notes) console.warn(note);
 | `parseAzureRetailPrices` | one page of the Azure Retail Prices API: `GET /api/retail/prices` |
 | `parseAzureRetailPricePages` | all the pages of one read of the Azure Retail Prices API |
 | `parsePlanLists` | all the pages of the plan list of a provider record, for example `GET /v2/plans` of the Vultr API |
+| `parseBlsSeries` | version 1 of the BLS Public Data API: `POST /publicAPI/v1/timeseries/data/` |
 
 Each parser takes the JSON of the answer and the instant `at` of the answer. It gives one of two results:
 
@@ -140,6 +141,33 @@ A plan list is an API that gives each plan of virtual machines with its prices a
 
 `parsePlanLists(provider, { plans, regions }, at)` takes the pages of the plan list. A record with regions of the kind `list` also needs the pages of that list. The field `next` of the result is always `null`, because the client reads each page before the parse.
 
+### BLS average prices
+
+The Consumer Price Index of the U.S. Bureau of Labor Statistics (BLS) publishes the average price of some foods each month. These are the series of the survey AP. An average price is not an offer of a seller. Thus `parseBlsSeries` gives average prices of `@mark1russell7/market`, not observations. Its result is `{ ok: true, prices, notes }` or `{ ok: false, problems }`.
+
+The answer of version 1 gives no title of a series. Thus the parser takes the item, the area and the unit of each series from a list of known series. The default list is `BLS_STAPLES`.
+
+| Series | Item | Area |
+| --- | --- | --- |
+| `APU0000701312` | Rice, white, long grain, uncooked, per lb. | U.S. city average |
+| `APU0000701111` | Flour, white, all purpose, per lb. | U.S. city average |
+| `APU0000714233` | Beans, dried, any type, all sizes, per lb. | U.S. city average |
+| `APU0000715211` | Sugar, white, all sizes, per lb. | U.S. city average |
+| `APU0000701322` | Spaghetti and macaroni, per lb. | U.S. city average |
+
+| Field | Rule |
+| --- | --- |
+| Price | The value of a month, in `USD` for each unit of the item, for example `{ value: 1.101, unit: "USD/lb" }`. `valueIn(price, "USD/kg")` of `@mark1russell7/quantity` gives the price of a kilogram. |
+| Month | The period `M01` to `M12` of a year, as `YYYY-MM`. Another period, for example the annual average `M13`, gives a note. |
+| No value | A value that is not a decimal, for example `-`, gives a note and no price. The price stays no read, never 0. |
+| Messages | Each message of the answer gives a note, for example "No Data Available" for a year. |
+| Footnotes | The texts of the footnotes of a value, for example `Preliminary`. |
+| Status | An answer with a status that is not `REQUEST_SUCCEEDED` gives problems, with its messages. |
+
+The Northeast series of these items exist, but they have no value since 2023. Thus the list has only the U.S. city average. `blsRequest(series, years)` gives the request: 25 series and 10 years at most.
+
+The terms require each user of the data to cite the date of its retrieval and to give the statement `BLS_STATEMENT`. The field `at` of each price is the instant of the read.
+
 ## The clients
 
 | Client | Methods | Pace | Access |
@@ -149,6 +177,7 @@ A plan list is an API that gives each plan of virtual machines with its prices a
 | `createBestBuyClient` | `product(sku)`, `search(words, pageSize)`, `openBox(sku)` | 1 s | the API key in the query |
 | `createAzureClient` | `prices(filter, { pages, currency })`, `more(next, pages)` | 6 s | no key |
 | `createPlanClient` | `plans(provider, { pages })` | the pace of the record, 2 s for each record of the package | no key |
+| `createBlsClient` | `averages(series, years)` | 57.6 min: 25 queries each day | no key (version 1) |
 
 ```ts
 import { HostScheduler, realClock } from "polite-crawler/politeness";
@@ -198,8 +227,9 @@ Each source has its terms as a `SourceTerms` record of `@mark1russell7/market`, 
 | `azure` | `AZURE_TERMS` | no limit | kept | yes |
 | `linode` | `LINODE_TERMS` | no store | not applicable | no |
 | `vultr` | `VULTR_TERMS` | no store | not applicable | no |
+| `bls-ap` | `BLS_TERMS` | no limit | not applicable | yes |
 
-`SOURCE_TERMS` has the six records.
+`SOURCE_TERMS` has the seven records.
 
 The terms pages of Vultr and of Akamai refused an automated read on 2026-11-18. Thus `LINODE_TERMS` and `VULTR_TERMS` have the strictest rules: no store and no model of prices. A person reads the terms before a rule changes. The Linode API reference tells that the reads of the plan list need no permissions.
 

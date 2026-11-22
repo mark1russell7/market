@@ -219,6 +219,20 @@ const observation: MeteredObservation = {
 meteredCost(observation, { egress: { value: 10_341, unit: "GiB" } }).total; // { value: 921.685, unit: "USD" }
 ```
 
+## Average prices
+
+An average price is the mean price of one item in one area and one month, from an official statistic. An example is the average prices of the Consumer Price Index. It is not an offer of a seller. A buyer uses it as the price of a product with no offer, and as a check of the price of an offer.
+
+| Record | Schema | What it has |
+| --- | --- | --- |
+| Average price | `averagePriceSchema` | The source and its series. The item and the area, as the source names them. The month `YYYY-MM`, and the price for each unit of the item. The instant of the read, and the footnotes. |
+
+- **Price.** The unit has one unit of money above and the unit of an amount below, for example `USD/lb`, `USD/L` or `USD/{each}`. `unitPriceSchema` examines it. The value is more than 0.
+- **Id.** `averagePriceId(source, series, month)` gives the id `source:series:month`.
+- **The last price.** `latestAverages(prices)` gives the last month of each series. A later read of the same month replaces an earlier read, because a source can revise a value.
+
+The adapter of the average prices of BLS is in `@mark1russell7/market-sources`.
+
 ## Example
 
 ```ts
