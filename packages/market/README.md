@@ -145,6 +145,7 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The facts and their sources are the records of [`@mark1russell7/guidebook`](https://www.npmjs.com/package/@mark1russell7/guidebook). Its gate examines each license and each address.
 - The shelf life of a food is the id of a product of the FoodKeeper data of USDA FSIS. The entry `/foodkeeper` of `@mark1russell7/stock` gives its due rule.
 - The resource codes are the codes of a store of `@mark1russell7/stack-endurance`, for example `water.stored` in `L`.
+- The gate does not examine the joins to other packages. It does not find a FoodKeeper id that is not in `@mark1russell7/stock`, or a resource code that a layer of stores does not have. The code that joins the catalog to stock or to a layer of stores gives those gates. market depends on neither package.
 
 | Function | What it does |
 | --- | --- |

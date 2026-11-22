@@ -87,6 +87,7 @@ export const SUPPLY_CODES = [
   "supplies-shelf",
   "supplies-unused",
   "supplies-no-read",
+  "supplies-no-reason",
 ] as const;
 
 /** A code of a finding of the catalog gate. */
@@ -106,8 +107,10 @@ const SHELF_UNIT = "d";
  *
  * - An error for a product or a resource two times, a kind that is not a supply kind, and a gift of an unknown resource.
  * - An error for a fact that is not a fact of the catalog, and for an amount that is not more than 0.
+ * - An error for an amount with no reason, with two reasons, or with a blank definition. A catalog from JSON can have them.
  * - An error for a unit that does not convert to the unit of its resource.
- * - A warning for each value with no read, and for each fact and each source that no product uses.
+ * - A warning for each value with no read, and for a no read with a blank reason.
+ * - A warning for each fact and each source that no product uses.
  *
  * @param catalog - The catalog
  * @param options - The options of the gate of the sources, for example the date of the gate
@@ -133,9 +136,14 @@ export function checkSupplies(catalog: SupplyCatalog, options: GateOptions = {})
   /** This function examines one cited amount, and gives the unit check to `units`. */
   const amount = (product: string, what: string, value: CitedAmount | NoRead, unit: string): void => {
     if (!value.read) {
-      warning("supplies-no-read", "product", product, `The ${what} of the product ${product} is no read: ${value.why}`);
+      warning("supplies-no-read", "product", product, `The ${what} of the product ${product} is no read: ${String(value.why)}`);
+      if (typeof value.why !== "string" || value.why.trim() === "") warning("supplies-no-reason", "product", product, `The no read of the ${what} of the product ${product} has no reason.`);
       return;
     }
+    // The type permits one reason only. A catalog from JSON can have no reason, two reasons or a blank definition.
+    const reasons = (value.fact === undefined ? 0 : 1) + (value.definition === undefined ? 0 : 1);
+    if (reasons !== 1) error("supplies-fact", "product", product, `The ${what} of the product ${product} has ${String(reasons)} reasons. It must have a fact or a definition, not the two.`);
+    else if (value.definition !== undefined && (typeof value.definition !== "string" || value.definition.trim() === "")) error("supplies-fact", "product", product, `The definition of the ${what} of the product ${product} is blank.`);
     if (value.fact !== undefined) {
       const fact = facts.get(value.fact);
       if (fact === undefined || fact.use !== "fact") error("supplies-fact", "product", product, `The ${what} of the product ${product} cites ${value.fact}, and the catalog has no fact with that id.`);
@@ -191,9 +199,12 @@ export type GiftOf = { readonly resource: string; readonly read: true; readonly 
  * @param catalog - The catalog
  * @param id - The `id` of the product
  * @param units - The count of units
+ * @throws RangeError when the count of units is not a finite number of 0 or more
  * @throws RangeError when the catalog has no such product, or a gift of an unknown resource
+ * @throws The error of `valueIn` of `@mark1russell7/quantity` when the unit of a gift does not convert to the unit of its resource
  */
 export function giftsOf(catalog: SupplyCatalog, id: string, units: number): GiftOf[] {
+  if (!(Number.isFinite(units) && units >= 0)) throw new RangeError(`The count of units is ${String(units)}. It must be a finite number of 0 or more.`);
   const product = catalog.products.find((each) => each.id === id);
   if (product === undefined) throw new RangeError(`The catalog has no product ${id}.`);
   return product.gives.map((gift): GiftOf => {

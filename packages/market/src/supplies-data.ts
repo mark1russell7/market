@@ -70,7 +70,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       kind: "food",
       gives: [{ resource: "food.grain-dry", amount: { read: true, amount: 1, unit: "kg", definition: "The product is 1 kg of dry oats." } }],
       energy: { read: true, amount: 3790, unit: "kcal", fact: "fdc.oats" },
-      shelf: { read: true, foodKeeper: 585 },
+      shelf: { read: true, foodKeeper: 375 },
     },
     {
       id: "power.anker-737",

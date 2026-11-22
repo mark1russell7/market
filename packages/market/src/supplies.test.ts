@@ -44,8 +44,10 @@ describe("the reference catalog of supplies", () => {
     expect(buyCandidates(wants, [], { currency: "USD" }).unpriced.map((each) => each.product)).toEqual(["power.anker-737"]);
   });
 
-  it("refuses an unknown product id", () => {
+  it("refuses an unknown product id, and a count of units that is not a finite number of 0 or more", () => {
     expect(() => giftsOf(SUPPLY_CATALOG, "unknown", 1)).toThrow(RangeError);
+    for (const units of [Number.NaN, -1, Number.POSITIVE_INFINITY]) expect(() => giftsOf(SUPPLY_CATALOG, "water.jug-1gal", units), String(units)).toThrow(RangeError);
+    expect(giftsOf(SUPPLY_CATALOG, "water.jug-1gal", 0)).toEqual([{ resource: "water.stored", read: true, amount: 0, unit: "L" }]);
   });
 });
 
@@ -68,6 +70,15 @@ describe("the gate of the catalog", () => {
     expect(errors(withProduct({ ...rice, energy: { read: true, amount: 0, unit: "kcal", fact: "fdc.rice-white" } }))).toEqual(["supplies-amount"]);
     expect(errors(withProduct({ ...rice, energy: { read: true, amount: 3650, unit: "kg", fact: "fdc.rice-white" } }))).toEqual(["supplies-unit"]);
     expect(errors(withProduct({ ...rice, gives: [{ resource: "food.grain-dry", amount: { read: true, amount: 1, unit: "L", definition: "A litre." } }] }))).toEqual(["supplies-unit"]);
+  });
+
+  it("refuses an amount from JSON with no reason, with two reasons or with a blank definition, and warns of a blank no read", () => {
+    const energy = (value: unknown): SupplyCatalog => withProduct({ ...rice, energy: value as SupplyProduct["energy"] });
+    expect(errors(energy({ read: true, amount: 3650, unit: "kcal" }))).toEqual(["supplies-fact"]);
+    expect(errors(energy({ read: true, amount: 3650, unit: "kcal", fact: "fdc.rice-white", definition: "Also a definition." }))).toEqual(["supplies-fact"]);
+    expect(errors(energy({ read: true, amount: 3650, unit: "kcal", definition: "  " }))).toEqual(["supplies-fact"]);
+    expect(codes(energy({ read: false, why: "" })).filter((code) => code === "supplies-no-reason")).toEqual(["supplies-no-reason"]);
+    expect(codes(SUPPLY_CATALOG)).not.toContain("supplies-no-reason");
   });
 
   it("refuses a FoodKeeper id that is not a whole number more than 0, and a shelf life in a unit that is not a time", () => {
