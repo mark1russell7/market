@@ -141,9 +141,9 @@ const ENERGY_UNIT = "kcal";
 /** The unit that each shelf life converts to. */
 const SHELF_UNIT = "d";
 /**
- * True when a unit can be the unit of a size: a mass or a volume that converts to `kg` or `L`, or one bare count, for
- * example `{each}`. The kind of a unit is not sufficient. For example, `g/{each}` has the kind mass, and it does not
- * convert to `kg`.
+ * This function gives true for the unit of a size. That is a mass or a volume that converts to `kg` or `L`, or one
+ * bare count, for example `{each}`. The kind of a unit is not sufficient. For example, `g/{each}` has the kind
+ * mass, and it does not convert to `kg`.
  */
 function sizeUnit(unit: string): boolean {
   return convertible(unit, "kg") || convertible(unit, "L") || (/^{[^{}/]+}$/.test(unit) && kindOf(unit) === "count");
