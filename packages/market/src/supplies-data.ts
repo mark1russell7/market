@@ -115,6 +115,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       title: "Drinking water, commercially bottled, in a jug of 1 gal",
       kind: "water",
       gives: [{ resource: "water.stored", amount: { read: true, amount: 1, unit: "gal", definition: "The product is a jug of 1 gal." } }],
+      size: { read: true, amount: 1, unit: "gal", definition: "The catalog item is defined as a jug of 1 gal." },
       shelf: { read: false, why: "The source tells to keep commercially bottled water sealed, and it gives no time. The date on the label applies." },
     },
     {
@@ -122,6 +123,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       title: "A water container of 1 gal, filled from the tap",
       kind: "water",
       gives: [{ resource: "water.stored", amount: { read: true, amount: 1, unit: "gal", definition: "The product is a container of 1 gal." } }],
+      size: { read: true, amount: 1, unit: "gal", definition: "The catalog item is defined as a container of 1 gal." },
       shelf: { read: true, amount: 6, unit: "mo", fact: "ready.water-replace" },
     },
     {
@@ -129,6 +131,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       title: "White long-grain rice, dry, 1 kg",
       kind: "food",
       gives: [{ resource: "food.grain-dry", amount: { read: true, amount: 1, unit: "kg", definition: "The product is 1 kg of dry rice." } }],
+      size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of dry rice." },
       energy: { read: true, amount: 3650, unit: "kcal", fact: "fdc.rice-white" },
       shelf: { read: true, foodKeeper: 338 },
       average: {
@@ -143,6 +146,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       title: "Rolled oats, dry, 1 kg",
       kind: "food",
       gives: [{ resource: "food.grain-dry", amount: { read: true, amount: 1, unit: "kg", definition: "The product is 1 kg of dry oats." } }],
+      size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of dry oats." },
       energy: { read: true, amount: 3790, unit: "kcal", fact: "fdc.oats" },
       shelf: { read: true, foodKeeper: 375 },
       average: { read: false, why: "The known series of average prices have no series of oats yet." },
@@ -152,6 +156,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       title: "Dry beans, 1 kg",
       kind: "food",
       gives: [{ resource: "food.legume-dry", amount: { read: true, amount: 1, unit: "kg", definition: "The product is 1 kg of dry beans." } }],
+      size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of dry beans." },
       energy: { read: true, amount: 3410, unit: "kcal", fact: "fdc.beans-black" },
       shelf: { read: true, foodKeeper: 333 },
       average: {
@@ -166,6 +171,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       title: "Peanut butter, smooth, 1 kg",
       kind: "food",
       gives: [{ resource: "food.no-cook", amount: { read: true, amount: 5980, unit: "kcal", fact: "fdc.peanut-butter" } }],
+      size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of peanut butter." },
       energy: { read: true, amount: 5980, unit: "kcal", fact: "fdc.peanut-butter" },
       shelf: { read: true, foodKeeper: 387 },
       average: { read: false, why: "The known series of average prices have no series of peanut butter yet." },
@@ -175,6 +181,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       title: "Dry pasta, 1 kg",
       kind: "food",
       gives: [{ resource: "food.pasta-dry", amount: { read: true, amount: 1, unit: "kg", definition: "The product is 1 kg of dry pasta." } }],
+      size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of dry pasta." },
       energy: { read: true, amount: 3710, unit: "kcal", fact: "fdc.pasta" },
       shelf: { read: true, foodKeeper: 335 },
       average: {
@@ -189,6 +196,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       title: "White all-purpose flour, 1 kg",
       kind: "food",
       gives: [{ resource: "food.flour", amount: { read: true, amount: 1, unit: "kg", definition: "The product is 1 kg of white flour." } }],
+      size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of white flour." },
       energy: { read: true, amount: 3640, unit: "kcal", fact: "fdc.flour-white" },
       shelf: { read: true, foodKeeper: 222 },
       average: {
@@ -203,6 +211,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       title: "Chunky chicken noodle soup, ready-to-serve, 1 can (530 g)",
       kind: "food",
       gives: [{ resource: "food.no-cook", amount: { read: true, amount: 217.3, unit: "kcal", fact: "fdc.soup-chicken-noodle" } }],
+      size: { read: true, amount: 530, unit: "g", fact: "fdc.soup-chicken-noodle" },
       energy: { read: true, amount: 217.3, unit: "kcal", fact: "fdc.soup-chicken-noodle" },
       shelf: { read: true, foodKeeper: 372 },
       average: { read: false, why: "The known series of average prices have no series of canned soup yet." },

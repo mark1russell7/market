@@ -1,3 +1,4 @@
+import { quantity, valueIn } from "@mark1russell7/quantity";
 import { describe, expect, it } from "vitest";
 import { buyCandidates } from "./order.ts";
 import type { AveragePrice } from "./average.ts";
@@ -71,6 +72,39 @@ describe("the reference catalog of supplies", () => {
     expect(buyCandidates(wants, [], { currency: "USD" }).unpriced.map((each) => each.product)).toEqual(["power.anker-737"]);
   });
 
+  it("gives a size to each product with a known size, and each size converts to kg, L or a count", () => {
+    const sized = SUPPLY_CATALOG.products.filter((product) => product.size !== undefined);
+    expect(SUPPLY_CATALOG.products.filter((product) => product.size === undefined).map((product) => product.id)).toEqual([
+      "light.flashlight",
+      "heat.sleeping-bag",
+      "first-aid.kit",
+      "communication.noaa-radio",
+      "power.anker-737",
+    ]);
+    for (const product of sized) {
+      const size = product.size!;
+      expect(size.read, product.id).toBe(true);
+      if (!size.read) continue;
+      const to = ["kg", "L", "{each}"].find((unit) => {
+        try {
+          return valueIn(quantity(size.amount, size.unit), unit) > 0;
+        } catch {
+          return false;
+        }
+      });
+      expect(to, product.id).toBeDefined();
+    }
+    const soup = SUPPLY_CATALOG.products.find((product) => product.id === "food.soup-can")!;
+    expect(soup.size).toEqual({ read: true, amount: 530, unit: "g", fact: "fdc.soup-chicken-noodle" });
+  });
+
+  it("gives the size of peanut butter in lb for a page that counts an inventory in lb", () => {
+    const size = SUPPLY_CATALOG.products.find((product) => product.id === "food.peanut-butter-1kg")!.size;
+    expect(size?.read).toBe(true);
+    if (size?.read !== true) return;
+    expect(valueIn(quantity(size.amount, size.unit), "lb")).toBeCloseTo(2.2046, 4);
+  });
+
   it("refuses an unknown product id, and a count of units that is not a finite number of 0 or more", () => {
     expect(() => giftsOf(SUPPLY_CATALOG, "unknown", 1)).toThrow(RangeError);
     for (const units of [Number.NaN, -1, Number.POSITIVE_INFINITY]) expect(() => giftsOf(SUPPLY_CATALOG, "water.jug-1gal", units), String(units)).toThrow(RangeError);
@@ -120,6 +154,20 @@ describe("the gate of the catalog", () => {
     expect(errors(withProduct({ ...rice, energy: { read: true, amount: 3650, unit: 5 as unknown as string, fact: "fdc.rice-white" } }))).toEqual(["supplies-unit"]);
     const resources = SUPPLY_CATALOG.resources.map((each) => (each.code === "food.grain-dry" ? { ...each, unit: "foo" } : each));
     expect(errors({ ...SUPPLY_CATALOG, resources })).toEqual(["supplies-unit"]);
+  });
+
+  it("refuses a size of 0, a size with an unknown fact, and a size that is not a mass, a volume or a count, and does not throw", () => {
+    const size = (value: unknown): SupplyCatalog => withProduct({ ...rice, size: value as SupplyProduct["size"] });
+    expect(errors(size({ read: true, amount: 0, unit: "kg", definition: "A test." }))).toEqual(["supplies-amount"]);
+    expect(errors(size({ read: true, amount: 1, unit: "kg", fact: "unknown" }))).toEqual(["supplies-fact"]);
+    for (const unit of ["h", "kcal", "USD"]) {
+      expect(() => checkSupplies(size({ read: true, amount: 1, unit, definition: "A test." })), unit).not.toThrow();
+      expect(errors(size({ read: true, amount: 1, unit, definition: "A test." })), unit).toEqual(["supplies-unit"]);
+    }
+    expect(errors(size({ read: true, amount: 1, unit: "foo", definition: "A test." }))).toEqual(["supplies-unit"]);
+    for (const unit of ["g", "lb", "L", "gal", "{each}", "{can}"]) expect(errors(size({ read: true, amount: 1, unit, definition: "A test." })), unit).toEqual([]);
+    const noRead = checkSupplies(size({ read: false, why: "The label is not read." })).filter((finding) => finding.id === rice.id);
+    expect(noRead.map((finding) => `${finding.level} ${finding.code}`)).toEqual(["warning supplies-no-read"]);
   });
 
   it("refuses a FoodKeeper id that is not a whole number more than 0, and a shelf life in a unit that is not a time", () => {
