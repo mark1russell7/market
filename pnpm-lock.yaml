@@ -260,6 +260,9 @@ importers:
 
   packages/market:
     dependencies:
+      '@mark1russell7/guidebook':
+        specifier: ^0.1.1
+        version: 0.1.1
       '@mark1russell7/quantity':
         specifier: ^0.4.0
         version: 0.4.1(zod@4.6.7)
@@ -628,6 +631,10 @@ packages:
   '@mark1russell7/files@0.0.4':
     resolution: {integrity: sha512-Pb978ZnvlAxzcdWtRtqTGb7mZFCvlNrdKnpZqhxQ7gafzeNGf1JqYFuB4RWiLbJzRuFUWjEoAVG5f2TndCIlSg==}
     engines: {node: '>=22'}
+
+  '@mark1russell7/guidebook@0.1.1':
+    resolution: {integrity: sha512-DTENTIjb1CiMoONeBqmvbWO9MeFxGAF8bPjfSFg7AMf8dcdTiIMAKtFcr4aPMf8DS/bml+3UzwtmPQqbDVSRpQ==}
+    engines: {node: '>=22.12'}
 
   '@mark1russell7/optional@1.2.0':
     resolution: {integrity: sha512-vS5jF21WC/VApRv4p8afRZahcMl9cuNp03LxbVngY9nYkzq+S7Oit6ksySt2baML+tp46UF60sxnHxn1jlwtTg==}
@@ -2191,6 +2198,8 @@ snapshots:
   '@mark1russell7/cue@2.1.4': {}
 
   '@mark1russell7/files@0.0.4': {}
+
+  '@mark1russell7/guidebook@0.1.1': {}
 
   '@mark1russell7/optional@1.2.0': {}
 
