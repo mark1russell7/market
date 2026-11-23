@@ -188,6 +188,7 @@ checkSupplies: build/supplies-entry.d.ts#checkSupplies
 foodPlanCheck: build/supplies-entry.d.ts#foodPlanCheck
 foodPlanCost: build/supplies-entry.d.ts#foodPlanCost
 giftsOf: build/supplies-entry.d.ts#giftsOf
+kitMax: build/supplies-entry.d.ts#kitMax
 supplyWants: build/supplies-entry.d.ts#supplyWants
 
 ## Declarations
@@ -1109,6 +1110,7 @@ interface SupplyProduct {
   readonly want?: PartWant | undefined;
   readonly gives: readonly SupplyGift[];
   readonly basis?: string | undefined;
+  readonly perPerson?: CitedAmount | undefined;
   readonly energy?: CitedAmount | NoRead | undefined;
   readonly size?: CitedAmount | NoRead | undefined;
   readonly shelf: ShelfLife;
@@ -1141,6 +1143,9 @@ export declare function foodPlanCost(plan: FoodPlan, members: readonly FoodPlanM
 
 ### build/supplies-entry.d.ts#giftsOf
 export declare function giftsOf(catalog: SupplyCatalog, id: string, units: number): GiftOf[];
+
+### build/supplies-entry.d.ts#kitMax
+export declare function kitMax(people: number): (product: SupplyProduct) => number;
 
 ### build/supplies-entry.d.ts#supplyWants
 export declare function supplyWants(catalog: SupplyCatalog, max?: (product: SupplyProduct) => number): ProductWant[];

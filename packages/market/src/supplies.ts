@@ -1,5 +1,5 @@
 import { checkSources, checkUnits, type CitedUnit, type Finding, type FindingCode, type GateOptions, type Source } from "@mark1russell7/guidebook";
-import { convertible, kindOf, quantity, valueIn, whyNotConvertible, type Quantity } from "@mark1russell7/quantity";
+import { convertible, kindOf, quantity, rationals, valueIn, whyNotConvertible, type Quantity } from "@mark1russell7/quantity";
 import { latestAverages, moneyOf, monthSchema, type AveragePrice } from "./average.ts";
 import type { PartWant } from "./offers.ts";
 import type { ProductWant } from "./order.ts";
@@ -79,6 +79,11 @@ export interface SupplyProduct {
   readonly gives: readonly SupplyGift[];
   /** The `id` of a fact that tells why a kit has the product, for example the kit list of a public agency. */
   readonly basis?: string | undefined;
+  /**
+   * The count of units for each person of the household, in one bare count unit, for example 1 `{each}` of a sleeping
+   * bag. A product with no field `perPerson` is one for the household. `kitMax` gives the count of units from it.
+   */
+  readonly perPerson?: CitedAmount | undefined;
   /** The food energy of one unit, in a unit of energy. A cooking converter gives it. */
   readonly energy?: CitedAmount | NoRead | undefined;
   /**
@@ -158,7 +163,12 @@ const SHELF_UNIT = "d";
  * mass, and it does not convert to `kg`.
  */
 function sizeUnit(unit: string): boolean {
-  return convertible(unit, "kg") || convertible(unit, "L") || (/^{[^{}/]+}$/.test(unit) && kindOf(unit) === "count");
+  return convertible(unit, "kg") || convertible(unit, "L") || countUnit(unit);
+}
+
+/** This function gives true for one bare count unit, for example `{each}`. */
+function countUnit(unit: string): boolean {
+  return /^{[^{}/]+}$/.test(unit) && kindOf(unit) === "count";
 }
 
 /**
@@ -174,6 +184,7 @@ function sizeUnit(unit: string): boolean {
  * - An error for a unit that is not a unit of `@mark1russell7/quantity`.
  * - An error for a unit that does not convert to the unit of its resource.
  * - An error for a size in a unit that is not a mass, a volume or a count, for example `h` or `kcal`.
+ * - An error for a count for each person in a unit that is not one bare count, for example `kg` or `{each}/{person}`.
  * - The amount of the item of an average price has the same checks as each other amount.
  * - With the option `foodKeeper`, an error for a FoodKeeper id of a shelf life that is not in the known ids.
  * - A warning for each value with no read, and for a no read with a blank reason.
@@ -256,6 +267,14 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
       if (product.size.read && known(product.size.unit) && !sizeUnit(product.size.unit))
         error("supplies-unit", "product", product.id, `The size of the product ${product.id} is in ${product.size.unit}. It must be a mass, a volume or a count.`);
     }
+    if (product.perPerson !== undefined) {
+      // The count has no single unit to convert to. Its unit must be one bare count. An unknown unit has its own error.
+      // A count that is not read gives no count of units, so the gate refuses it. A catalog from JSON can have one.
+      if (product.perPerson.read !== true) error("supplies-amount", "product", product.id, `The count for each person of the product ${product.id} is not read. A product with no known count has no field perPerson.`);
+      else amount(product.id, "count for each person", product.perPerson, "");
+      if (product.perPerson.read === true && known(product.perPerson.unit) && !countUnit(product.perPerson.unit))
+        error("supplies-unit", "product", product.id, `The count for each person of the product ${product.id} is in ${product.perPerson.unit}. It must be one bare count, for example {each}.`);
+    }
     if (product.average !== undefined) amount(product.id, "average price", product.average.read ? product.average.per : product.average, product.average.read ? product.average.per.unit : "");
     if ("foodKeeper" in product.shelf) {
       if (!(Number.isSafeInteger(product.shelf.foodKeeper) && product.shelf.foodKeeper > 0)) error("supplies-shelf", "product", product.id, `The FoodKeeper id of the product ${product.id} is ${String(product.shelf.foodKeeper)}. It must be a whole number more than 0.`);
@@ -279,6 +298,21 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
  */
 export function supplyWants(catalog: SupplyCatalog, max: (product: SupplyProduct) => number = () => 1): ProductWant[] {
   return catalog.products.flatMap((product) => (product.want === undefined ? [] : [{ product: product.id, want: product.want, max: max(product) }]));
+}
+
+/**
+ * This function gives the largest count of units of each product for a household, for `supplyWants`. A product with a
+ * count for each person has that count times the persons, up to the next whole unit. Each other product has 1. The
+ * product is exact: the count is the decimal of its number, so 1.1 for each person of 50 persons gives 55, not 56.
+ *
+ * @param people - The count of persons of the household. The persons are input data of the user.
+ * @returns The function `max` of `supplyWants`
+ * @throws RangeError when the count of persons is not a whole number of 0 or more
+ */
+export function kitMax(people: number): (product: SupplyProduct) => number {
+  if (!(Number.isSafeInteger(people) && people >= 0)) throw new RangeError(`The count of persons is ${String(people)}. It must be a whole number of 0 or more.`);
+  const persons = rationals.fromNumber(people);
+  return (product) => (product.perPerson === undefined ? 1 : rationals.toNumber(rationals.ceil(rationals.mul(rationals.fromNumber(product.perPerson.amount), persons))));
 }
 
 /** The gift of a count of units: an amount in the unit of its resource, or no read. */

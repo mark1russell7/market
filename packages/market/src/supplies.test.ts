@@ -3,7 +3,7 @@ import { FOODKEEPER_PRODUCTS } from "@mark1russell7/stock/foodkeeper";
 import { describe, expect, it } from "vitest";
 import { buyCandidates } from "./order.ts";
 import type { AveragePrice } from "./average.ts";
-import { averageSupplyPrices, checkSupplies, giftsOf, SUPPLY_KINDS, supplyWants, type SupplyCatalog, type SupplyProduct } from "./supplies.ts";
+import { averageSupplyPrices, checkSupplies, giftsOf, kitMax, SUPPLY_KINDS, supplyWants, type SupplyCatalog, type SupplyProduct } from "./supplies.ts";
 import { SUPPLY_CATALOG } from "./supplies-data.ts";
 
 const codes = (catalog: SupplyCatalog): string[] => checkSupplies(catalog).map((finding) => finding.code);
@@ -170,6 +170,41 @@ describe("the gate of the catalog", () => {
     for (const unit of ["g", "lb", "L", "gal", "{each}", "{can}"]) expect(errors(size({ read: true, amount: 1, unit, definition: "A test." })), unit).toEqual([]);
     const noRead = checkSupplies(size({ read: false, why: "The label is not read." })).filter((finding) => finding.id === rice.id);
     expect(noRead.map((finding) => `${finding.level} ${finding.code}`)).toEqual(["warning supplies-no-read"]);
+  });
+
+  it("refuses a count for each person of 0, not read, with an unknown fact, or in a unit that is not one bare count", () => {
+    const perPerson = (value: unknown): SupplyCatalog => withProduct({ ...rice, perPerson: value as SupplyProduct["perPerson"] });
+    expect(errors(perPerson({ read: true, amount: 0, unit: "{each}", definition: "A test." }))).toEqual(["supplies-amount"]);
+    expect(errors(perPerson({ read: true, amount: 1, unit: "{each}", fact: "unknown" }))).toEqual(["supplies-fact"]);
+    for (const value of [{ read: false, why: "The list is not read." }, { amount: 1, unit: "{each}", definition: "A test." }]) expect(errors(perPerson(value))).toEqual(["supplies-amount"]);
+    for (const unit of ["kg", "L", "h", "{each}/{person}", "foo"]) {
+      expect(() => checkSupplies(perPerson({ read: true, amount: 1, unit, definition: "A test." })), unit).not.toThrow();
+      expect(errors(perPerson({ read: true, amount: 1, unit, definition: "A test." })), unit).toEqual(["supplies-unit"]);
+    }
+    for (const unit of ["{each}", "{bag}"]) expect(errors(perPerson({ read: true, amount: 1, unit, definition: "A test." })), unit).toEqual([]);
+  });
+
+  it("gives the sleeping bag a count for each person from its cited fact, and no other product has one", () => {
+    const counted = SUPPLY_CATALOG.products.filter((product) => product.perPerson !== undefined);
+    expect(counted.map((product) => [product.id, product.perPerson])).toEqual([["heat.sleeping-bag", { read: true, amount: 1, unit: "{each}", fact: "ready.kit-sleeping-bag" }]]);
+    expect(SUPPLY_CATALOG.facts.find((fact) => fact.id === "ready.kit-sleeping-bag")?.text).toContain("for each person");
+  });
+
+  it("gives the count of units of a product for each person times the persons, and 1 to each other product", () => {
+    const bag = SUPPLY_CATALOG.products.find((product) => product.id === "heat.sleeping-bag")!;
+    const radio = SUPPLY_CATALOG.products.find((product) => product.id === "communication.noaa-radio")!;
+    for (const people of [0, 1, 4]) {
+      expect(kitMax(people)(bag), String(people)).toBe(people);
+      expect(kitMax(people)(radio), String(people)).toBe(1);
+    }
+    const each = (amount: number): SupplyProduct => ({ ...bag, perPerson: { read: true, amount, unit: "{each}", definition: "A test." } });
+    expect(kitMax(3)(each(0.5))).toBe(2);
+    // A product of two doubles goes past a whole count: 1.1 * 50 is 55.00000000000001 and 0.14 * 50 is 7.000000000000001.
+    expect(kitMax(50)(each(1.1))).toBe(55);
+    expect(kitMax(50)(each(0.14))).toBe(7);
+    expect(kitMax(50)(each(0.141))).toBe(8);
+    expect(supplyWants({ ...SUPPLY_CATALOG, products: [{ ...bag, want: { brands: ["Test"], partNumbers: ["T-1"] } }] }, kitMax(4))).toEqual([{ product: bag.id, want: { brands: ["Test"], partNumbers: ["T-1"] }, max: 4 }]);
+    for (const people of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) expect(() => kitMax(people), String(people)).toThrow(RangeError);
   });
 
   it("refuses a FoodKeeper id that is not a whole number more than 0, and a shelf life in a unit that is not a time", () => {

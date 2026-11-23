@@ -156,6 +156,7 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 | --- | --- |
 | `checkSupplies(catalog, options)` | It gives the findings of the catalog: the errors of the gate, and a warning for each no read and for each fact or source that no product uses. The option `foodKeeper` gives the known FoodKeeper ids. |
 | `supplyWants(catalog, max)` | It gives the wants of the products with a part, for `buyCandidates`. A product with no part has no offer, so it has no price. |
+| `kitMax(people)` | It gives the `max` of `supplyWants` for a household. A product with a count for each person (`perPerson`) has that count times the persons. Each other product has 1. |
 | `giftsOf(catalog, id, units)` | It gives the resources of a count of units, each in the unit of its resource. A unit converts exactly, so 1 gal gives 3.785411784 L. |
 | `averageSupplyPrices(catalog, prices, { since })` | It gives the price of one unit of each product with a join, from the last month of its series. A series with no price and a unit that does not fit give a no read. With `since`, so does a last price before that month. |
 | `foodPlanCost(plan, members, days)` | It gives the cost of a food plan for the members of a household and a count of days. It applies the change for the size of the household. |

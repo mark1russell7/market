@@ -11,6 +11,7 @@ export {
   averageSupplyPrices,
   checkSupplies,
   giftsOf,
+  kitMax,
   supplyWants,
   type AverageJoin,
   type CitedAmount,
