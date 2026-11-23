@@ -32,6 +32,8 @@ BEST_BUY_TERMS: build/index.d.ts#BEST_BUY_TERMS
 BLS_API_URL: build/index.d.ts#BLS_API_URL
 BLS_HOST: build/index.d.ts#BLS_HOST
 BLS_PACE_MS: build/index.d.ts#BLS_PACE_MS
+BLS_QUOTA: build/index.d.ts#BLS_QUOTA
+BLS_QUOTA_KEY: build/index.d.ts#BLS_QUOTA_KEY
 BLS_SERIES_LIMIT: build/index.d.ts#BLS_SERIES_LIMIT
 BLS_SOURCE: build/index.d.ts#BLS_SOURCE
 BLS_STAPLES: build/index.d.ts#BLS_STAPLES
@@ -218,7 +220,13 @@ export declare const BLS_API_URL = "https://api.bls.gov/publicAPI/v1/timeseries/
 export declare const BLS_HOST = "api.bls.gov";
 
 ### build/index.d.ts#BLS_PACE_MS
-export declare const BLS_PACE_MS: number;
+export declare const BLS_PACE_MS = 1e4;
+
+### build/index.d.ts#BLS_QUOTA
+export declare const BLS_QUOTA: Quota;
+
+### build/index.d.ts#BLS_QUOTA_KEY
+export declare const BLS_QUOTA_KEY = "bls:v1";
 
 ### build/index.d.ts#BLS_SERIES_LIMIT
 export declare const BLS_SERIES_LIMIT = 25;
@@ -264,6 +272,7 @@ interface BlsClient<S extends Signal> {
 interface BlsClientOptions<S extends Signal> {
   readonly transport: Transport<S>;
   readonly pace: Pace<S>;
+  readonly quota?: QuotaGate | undefined;
 }
 
 ### build/index.d.ts#BlsSeries
