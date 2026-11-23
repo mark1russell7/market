@@ -1,4 +1,4 @@
-import { parseUnit, UnitError, type Quantity } from "@mark1russell7/quantity";
+import { atomAbove, parseUnit, UnitError, type Quantity } from "@mark1russell7/quantity";
 import { quantitySchema } from "@mark1russell7/quantity/schema";
 import { z } from "zod";
 import { instantSchema, sourceSchema, textSchema } from "./records.ts";
@@ -49,7 +49,7 @@ function unitPriceProblem(unit: string): string | undefined {
     if (error instanceof UnitError) return refused;
     throw error;
   }
-  if (moneyAbove(unit) === undefined) return refused;
+  if (atomAbove(parsed, "money") === undefined) return refused;
   const below = parsed.components.filter((component) => component.exponent < 0);
   const amountOf = (component: (typeof below)[number]): boolean => {
     const dimensions = component.atom?.vector;
@@ -63,33 +63,11 @@ function unitPriceProblem(unit: string): string | undefined {
 }
 
 /**
- * This function gives the symbol of the money of a unit that has one unit of money above, for example `USD` for
- * `USD/wk`. It gives undefined for each other unit, and for a unit that does not parse.
- *
- * This is unit algebra, so its home is `@mark1russell7/quantity`. It stays here, out of the exports of the package,
- * until quantity has it. Then this function goes away.
- */
-export function moneyAbove(unit: string): string | undefined {
-  let parsed: ReturnType<typeof parseUnit>;
-  try {
-    parsed = parseUnit(unit);
-  } catch (error) {
-    if (error instanceof UnitError) return undefined;
-    throw error;
-  }
-  const above = parsed.components.filter((component) => component.exponent > 0);
-  const [money] = above;
-  const vector = money?.atom?.vector;
-  const isMoney = vector !== undefined && Object.keys(vector).length === 1 && vector.money === 1;
-  return above.length === 1 && money?.exponent === 1 && money.annotation === undefined && isMoney ? money.atom?.symbol : undefined;
-}
-
-/**
  * This function gives the symbol of the money of a price for each unit of an amount, for example `USD` for `USD/lb`.
  * It gives undefined for each other unit.
  */
 export function moneyOf(unit: string): string | undefined {
-  return unitPriceProblem(unit) === undefined ? moneyAbove(unit) : undefined;
+  return unitPriceProblem(unit) === undefined ? atomAbove(unit, "money") : undefined;
 }
 
 /** This schema accepts a price of more than 0 for each unit of an amount, for example `{ "value": 1.101, "unit": "USD/lb" }`. */

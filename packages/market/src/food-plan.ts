@@ -1,10 +1,9 @@
 import type { Source } from "@mark1russell7/guidebook";
-import { convertible, quantity, valueIn, type Quantity } from "@mark1russell7/quantity";
-import { moneyAbove } from "./average.ts";
+import { atomAbove, convertible, quantity, valueIn, type Quantity } from "@mark1russell7/quantity";
 
 /** This function gives the money of a cost for each unit of time, for example `USD` for `USD/wk`. */
 function moneyOfRate(unit: string): string | undefined {
-  const money = moneyAbove(unit);
+  const money = atomAbove(unit, "money");
   return money !== undefined && convertible(unit, `${money}/d`) ? money : undefined;
 }
 
