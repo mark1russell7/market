@@ -2,7 +2,8 @@ import { averagePriceSchema } from "@mark1russell7/market";
 import { valueIn } from "@mark1russell7/quantity";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { BLS_PACE_MS, createBlsClient } from "./bls-client.ts";
+import { isQuotaError, memoryQuotaStore, quotaGate, type QuotaError } from "polite-crawler/api";
+import { BLS_PACE_MS, BLS_QUOTA, BLS_QUOTA_KEY, createBlsClient } from "./bls-client.ts";
 import { BLS_API_URL, BLS_SERIES_LIMIT, BLS_STAPLES, blsRequest, parseBlsSeries } from "./bls.ts";
 import { instantOf } from "./client.ts";
 import { fakePace, fakeTransport, reply } from "../test/fakes.ts";
@@ -148,12 +149,75 @@ describe("the BLS client", () => {
     expect(sent.map(({ exchange }) => exchange)).toEqual([blsRequest(BLS_STAPLES.map((each) => each.series))]);
   });
 
-  it("keeps a margin under the daily limit of 25: a second query waits the pace of 20 queries each day", async () => {
+  it("waits the pace between two queries", async () => {
     const { client, sent } = setup(() => reply(200, answer));
     await client.averages();
     await client.averages(BLS_STAPLES.slice(0, 1), { start: 2025, end: 2026 });
     expect(sent[1]!.at - sent[0]!.at).toBe(BLS_PACE_MS);
-    expect(BLS_PACE_MS * 20).toBe(86_400_000);
+  });
+
+  it("keeps a margin under the daily limit of 25: the gate refuses query 21 of a rolling day, and sends nothing", async () => {
+    expect(BLS_QUOTA.limit - (BLS_QUOTA.reserve ?? 0)).toBe(20);
+    const { client, sent } = setup(() => reply(200, answer));
+    for (let index = 0; index < 20; index += 1) await client.averages();
+    const error = await client.averages().catch((caught: unknown) => caught);
+    expect(isQuotaError(error)).toBe(true);
+    expect(sent).toHaveLength(20);
+    // A query counts until all of its time bucket is out of the window: 24 hours, plus one bucket of the 60 at most.
+    expect((error as QuotaError).resetAt).toBeGreaterThanOrEqual(sent[0]!.at + 86_400_000);
+    expect((error as QuotaError).resetAt).toBeLessThanOrEqual(sent[0]!.at + 86_400_000 + 86_400_000 / 60);
+  });
+
+  it("refuses each query after an answer of the daily threshold, until the window has units again", async () => {
+    const threshold = { status: "REQUEST_NOT_PROCESSED", message: ["The daily threshold for total number of requests allocated to the user has been reached."] };
+    const { client, sent, clock } = setup((_, index) => (index === 0 ? reply(200, threshold) : reply(200, answer)));
+    expect(await client.averages()).toMatchObject({ ok: false, threshold: true });
+    const error = await client.averages().catch((caught: unknown) => caught);
+    expect(isQuotaError(error)).toBe(true);
+    expect(sent).toHaveLength(1);
+    await clock.sleep((error as QuotaError).resetAt - clock.now());
+    expect(await client.averages()).toMatchObject({ ok: true });
+    expect(sent).toHaveLength(2);
+  });
+
+  it("counts the queries of two clients of one pace in the default gate of the pace", async () => {
+    const { pace, clock } = fakePace();
+    const { transport, sent } = fakeTransport(clock, () => reply(200, answer));
+    const first = createBlsClient({ transport, pace });
+    const second = createBlsClient({ transport, pace });
+    for (let index = 0; index < 10; index += 1) {
+      await first.averages();
+      await second.averages();
+    }
+    await expect(second.averages()).rejects.toSatisfy(isQuotaError);
+    await expect(createBlsClient({ transport, pace }).averages()).rejects.toSatisfy(isQuotaError);
+    expect(sent).toHaveLength(20);
+    // A new pace is a new scope, with its own default gate.
+    const other = fakePace();
+    expect(await createBlsClient({ transport: fakeTransport(other.clock, () => reply(200, answer)).transport, pace: other.pace }).averages()).toMatchObject({ ok: true });
+  });
+
+  it("counts nothing for a request that the client refuses before it sends", async () => {
+    const { pace, clock } = fakePace();
+    const { transport } = fakeTransport(clock, () => reply(200, answer));
+    const quota = quotaGate(BLS_QUOTA, { key: BLS_QUOTA_KEY, store: memoryQuotaStore(), now: clock.now });
+    await expect(createBlsClient({ transport, pace, quota }).averages([])).rejects.toThrow(RangeError);
+    expect(quota.state()).toMatchObject({ used: 0 });
+  });
+
+  it("counts the queries of two clients in one gate", async () => {
+    const { pace, clock } = fakePace();
+    const { transport, sent } = fakeTransport(clock, () => reply(200, answer));
+    const quota = quotaGate(BLS_QUOTA, { key: BLS_QUOTA_KEY, store: memoryQuotaStore(), now: clock.now });
+    const first = createBlsClient({ transport, pace, quota });
+    const second = createBlsClient({ transport, pace, quota });
+    for (let index = 0; index < 10; index += 1) {
+      await first.averages();
+      await second.averages();
+    }
+    expect(quota.state()).toMatchObject({ used: 20, left: 0 });
+    await expect(first.averages()).rejects.toSatisfy(isQuotaError);
+    expect(sent).toHaveLength(20);
   });
 
   it("gives a problem with the status line for an answer that is not a 2xx with no part of the body, and for a body that is not JSON", async () => {

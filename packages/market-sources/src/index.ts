@@ -46,7 +46,7 @@ export {
   type AverageParseResult,
   type BlsSeries,
 } from "./bls.ts";
-export { BLS_HOST, BLS_PACE_MS, createBlsClient, type BlsClient, type BlsClientOptions } from "./bls-client.ts";
+export { BLS_HOST, BLS_PACE_MS, BLS_QUOTA, BLS_QUOTA_KEY, createBlsClient, type BlsClient, type BlsClientOptions } from "./bls-client.ts";
 export {
   BEST_BUY_SOURCE,
   BEST_BUY_TERMS,
