@@ -24,6 +24,8 @@ describe("the entry", () => {
       "BLS_API_URL",
       "BLS_HOST",
       "BLS_PACE_MS",
+      "BLS_QUOTA",
+      "BLS_QUOTA_KEY",
       "BLS_SERIES_LIMIT",
       "BLS_SOURCE",
       "BLS_STAPLES",
