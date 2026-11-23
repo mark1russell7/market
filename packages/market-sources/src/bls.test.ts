@@ -180,6 +180,31 @@ describe("the BLS client", () => {
     expect(sent).toHaveLength(2);
   });
 
+  it("counts the queries of two clients of one pace in the default gate of the pace", async () => {
+    const { pace, clock } = fakePace();
+    const { transport, sent } = fakeTransport(clock, () => reply(200, answer));
+    const first = createBlsClient({ transport, pace });
+    const second = createBlsClient({ transport, pace });
+    for (let index = 0; index < 10; index += 1) {
+      await first.averages();
+      await second.averages();
+    }
+    await expect(second.averages()).rejects.toSatisfy(isQuotaError);
+    await expect(createBlsClient({ transport, pace }).averages()).rejects.toSatisfy(isQuotaError);
+    expect(sent).toHaveLength(20);
+    // A new pace is a new scope, with its own default gate.
+    const other = fakePace();
+    expect(await createBlsClient({ transport: fakeTransport(other.clock, () => reply(200, answer)).transport, pace: other.pace }).averages()).toMatchObject({ ok: true });
+  });
+
+  it("counts nothing for a request that the client refuses before it sends", async () => {
+    const { pace, clock } = fakePace();
+    const { transport } = fakeTransport(clock, () => reply(200, answer));
+    const quota = quotaGate(BLS_QUOTA, { key: BLS_QUOTA_KEY, store: memoryQuotaStore(), now: clock.now });
+    await expect(createBlsClient({ transport, pace, quota }).averages([])).rejects.toThrow(RangeError);
+    expect(quota.state()).toMatchObject({ used: 0 });
+  });
+
   it("counts the queries of two clients in one gate", async () => {
     const { pace, clock } = fakePace();
     const { transport, sent } = fakeTransport(clock, () => reply(200, answer));

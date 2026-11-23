@@ -180,7 +180,7 @@ The terms make two things necessary for each user of the data: the date of the r
 | `createPlanClient` | `plans(provider, { pages })` | the pace of the record, 2 s for each record of the package | no key |
 | `createBlsClient` | `averages(series, years)` | 10 s, and the quota `BLS_QUOTA`: 20 queries in a rolling 24 hours, under the limit of 25 | no key (version 1) |
 
-The BLS client counts its queries with a gate of `BLS_QUOTA` from `polite-crawler/api`. The gate refuses a query over the quota with a `QuotaError`, and it sends nothing. An answer that tells that the daily threshold is reached sets the count to the limit. The default gate is in memory, for one client. Each process of one address can count in one record. For that, give the option `quota`: a `quotaGate` with a shared store, for example `SqliteHostStateStore` of `polite-crawler`.
+The BLS client counts its queries with a gate of `BLS_QUOTA` from `polite-crawler/api`. The gate refuses a query over the quota with a `QuotaError`, and it sends nothing. An answer that tells that the daily threshold is reached sets the count to the limit. The default gate is in memory, one for each pace: the clients of one pace count in one gate. Each process of one address can count in one record. For that, give the option `quota`: a `quotaGate` with a shared store, for example `SqliteHostStateStore` of `polite-crawler`.
 
 ```ts
 import { HostScheduler, realClock } from "polite-crawler/politeness";
