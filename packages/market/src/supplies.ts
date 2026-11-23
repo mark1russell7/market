@@ -1,5 +1,5 @@
 import { checkSources, checkUnits, type CitedUnit, type Finding, type FindingCode, type GateOptions, type Source } from "@mark1russell7/guidebook";
-import { convertible, kindOf, quantity, valueIn, whyNotConvertible, type Quantity } from "@mark1russell7/quantity";
+import { convertible, kindOf, quantity, rationals, valueIn, whyNotConvertible, type Quantity } from "@mark1russell7/quantity";
 import { latestAverages, moneyOf, monthSchema, type AveragePrice } from "./average.ts";
 import type { PartWant } from "./offers.ts";
 import type { ProductWant } from "./order.ts";
@@ -269,8 +269,10 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
     }
     if (product.perPerson !== undefined) {
       // The count has no single unit to convert to. Its unit must be one bare count. An unknown unit has its own error.
-      amount(product.id, "count for each person", product.perPerson, "");
-      if (product.perPerson.read && known(product.perPerson.unit) && !countUnit(product.perPerson.unit))
+      // A count that is not read gives no count of units, so the gate refuses it. A catalog from JSON can have one.
+      if (product.perPerson.read !== true) error("supplies-amount", "product", product.id, `The count for each person of the product ${product.id} is not read. A product with no known count has no field perPerson.`);
+      else amount(product.id, "count for each person", product.perPerson, "");
+      if (product.perPerson.read === true && known(product.perPerson.unit) && !countUnit(product.perPerson.unit))
         error("supplies-unit", "product", product.id, `The count for each person of the product ${product.id} is in ${product.perPerson.unit}. It must be one bare count, for example {each}.`);
     }
     if (product.average !== undefined) amount(product.id, "average price", product.average.read ? product.average.per : product.average, product.average.read ? product.average.per.unit : "");
@@ -300,7 +302,8 @@ export function supplyWants(catalog: SupplyCatalog, max: (product: SupplyProduct
 
 /**
  * This function gives the largest count of units of each product for a household, for `supplyWants`. A product with a
- * count for each person has that count times the persons, up to the next whole unit. Each other product has 1.
+ * count for each person has that count times the persons, up to the next whole unit. Each other product has 1. The
+ * product is exact: the count is the decimal of its number, so 1.1 for each person of 50 persons gives 55, not 56.
  *
  * @param people - The count of persons of the household. The persons are input data of the user.
  * @returns The function `max` of `supplyWants`
@@ -308,7 +311,8 @@ export function supplyWants(catalog: SupplyCatalog, max: (product: SupplyProduct
  */
 export function kitMax(people: number): (product: SupplyProduct) => number {
   if (!(Number.isSafeInteger(people) && people >= 0)) throw new RangeError(`The count of persons is ${String(people)}. It must be a whole number of 0 or more.`);
-  return (product) => (product.perPerson === undefined ? 1 : Math.ceil(product.perPerson.amount * people));
+  const persons = rationals.fromNumber(people);
+  return (product) => (product.perPerson === undefined ? 1 : rationals.toNumber(rationals.ceil(rationals.mul(rationals.fromNumber(product.perPerson.amount), persons))));
 }
 
 /** The gift of a count of units: an amount in the unit of its resource, or no read. */

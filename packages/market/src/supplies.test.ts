@@ -172,10 +172,11 @@ describe("the gate of the catalog", () => {
     expect(noRead.map((finding) => `${finding.level} ${finding.code}`)).toEqual(["warning supplies-no-read"]);
   });
 
-  it("refuses a count for each person of 0, with an unknown fact, or in a unit that is not one bare count", () => {
+  it("refuses a count for each person of 0, not read, with an unknown fact, or in a unit that is not one bare count", () => {
     const perPerson = (value: unknown): SupplyCatalog => withProduct({ ...rice, perPerson: value as SupplyProduct["perPerson"] });
     expect(errors(perPerson({ read: true, amount: 0, unit: "{each}", definition: "A test." }))).toEqual(["supplies-amount"]);
     expect(errors(perPerson({ read: true, amount: 1, unit: "{each}", fact: "unknown" }))).toEqual(["supplies-fact"]);
+    for (const value of [{ read: false, why: "The list is not read." }, { amount: 1, unit: "{each}", definition: "A test." }]) expect(errors(perPerson(value))).toEqual(["supplies-amount"]);
     for (const unit of ["kg", "L", "h", "{each}/{person}", "foo"]) {
       expect(() => checkSupplies(perPerson({ read: true, amount: 1, unit, definition: "A test." })), unit).not.toThrow();
       expect(errors(perPerson({ read: true, amount: 1, unit, definition: "A test." })), unit).toEqual(["supplies-unit"]);
@@ -196,7 +197,12 @@ describe("the gate of the catalog", () => {
       expect(kitMax(people)(bag), String(people)).toBe(people);
       expect(kitMax(people)(radio), String(people)).toBe(1);
     }
-    expect(kitMax(3)({ ...bag, perPerson: { read: true, amount: 0.5, unit: "{each}", definition: "A test." } })).toBe(2);
+    const each = (amount: number): SupplyProduct => ({ ...bag, perPerson: { read: true, amount, unit: "{each}", definition: "A test." } });
+    expect(kitMax(3)(each(0.5))).toBe(2);
+    // A product of two doubles goes past a whole count: 1.1 * 50 is 55.00000000000001 and 0.14 * 50 is 7.000000000000001.
+    expect(kitMax(50)(each(1.1))).toBe(55);
+    expect(kitMax(50)(each(0.14))).toBe(7);
+    expect(kitMax(50)(each(0.141))).toBe(8);
     expect(supplyWants({ ...SUPPLY_CATALOG, products: [{ ...bag, want: { brands: ["Test"], partNumbers: ["T-1"] } }] }, kitMax(4))).toEqual([{ product: bag.id, want: { brands: ["Test"], partNumbers: ["T-1"] }, max: 4 }]);
     for (const people of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) expect(() => kitMax(people), String(people)).toThrow(RangeError);
   });
