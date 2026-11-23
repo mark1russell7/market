@@ -1,4 +1,5 @@
 import {
+  atomAbove,
   canonicalUnit,
   convertExact,
   convertible,
@@ -151,15 +152,12 @@ function readPriceUnit(unit: string): PriceParts | string {
     if (error instanceof UnitError) return refused;
     throw error;
   }
-  const above = parsed.components.filter((component) => component.exponent > 0);
-  const [money] = above;
-  const atom = money?.atom;
-  const isMoney = atom !== undefined && Object.keys(atom.vector).length === 1 && atom.vector.money === 1;
+  const money = atomAbove(parsed, "money");
   const below = parsed.components.some((component) => component.exponent < 0);
-  if (above.length !== 1 || money?.exponent !== 1 || money.annotation !== undefined || !isMoney || !below) return refused;
+  if (money === undefined || !below) return refused;
   const { money: units = 0, data = 0, time = 0, ...others } = parsed.vector;
   const kind = Object.values(others).every((exponent) => exponent === 0) && units === 1 ? kindOfExponents(-data, -time) : undefined;
-  return kind === undefined ? refused : { money: atom.symbol, kind };
+  return kind === undefined ? refused : { money, kind };
 }
 
 /** This function gives the unit of a price for each unit of an amount, for example `USD/(GiB·mo)` for `GiB·mo`. */
