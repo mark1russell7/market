@@ -228,6 +228,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       title: "A sleeping bag for each person",
       kind: "heat",
       basis: "ready.kit-sleeping-bag",
+      perPerson: { read: true, amount: 1, unit: "{each}", fact: "ready.kit-sleeping-bag" },
       gives: [],
       shelf: { read: false, why: "The source gives no shelf life." },
     },
