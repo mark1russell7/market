@@ -190,7 +190,7 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The cook water of the rice comes from USA Rice and of the oats from the label of Quaker. The bulk mass of 1 cup of each comes from FoodData Central. The cook times of the beans come from a USDA sheet, and of the pasta from the label of Ronzoni.
 - The beans and the pasta have no cook water. The USDA sheet gives no amount of water, and the pasta label gives the water for each box with no mass of a box. The flour has no cook facts.
 - The dry beans are pinto beans. Their food energy comes from the raw pinto bean item of FoodData Central, the same bean as the USDA sheet of the cook time.
-- Since 0.8.4, the catalog has three stoves. They are a canister stove with 1 burner, a propane stove with 2 burners and a butane cartridge stove with 1 burner. Ready.gov names camp stoves as a source of heat to cook, so each stove cites it as its basis.
+- Since 0.8.5, the catalog has three stoves. They are a canister stove with 1 burner, a propane stove with 2 burners and a butane cartridge stove with 1 burner. Ready.gov names camp stoves as a source of heat to cook, so each stove cites it as its basis.
 - The fuel rate of each stove is a mass in a time from the page of its maker. The rates are 227 g in 60 min, 16.4 oz in 1 h and 8.8 oz in 1.25 h. A rate in a mass needs no heating value.
 - The two Coleman pages give an upper limit of the time ("up to"). Thus each of their rates is a lower limit of the fuel that the stove burns at full heat, and it has `bound: "least"`. A reader that takes a rate as the value takes only a rate with no bound. The butane page gives no burner setting for its time.
 - The MSR page gives a burn time of "approximately" 60 min. Thus its rate has no bound.

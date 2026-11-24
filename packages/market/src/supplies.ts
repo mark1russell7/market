@@ -140,6 +140,19 @@ export interface StoveRate extends CitedRate {
 }
 
 /**
+ * The cited facts of a product that spoils after its container is opened, for example ready-to-feed infant formula.
+ *
+ * - `container`: the amount of one sealed container. Its unit converts to the unit of the size. A unit of the product
+ *   holds a whole count of containers.
+ * - `noCold`: the `id` of the fact that tells the use of an opened container with no cold storage. The content of an
+ *   opened container serves one use, and the rest is waste.
+ */
+export interface OpenedFacts {
+  readonly container: CitedAmount | NoRead;
+  readonly noCold: string;
+}
+
+/**
  * The cited facts of a stove. `fuel` is the code of the resource that the stove burns, for example `fuel.butane`.
  *
  * - `rate`: the fuel that the stove burns in a time at its full heat. It is an energy in a time, for example 15000 BTU
@@ -221,6 +234,8 @@ export interface SupplyProduct {
   readonly cook?: CookFacts | undefined;
   /** The cited facts of a stove: its fuel and its fuel rate. */
   readonly stove?: StoveFacts | undefined;
+  /** The cited facts of an opened container: the amount of one container and its use with no cold storage. */
+  readonly opened?: OpenedFacts | undefined;
 }
 
 /** A catalog of supplies: the sources, the cited facts, the resources and the products. */
@@ -602,10 +617,10 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
   const fieldsOf = (raw: SupplyProduct): { readonly product: CheckedProduct; readonly dropped: boolean } => {
     const id = raw.id;
     const fields: Record<string, unknown> = { ...raw };
-    for (const field of ["size", "energy", "perPerson", "average", "cook", "stove"] as const) {
+    for (const field of ["size", "energy", "perPerson", "average", "cook", "stove", "opened"] as const) {
       const value: unknown = raw[field];
       if (value === undefined || isRecord(value)) continue;
-      const must = field === "cook" || field === "stove" ? "a record of facts" : "an amount with its reason or a no read";
+      const must = field === "cook" || field === "stove" || field === "opened" ? "a record of facts" : "an amount with its reason or a no read";
       error("supplies-amount", "product", id, `The field ${field} of the product ${id} is ${shown(value)}. It must be ${must}, or the product has no field ${field}.`);
       fields[field] = undefined;
     }
@@ -710,6 +725,20 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
       // A rate in an energy needs its heating value: the higher and the lower value of a fuel differ by 5% to 10%.
       if (goodRate && convertible(fuelRate.unit, FUEL_ENERGY_UNIT) && heating === undefined)
         error("supplies-amount", "product", product.id, `The fuel rate of the stove ${product.id} is an energy, and it has no heating value. Give ${HEATING_VALUES.join(" or ")}.`);
+    }
+    if (product.opened !== undefined) {
+      const { container, noCold } = product.opened;
+      cite(product.id, "The use with no cold storage", noCold);
+      amount(product, "container", container, "");
+      const size = product.size;
+      if (size === undefined) error("supplies-amount", "product", product.id, `The product ${product.id} has a container, and it has no size. The size gives the count of containers in a unit.`);
+      else if (isRecord(container) && container.read && size.read && known(container.unit) && known(size.unit)) {
+        if (!convertible(container.unit, size.unit)) error("supplies-unit", "product", product.id, `The container of the product ${product.id} is in ${container.unit}, and ${container.unit} does not convert to ${size.unit}, the unit of its size.`);
+        else {
+          const count = valueIn(amountIn(size.amount, size.unit), canonicalUnit(container.unit)) / valueIn(amountIn(container.amount, container.unit), canonicalUnit(container.unit));
+          if (!same(count, Math.round(count)) || Math.round(count) < 1) error("supplies-amount", "product", product.id, `The size of the product ${product.id} holds ${String(count)} containers. It must hold a whole count of 1 or more.`);
+        }
+      }
     }
     if (product.size !== undefined) {
       // The size has no single unit to convert to. Its unit must be a mass, a volume or one bare count. An unknown unit
