@@ -133,6 +133,18 @@ describe("the gate of the catalog", () => {
     expect(errors(withProduct({ ...rice, gives: [{ ...rice.gives[0]!, resource: "food.unknown" }] }))).toEqual(["supplies-resource"]);
   });
 
+  it("refuses a bad terms address, a bad change date, a change date after the check and a bad hash of a source", () => {
+    const [first, ...rest] = SUPPLY_CATALOG.sources;
+    if (first === undefined) throw new Error("The catalog has no source.");
+    const withSource = (fields: Partial<SupplyCatalog["sources"][number]>): SupplyCatalog => ({ ...SUPPLY_CATALOG, sources: [{ ...first, ...fields }, ...rest] });
+    expect(errors(withSource({ terms: "the terms" }))).toEqual(["bad-url"]);
+    expect(errors(withSource({ updated: "22.11.2026" }))).toEqual(["bad-date"]);
+    expect(errors(withSource({ updated: "2999-01-01" }))).toEqual(["updated-after-check"]);
+    expect(errors(withSource({ sha256: "ABC" }))).toEqual(["bad-sha256"]);
+    // A source with each new field in a good form passes.
+    expect(errors(withSource({ terms: "https://example.org/terms", updated: first.checked, sha256: "0".repeat(64), note: "A test." }))).toEqual([]);
+  });
+
   it("refuses a food energy on a product that is not food, also in a unit that converts to kcal", () => {
     const battery = { ...rice, kind: "power" as const, energy: { read: true as const, amount: 100, unit: "W*h", definition: "A test battery." } };
     expect(errors(withProduct(battery))).toEqual(["supplies-kind"]);
