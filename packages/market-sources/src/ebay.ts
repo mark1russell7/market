@@ -25,6 +25,7 @@ import {
   path,
   readMoney,
   refused,
+  show,
   text,
   wholeNumber,
   type Observation,
@@ -150,7 +151,7 @@ function mapItem(item: unknown, where: string, at: string, notes: string[]): Obs
   if (title === undefined) return skip("it has no title");
   const options = list(item["buyingOptions"]);
   const format = formatOf(options);
-  if (format === undefined) return skip(`its buying options ${(options ?? []).map(String).join(", ")} have no price to pay`);
+  if (format === undefined) return skip(`its buying options ${(options ?? []).map((option) => (typeof option === "string" ? option : show(option))).join(", ")} have no price to pay`);
   const endsAt = instant(item["itemEndDate"]);
   if (endsAt !== undefined && Date.parse(endsAt) <= Date.parse(at)) return skip(`the listing ended at ${endsAt}`);
 
