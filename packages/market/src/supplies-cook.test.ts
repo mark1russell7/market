@@ -116,7 +116,11 @@ describe("the stoves of the reference catalog", () => {
   });
 
   it("keeps each fuel rate as the cited numbers", () => {
-    expect(product("heat.stove-canister-1-burner").stove).toEqual({ fuel: "fuel.isobutane-mix", rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate" } });
+    expect(product("heat.stove-canister-1-burner").stove).toEqual({
+      fuel: "fuel.isobutane-mix",
+      rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate" },
+      boil: { amount: 16, unit: "L", per: { amount: 227, unit: "g" }, fact: "msr.pocketrocket-2-rate", start: { celsius: 21, fact: "msr.test-conditions" }, bound: "most" },
+    });
     expect(product("heat.stove-propane-2-burner").stove).toEqual({ fuel: "fuel.propane", rate: { amount: 16.4, unit: "oz", per: { amount: 1, unit: "h" }, fact: "coleman.propane-2-burner-rate", bound: "least" } });
     expect(product("heat.stove-butane-1-burner").stove).toEqual({ fuel: "fuel.butane", rate: { amount: 8.8, unit: "oz", per: { amount: 1.25, unit: "h" }, fact: "coleman.butane-1-burner-rate", bound: "least" } });
   });
@@ -218,7 +222,35 @@ describe("the gate of the cook facts, the stoves and the fuel energy", () => {
     // A stove rate has a known bound or no bound.
     expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 227, unit: "g", per: hour, fact, bound: "least" } }))).toEqual([]);
     expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 227, unit: "g", per: hour, fact, bound: "Least" as never } }))).toEqual(["supplies-amount"]);
-    expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 227, unit: "g", per: hour, fact, bound: "most" as never } }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 227, unit: "g", per: hour, fact, bound: "most" } }))).toEqual([]);
+  });
+
+  it("examines a boil yield: a volume of water for a mass of fuel, a cited start below 100 °C or no start, and a known bound or no bound", () => {
+    const stove = (boil: unknown): SupplyCatalog => withProduct({ ...radio, stove: { fuel: "fuel.butane", boil: boil as never } });
+    const fact = "ready.kit-radio";
+    const start = { celsius: 21, fact };
+    const boil = { amount: 16, unit: "L", per: { amount: 227, unit: "g" }, fact, start };
+    expect(errors(stove(boil))).toEqual([]);
+    expect(errors(stove({ ...boil, bound: "most" }))).toEqual([]);
+    expect(errors(stove({ ...boil, bound: "least" }))).toEqual([]);
+    expect(errors(stove({ ...boil, bound: "Most" }))).toEqual(["supplies-amount"]);
+    // The water is a volume, and the fuel is a mass.
+    expect(errors(stove({ ...boil, unit: "kg" }))).toEqual(["supplies-unit"]);
+    expect(errors(stove({ ...boil, per: { amount: 1, unit: "h" } }))).toEqual(["supplies-unit"]);
+    expect(errors(stove({ ...boil, fact: "no.such-fact" }))).toEqual(["supplies-fact"]);
+    // A yield with no start is valid, and it gives no read. A start has its fact, and the water starts below the boil.
+    expect(errors(stove({ ...boil, start: undefined }))).toEqual([]);
+    expect(errors(stove({ ...boil, start: 21 }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ ...boil, start: { ...start, celsius: 100 } }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ ...boil, start: { ...start, celsius: Number.NaN } }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ ...boil, start: { ...start, fact: "no.such-fact" } }))).toEqual(["supplies-fact"]);
+  });
+
+  it("keeps the boil yield of the canister stove as the most yield of the maker test, from 21 °C", () => {
+    const boil = product("heat.stove-canister-1-burner").stove?.boil;
+    expect(boil?.bound).toBe("most");
+    expect(SUPPLY_CATALOG.facts.find((each) => each.id === boil?.start?.fact)?.source).toBe("msr.stove-performance");
+    expect(SUPPLY_CATALOG.sources.find((each) => each.id === "msr.stove-performance")?.license).toBe("all-rights-reserved");
   });
 
   it("refuses a bound on a rate that is not the fuel rate of a stove", () => {
