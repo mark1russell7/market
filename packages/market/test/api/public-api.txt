@@ -976,6 +976,7 @@ type CitedAmount = {
   readonly fact: string;
   readonly definition?: never;
   readonly scaled?: never;
+  readonly size?: never;
 } | {
   readonly read: true;
   readonly amount: number;
@@ -983,6 +984,7 @@ type CitedAmount = {
   readonly definition: string;
   readonly fact?: never;
   readonly scaled?: never;
+  readonly size?: never;
 } | {
   readonly read: true;
   readonly amount: number;
@@ -990,6 +992,15 @@ type CitedAmount = {
   readonly scaled: ScaledReason;
   readonly fact?: never;
   readonly definition?: never;
+  readonly size?: never;
+} | {
+  readonly read: true;
+  readonly amount: number;
+  readonly unit: string;
+  readonly size: true;
+  readonly fact?: never;
+  readonly definition?: never;
+  readonly scaled?: never;
 };
 
 ### build/supplies-entry.d.ts#FOOD_PLANS
@@ -1080,11 +1091,19 @@ interface ScaledReason {
     readonly unit: string;
     readonly fact: string;
     readonly definition?: never;
+    readonly size?: never;
   } | {
     readonly amount: number;
     readonly unit: string;
     readonly definition: string;
     readonly fact?: never;
+    readonly size?: never;
+  } | {
+    readonly amount: number;
+    readonly unit: string;
+    readonly size: true;
+    readonly fact?: never;
+    readonly definition?: never;
   };
 }
 

@@ -1,4 +1,4 @@
-import { quantity, valueIn } from "@mark1russell7/quantity";
+import { convertible, quantity, valueIn } from "@mark1russell7/quantity";
 import { FOODKEEPER_PRODUCTS } from "@mark1russell7/stock/foodkeeper";
 import { describe, expect, it } from "vitest";
 import { buyCandidates } from "./order.ts";
@@ -13,6 +13,12 @@ const errors = (catalog: SupplyCatalog): string[] =>
     .map((finding) => finding.code);
 
 const rice = SUPPLY_CATALOG.products.find((product) => product.id === "food.rice-white-1kg")!;
+/** The rice with a gift and a food energy that do not cite its size, for the cases that change the size. */
+const plainRice: SupplyProduct = {
+  ...rice,
+  gives: [{ resource: "food.grain-dry", amount: { read: true, amount: 1, unit: "kg", definition: "The product is 1 kg of dry rice." } }],
+  energy: { read: true, amount: 3650, unit: "kcal", fact: "fdc.rice-white" },
+};
 /** This function gives the reference catalog with one product in place of the rice. */
 const withProduct = (product: SupplyProduct): SupplyCatalog => ({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === rice.id ? product : each)) });
 
@@ -48,7 +54,7 @@ describe("the reference catalog of supplies", () => {
     const products = (basis: string | undefined): SupplyCatalog => ({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === radio.id ? { ...radio, basis } : each)) });
     expect(errors(products("unknown"))).toEqual(["supplies-fact"]);
     expect(errors(products(undefined))).toEqual(["supplies-basis"]);
-    expect(errors({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === radio.id ? { ...radio, basis: undefined, gives: rice.gives } : each)) })).toEqual([]);
+    expect(errors({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === radio.id ? { ...radio, basis: undefined, gives: plainRice.gives } : each)) })).toEqual([]);
     const unused = checkSupplies(products(undefined)).filter((finding) => finding.code === "supplies-unused");
     expect(unused.map((finding) => finding.id)).toEqual(["ready.kit-radio"]);
   });
@@ -157,15 +163,69 @@ describe("the gate of the catalog", () => {
     expect(errors(scaled({ amount: 3650 * 4.184, unit: "kJ" }))).toEqual([]);
     expect(errors(scaled({ amount: 3600 }))).toEqual(["supplies-amount"]);
     expect(checkSupplies(scaled({ amount: 3600 })).find((finding) => finding.code === "supplies-amount")?.message).toContain("gives 3650 kcal");
-    // The amount of the reason has a fact: 41 kcal in 100 g times the 530 g of a can.
+    // The amount of the reason is the size of the can, and the size cites a fact: 41 kcal in 100 g times 530 g.
     const soup = SUPPLY_CATALOG.products.find((product) => product.id === "food.soup-can")!;
-    expect(soup.energy).toMatchObject({ amount: 217.3, scaled: { of: { amount: 530, unit: "g", fact: "fdc.soup-chicken-noodle" } } });
+    expect(soup.energy).toMatchObject({ amount: 217.3, scaled: { of: { amount: 530, unit: "g", size: true } } });
+    expect(soup.size).toMatchObject({ amount: 530, unit: "g", fact: "fdc.soup-chicken-noodle" });
+  });
+
+  it("accepts an amount that cites the size and is equal to it, and refuses another amount", () => {
+    const energy = rice.energy as Extract<SupplyProduct["energy"], { scaled: unknown }>;
+    const gift = rice.gives[0]!;
+    const withGift = (amount: unknown): SupplyCatalog => withProduct({ ...rice, gives: [{ ...gift, amount: amount as typeof gift.amount }] });
+    // The gift and the amount of the scaled energy of the rice cite its size of 1 kg.
+    expect(gift.amount).toEqual({ read: true, amount: 1, unit: "kg", size: true });
+    expect(energy.scaled.of).toEqual({ amount: 1, unit: "kg", size: true });
+    expect(errors(withGift({ read: true, amount: 1000, unit: "g", size: true }))).toEqual([]);
+    expect(errors(withGift({ read: true, amount: 2, unit: "kg", size: true }))).toEqual(["supplies-amount"]);
+    expect(checkSupplies(withGift({ read: true, amount: 2, unit: "kg", size: true })).find((finding) => finding.code === "supplies-amount")?.message).toContain("the size that it cites is 1 kg");
+    // A scaled energy of 2 kg on a product of 1 kg: the rate times the amount is good, and the amount is not the size.
+    expect(errors(withProduct({ ...rice, energy: { ...energy, amount: 7300, scaled: { ...energy.scaled, of: { amount: 2, unit: "kg", size: true } } } }))).toEqual(["supplies-amount"]);
+    // An amount in a unit that does not convert to the unit of the size.
+    expect(errors(withProduct({ ...rice, energy: { ...energy, scaled: { ...energy.scaled, of: { amount: 1, unit: "L", size: true } } } }))).toEqual(["supplies-unit", "supplies-unit"]);
+    // A field size that is not true, from JSON.
+    expect(errors(withGift({ read: true, amount: 1, unit: "kg", size: false }))).toEqual(["supplies-fact"]);
+  });
+
+  it("refuses an amount that cites the size of a product with no read size, and a size that cites itself", () => {
+    // The gift and the amount of the scaled energy cite the size: each gives one error.
+    expect(errors(withProduct({ ...rice, size: undefined }))).toEqual(["supplies-fact", "supplies-fact"]);
+    expect(errors(withProduct({ ...rice, size: { read: false, why: "The label is not read yet." } }))).toEqual(["supplies-fact", "supplies-fact"]);
+    expect(errors(withProduct({ ...rice, size: { read: true, amount: 1, unit: "kg", size: true } }))).toEqual(["supplies-fact", "supplies-fact", "supplies-fact"]);
+    // A size that cites itself through a scaled reason: a rate of 1 kg in 1 kg times the size.
+    const loop = { read: true, amount: 1, unit: "kg", scaled: { rate: { amount: 1, unit: "kg", per: { amount: 1, unit: "kg" }, fact: "fdc.rice-white" }, of: { amount: 1, unit: "kg", size: true } } } as const;
+    expect(errors(withProduct({ ...plainRice, size: loop }))).toEqual(["supplies-fact"]);
+    expect(errors(withProduct({ ...rice, size: loop }))).toEqual(["supplies-fact", "supplies-fact", "supplies-fact"]);
+    // JSON can give a text or null in place of the amount of a scaled size. The gate does not throw.
+    for (const of of ["1 kg", null]) expect(() => checkSupplies(withProduct({ ...rice, size: { ...loop, scaled: { ...loop.scaled, of } } as unknown as SupplyProduct["size"] }))).not.toThrow();
+  });
+
+  it("gives one error for an amount of 0 that cites the size, and one for a size of 0", () => {
+    const gift = rice.gives[0]!;
+    expect(errors(withProduct({ ...rice, gives: [{ ...gift, amount: { read: true, amount: 0, unit: "kg", size: true } }] }))).toEqual(["supplies-amount"]);
+    expect(errors(withProduct({ ...rice, size: { read: true, amount: 0, unit: "kg", definition: "A test." } }))).toEqual(["supplies-amount"]);
+  });
+
+  it("cites the size or a fact in each gift and each amount of a scaled reason in the unit of the size", () => {
+    // A definition in the unit of the size is a second copy of the size that the gate does not compare.
+    const copies = (catalog: SupplyCatalog): string[] =>
+      catalog.products.flatMap((product) => {
+        const size = product.size;
+        if (size === undefined || !size.read) return [];
+        const cited = [product.energy, ...product.gives.map((gift) => gift.amount)];
+        const amounts = [...product.gives.map((gift) => gift.amount), ...cited.flatMap((value) => (value?.read === true && value.scaled !== undefined ? [value.scaled.of] : []))];
+        return amounts.some((value) => "definition" in value && value.definition !== undefined && convertible(value.unit, size.unit)) ? [product.id] : [];
+      });
+    expect(copies(SUPPLY_CATALOG)).toEqual([]);
+    expect(copies(withProduct(plainRice))).toEqual([rice.id]);
   });
 
   it("refuses a scaled reason with an unknown fact, a bad factor or a unit that does not convert, and does not throw", () => {
     const energy = rice.energy as Extract<SupplyProduct["energy"], { scaled: unknown }>;
     const reason = (change: unknown): SupplyCatalog => withProduct({ ...rice, energy: { ...energy, scaled: change } as SupplyProduct["energy"] });
-    const { rate, of } = energy.scaled;
+    // An amount with a definition, so that each case gives only the finding of its factor, and no finding of the size.
+    const { rate } = energy.scaled;
+    const of = { amount: 1, unit: "kg", definition: "The product is 1 kg of dry rice." };
     expect(errors(reason({ rate: { ...rate, fact: "unknown" }, of }))).toContain("supplies-fact");
     expect(errors(reason({ rate, of: { amount: 1, unit: "kg", fact: "unknown" } }))).toContain("supplies-fact");
     expect(errors(reason({ rate, of: { amount: 1, unit: "kg", fact: "fdc.rice-white", definition: "Also a definition." } }))).toEqual(["supplies-fact"]);
@@ -193,7 +253,8 @@ describe("the gate of the catalog", () => {
     expect(errors(withButter({ ...butter, gives: [{ ...gift, amount: { ...gift.amount, amount: Number.NaN } as typeof gift.amount }] }))).toContain("supplies-amount");
     // A factor in a level unit, and factors whose product overflows.
     const { rate, of } = energy.scaled;
-    expect(errors(withProduct({ ...rice, energy: { ...energy, scaled: { rate, of: { ...of, amount: 1, unit: "dB" } } } }))).toEqual(["supplies-unit"]);
+    const defined = { amount: 1, unit: "dB", definition: "The product is 1 kg of dry rice." };
+    expect(errors(withProduct({ ...rice, energy: { ...energy, scaled: { rate, of: defined } } }))).toEqual(["supplies-unit"]);
     const overflow = { ...energy, scaled: { rate: { ...rate, amount: 1e300, per: { amount: 1e-300, unit: "g" } }, of } };
     expect(errors(withProduct({ ...rice, energy: overflow }))).toEqual(["supplies-amount"]);
   });
@@ -221,7 +282,7 @@ describe("the gate of the catalog", () => {
   });
 
   it("refuses a size of 0, a size with an unknown fact, and a size that is not a mass, a volume or a count, and does not throw", () => {
-    const size = (value: unknown): SupplyCatalog => withProduct({ ...rice, size: value as SupplyProduct["size"] });
+    const size = (value: unknown): SupplyCatalog => withProduct({ ...plainRice, size: value as SupplyProduct["size"] });
     expect(errors(size({ read: true, amount: 0, unit: "kg", definition: "A test." }))).toEqual(["supplies-amount"]);
     expect(errors(size({ read: true, amount: 1, unit: "kg", fact: "unknown" }))).toEqual(["supplies-fact"]);
     for (const unit of ["h", "kcal", "USD", "g/{each}", "L/{each}", "{each}/{can}"]) {
