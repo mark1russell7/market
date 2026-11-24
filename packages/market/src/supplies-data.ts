@@ -91,6 +91,13 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       locator: "FDC ID 174266",
     },
     {
+      id: "fdc.infant-formula-ready",
+      use: "fact",
+      text: "The item 172319 (infant formula, store brand, ready-to-feed) gives 63 kcal in 100 g.",
+      source: "fdc.sr-legacy",
+      locator: "FDC ID 172319",
+    },
+    {
       id: "fdc.pasta",
       use: "fact",
       text: "The item 168927 (pasta, dry, unenriched) gives 371 kcal in 100 g.",
@@ -203,6 +210,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
     { code: "food.pasta-dry", unit: "kg", title: "Dry pasta, to boil in water that the cook drains", kind: "food" },
     { code: "food.flour", unit: "kg", title: "Flour, to bake or cook with water and fuel", kind: "food" },
     { code: "food.no-cook", unit: "kcal", title: "Food energy to eat with no water and no fuel", kind: "food" },
+    { code: "food.infant-formula-ready", unit: "kcal", title: "Infant formula, ready to feed, with no water and no fuel", kind: "food" },
     { code: "energy.battery", unit: "Wh", title: "Energy in a battery", kind: "power" },
     {
       code: "fuel.propane",
@@ -296,6 +304,16 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       energy: { read: true, amount: 5980, unit: "kcal", scaled: { rate: { amount: 598, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.peanut-butter" }, of: { amount: 1, unit: "kg", size: true } } },
       shelf: { read: true, foodKeeper: 387 },
       average: { read: false, why: "The known series of average prices have no series of peanut butter yet." },
+    },
+    {
+      id: "food.infant-formula-ready-1kg",
+      title: "Infant formula, ready to feed, 1 kg",
+      kind: "food",
+      gives: [{ resource: "food.infant-formula-ready", amount: { read: true, amount: 630, unit: "kcal", scaled: { rate: { amount: 63, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.infant-formula-ready" }, of: { amount: 1, unit: "kg", size: true } } } }],
+      size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as 1 kg of ready-to-feed infant formula, in one or more containers." },
+      energy: { read: true, amount: 630, unit: "kcal", scaled: { rate: { amount: 63, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.infant-formula-ready" }, of: { amount: 1, unit: "kg", size: true } } },
+      shelf: { read: false, why: "The catalog has no cited shelf life of infant formula. The use-by date on the container applies." },
+      average: { read: false, why: "The known series of average prices have no series of infant formula yet." },
     },
     {
       id: "food.pasta-dry-1kg",

@@ -34,6 +34,8 @@ describe("the reference catalog of supplies", () => {
       "supplies-no-read water.jug-1gal",
       "supplies-no-read food.oats-1kg",
       "supplies-no-read food.peanut-butter-1kg",
+      "supplies-no-read food.infant-formula-ready-1kg",
+      "supplies-no-read food.infant-formula-ready-1kg",
       "supplies-no-read food.soup-can",
       "supplies-no-read light.flashlight",
       "supplies-no-read heat.sleeping-bag",
@@ -57,6 +59,11 @@ describe("the reference catalog of supplies", () => {
     expect(errors({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === radio.id ? { ...radio, basis: undefined, gives: plainRice.gives } : each)) })).toEqual([]);
     const unused = checkSupplies(products(undefined)).filter((finding) => finding.code === "supplies-unused");
     expect(unused.map((finding) => finding.id)).toEqual(["ready.kit-radio"]);
+  });
+
+  it("gives the food energy of ready-to-feed infant formula in its own resource, so only the infant draw uses it", () => {
+    expect(giftsOf(SUPPLY_CATALOG, "food.infant-formula-ready-1kg", 3)).toEqual([{ resource: "food.infant-formula-ready", read: true, amount: 1890, unit: "kcal" }]);
+    expect(supplyWants(SUPPLY_CATALOG).map((want) => want.product)).not.toContain("food.infant-formula-ready-1kg");
   });
 
   it("gives the food energy of peanut butter in kcal, because it goes to the food need with no converter", () => {
@@ -328,7 +335,7 @@ describe("the gate of the catalog", () => {
   it("refuses a resource with a kind that is not a supply kind", () => {
     const resources = SUPPLY_CATALOG.resources.map((resource) => (resource.code === "food.no-cook" ? { ...resource, kind: "snacks" as never } : resource));
     expect(errors({ ...SUPPLY_CATALOG, resources })).toEqual(["supplies-kind"]);
-    expect(SUPPLY_CATALOG.resources.map((resource) => resource.kind)).toEqual(["water", "food", "food", "food", "food", "food", "power", "heat", "heat"]);
+    expect(SUPPLY_CATALOG.resources.map((resource) => resource.kind)).toEqual(["water", "food", "food", "food", "food", "food", "food", "power", "heat", "heat"]);
   });
 
   it("refuses a unit from JSON that is not a known unit, in an amount and in a resource, and does not throw", () => {
@@ -451,7 +458,7 @@ const ricePrice = (period: string, value: number, unit = "USD/lb", at = "2026-11
 describe("the prices of the supplies from average prices", () => {
   it("gives the price of 1 kg of rice from the last month of its series, and a no read for the oats", () => {
     const prices = averageSupplyPrices(SUPPLY_CATALOG, [ricePrice("2026-09", 1.118), ricePrice("2026-10", 1.101)]);
-    expect(prices.map((each) => each.product)).toEqual(["food.rice-white-1kg", "food.oats-1kg", "food.beans-dry-1kg", "food.peanut-butter-1kg", "food.pasta-dry-1kg", "food.flour-white-1kg", "food.soup-can"]);
+    expect(prices.map((each) => each.product)).toEqual(["food.rice-white-1kg", "food.oats-1kg", "food.beans-dry-1kg", "food.peanut-butter-1kg", "food.infant-formula-ready-1kg", "food.pasta-dry-1kg", "food.flour-white-1kg", "food.soup-can"]);
     const [rice, oats, beans] = prices;
     expect(beans).toEqual({ product: "food.beans-dry-1kg", read: false, why: "The prices have no average price of the series APU0000714233 of bls-ap." });
     expect(rice).toMatchObject({ read: true, average: "bls-ap:APU0000701312:2026-10", period: "2026-10" });
