@@ -100,7 +100,7 @@ describe("the reference catalog of supplies", () => {
     expect(errors(withRadio({ ...radio, notes: [...radio.notes!, radio.notes![0]!] }))).toEqual(["supplies-twice"]);
     expect(errors(withRadio({ ...radio, notes: "ecfr.frs-power" as unknown as string[] }))).toEqual(["supplies-fact"]);
     const unused = checkSupplies(withRadio({ ...radio, notes: undefined })).filter((finding) => finding.code === "supplies-unused");
-    expect(unused.map((finding) => finding.id)).toEqual([...radio.notes!, "ecfr.47-95-305", "ecfr.47-95-b", "ecfr.47-95-e", "ecfr.47-1-1102"]);
+    expect(unused.map((finding) => finding.id)).toEqual(radio.notes);
   });
 
   it("gives the food energy of ready-to-feed infant formula in its own resource, so only the infant draw uses it", () => {
