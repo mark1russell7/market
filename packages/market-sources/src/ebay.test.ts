@@ -87,6 +87,15 @@ describe("parseEbayItem", () => {
     ]);
   });
 
+  // A property test found this answer (seed 59052390): `String` throws for a record whose field `toString` is not a function.
+  it("skips a buying option that is not a text, and does not throw", () => {
+    const result = parseEbayItem(item({ buyingOptions: [{ toString: null }, "CLASSIFIED_AD"] as never }), AT);
+    expect(observations(result)).toEqual([]);
+    expect(notes(result)).toEqual([
+      'The offer ebay:v1|110000000001|0 is skipped: its buying options {"toString":null}, CLASSIFIED_AD have no price to pay.',
+    ]);
+  });
+
   it("skips an ended listing, because the terms delete it", () => {
     const result = parseEbayItem(item({ itemEndDate: "2026-11-12T17:59:59.000Z" }), AT);
     expect(observations(result)).toEqual([]);
