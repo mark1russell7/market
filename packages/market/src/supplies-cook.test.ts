@@ -116,7 +116,7 @@ describe("the stoves of the reference catalog", () => {
   });
 
   it("keeps each fuel rate as the cited numbers", () => {
-    expect(product("heat.stove-canister-1-burner").stove).toEqual({ fuel: "fuel.isobutane-mix", rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate", bound: "least" } });
+    expect(product("heat.stove-canister-1-burner").stove).toEqual({ fuel: "fuel.isobutane-mix", rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate" } });
     expect(product("heat.stove-propane-2-burner").stove).toEqual({ fuel: "fuel.propane", rate: { amount: 16.4, unit: "oz", per: { amount: 1, unit: "h" }, fact: "coleman.propane-2-burner-rate", bound: "least" } });
     expect(product("heat.stove-butane-1-burner").stove).toEqual({ fuel: "fuel.butane", rate: { amount: 8.8, unit: "oz", per: { amount: 1.25, unit: "h" }, fact: "coleman.butane-1-burner-rate", bound: "least" } });
   });
@@ -215,6 +215,18 @@ describe("the gate of the cook facts, the stoves and the fuel energy", () => {
     expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 3.5, unit: "kWh", per: { amount: 1, unit: "kg" }, fact }, heating: "higher" }))).toEqual(["supplies-unit"]);
     expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 3.5, unit: "kWh", per: hour, fact: "no.such-fact" }, heating: "higher" }))).toEqual(["supplies-fact"]);
     expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 0, unit: "kWh", per: hour, fact }, heating: "higher" }))).toEqual(["supplies-amount"]);
+    // A stove rate has a known bound or no bound.
+    expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 227, unit: "g", per: hour, fact, bound: "least" } }))).toEqual([]);
+    expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 227, unit: "g", per: hour, fact, bound: "Least" as never } }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 227, unit: "g", per: hour, fact, bound: "most" as never } }))).toEqual(["supplies-amount"]);
+  });
+
+  it("refuses a bound on a rate that is not the fuel rate of a stove", () => {
+    const propane = resource("fuel.propane");
+    const bound = { bound: "least" } as never;
+    expect(errors(withResource({ ...propane, fuelEnergy: { ...propane.fuelEnergy!, ...(bound as object) } }))).toEqual(["supplies-amount"]);
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, water: { ...rice.cook!.water!, ...(bound as object) } } }))).toEqual(["supplies-amount"]);
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, bulk: { ...rice.cook!.bulk!, ...(bound as object) } } }))).toEqual(["supplies-amount"]);
   });
 
   it("gives a finding, and does not throw, for cook facts or a stove that are not a record, or a rate with no per", () => {

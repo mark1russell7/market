@@ -192,7 +192,10 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The dry beans are pinto beans. Their food energy comes from the raw pinto bean item of FoodData Central, the same bean as the USDA sheet of the cook time.
 - Since 0.8.4, the catalog has three stoves. They are a canister stove with 1 burner, a propane stove with 2 burners and a butane cartridge stove with 1 burner. Ready.gov names camp stoves as a source of heat to cook, so each stove cites it as its basis.
 - The fuel rate of each stove is a mass in a time from the page of its maker. The rates are 227 g in 60 min, 16.4 oz in 1 h and 8.8 oz in 1.25 h. A rate in a mass needs no heating value.
-- The pages of the makers give an upper limit of the time ("up to"). Thus a rate is a lower limit of the fuel that the stove burns at full heat. Each rate has `bound: "least"`, so a consumer can tell it from a rate with no bound. The butane page gives no burner setting for its time.
+- The two Coleman pages give an upper limit of the time ("up to"). Thus each of their rates is a lower limit of the fuel that the stove burns at full heat, and it has `bound: "least"`. A reader that takes a rate as the value takes only a rate with no bound. The butane page gives no burner setting for its time.
+- The MSR page gives a burn time of "approximately" 60 min. Thus its rate has no bound.
+- Each Coleman page also gives a rating in BTU. At the higher heating value of the catalog, the rating gives less fuel than the burn time. The propane stove gives 0.419 kg/h against 0.465 kg/h. The butane stove gives 0.163 kg/h against 0.200 kg/h. Thus the catalog takes the burn time, the side with more fuel. The rating is not an upper limit of the fuel.
+- Only the fuel rate of a stove has a bound (`RATE_BOUNDS`). The gate refuses an unknown bound, and a bound on a cook water, a bulk mass or a fuel energy.
 - The canister stove burns `fuel.isobutane-mix`. The mix of a canister differs between makers, and the read page gives no mix. Thus this fuel has no fuel energy, and a converter gives a no read for its energy.
 - The product ids of the stoves name no maker. The source records name the maker and the model.
 - A cup is 236.6 mL in `@mark1russell7/quantity` and in FoodData Central. A cup on a label can be 240 mL, a difference of 1.4%.

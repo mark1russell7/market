@@ -434,7 +434,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       kind: "heat",
       basis: "ready.food-camp-stove",
       gives: [],
-      stove: { fuel: "fuel.isobutane-mix", rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate", bound: "least" } },
+      stove: { fuel: "fuel.isobutane-mix", rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate" } },
       shelf: { read: false, why: "The source gives no shelf life." },
     },
     {

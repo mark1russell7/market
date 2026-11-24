@@ -84,11 +84,6 @@ export interface CitedRate {
   readonly per: { readonly amount: number; readonly unit: string };
   /** The `id` of the fact that gives the rate. */
   readonly fact: string;
-  /**
-   * The bound of the rate. `least`: the true rate is this value or more. For example, a page that gives a burn time of "up to 1 h"
-   * gives the least fuel rate. A rate with no field `bound` is the cited value with no bound.
-   */
-  readonly bound?: "least" | undefined;
 }
 
 /** A time from `low` to `high` with its fact, for example 15 to 18 min. A source with one value gives the same value two times. */
@@ -129,18 +124,33 @@ export interface CookFacts {
   readonly time?: CitedSpan | undefined;
 }
 
+/** The bounds of a cited stove rate. `least`: the true rate is this value or more. */
+export const RATE_BOUNDS = ["least"] as const;
+
+/** A bound of a cited stove rate. */
+export type RateBound = (typeof RATE_BOUNDS)[number];
+
+/**
+ * The fuel rate of a stove, with its bound. For example, a page that gives a burn time of "up to 1 h" gives the least
+ * fuel rate, so the rate has `bound: "least"`. A rate with no field `bound` is the cited value with no bound.
+ * A reader that takes the rate as the value must take only a rate with no bound.
+ */
+export interface StoveRate extends CitedRate {
+  readonly bound?: RateBound | undefined;
+}
+
 /**
  * The cited facts of a stove. `fuel` is the code of the resource that the stove burns, for example `fuel.butane`.
  *
  * - `rate`: the fuel that the stove burns in a time at its full heat. It is an energy in a time, for example 15000 BTU
  *   in 1 h. It can also be a mass in a time, for example 227 g in 90 min for one canister. A stove with no cited rate has no field `rate`.
- *   A burn time of "up to" a time gives the least rate, so the rate has `bound: "least"`.
+ *   A burn time of "up to" a time gives the least rate, so the rate has `bound: "least"`. A burn time of "approximately" a time has no bound.
  * - `heating`: the heating value of a rate in an energy. Ratings in BTU/h usually give the higher value. A rate in a mass
  *   has no heating value.
  */
 export interface StoveFacts {
   readonly fuel: string;
-  readonly rate?: CitedRate | undefined;
+  readonly rate?: StoveRate | undefined;
   readonly heating?: HeatingValue | undefined;
 }
 
@@ -391,6 +401,11 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
    * This function examines a cited rate: its fact, its two amounts and their units. The amount converts to one of the
    * units `to`, and the amount of the rate converts to one of the units `per`. It gives true for a good rate.
    */
+  // Only a stove rate has a bound. A bound on another rate is an error, because its reader gives a bare value.
+  const noBound = (record: "resource" | "product", id: string, what: string, value: unknown): void => {
+    if (isRecord(value) && value["bound"] !== undefined)
+      error("supplies-amount", record, id, `The ${what} of the ${record} ${id} has the bound ${shown(value["bound"])}. Only the fuel rate of a stove has a bound.`);
+  };
   const rate = (record: "resource" | "product", id: string, what: string, value: unknown, to: readonly string[], per: readonly string[]): boolean => {
     if (!isRecord(value)) {
       error("supplies-amount", record, id, `The ${what} of the ${record} ${id} is ${shown(value)}. It must be a rate with its fact.`);
@@ -452,6 +467,7 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
     if (!(SUPPLY_KINDS as readonly string[]).includes(resource.kind)) error("supplies-kind", "resource", resource.code, `The kind ${String(resource.kind)} of the resource ${resource.code} is not a supply kind.`);
     if (resource.fuelEnergy !== undefined) {
       rate("resource", resource.code, "fuel energy", resource.fuelEnergy, [FUEL_ENERGY_UNIT], [MASS_UNIT]);
+      noBound("resource", resource.code, "fuel energy", resource.fuelEnergy);
       const heating: unknown = isRecord(resource.fuelEnergy) ? resource.fuelEnergy.heating : undefined;
       if (isRecord(resource.fuelEnergy) && !(HEATING_VALUES as readonly unknown[]).includes(heating))
         error("supplies-amount", "resource", resource.code, `The fuel energy of the resource ${resource.code} has the heating value ${String(heating)}. It must be ${HEATING_VALUES.join(" or ")}.`);
@@ -673,6 +689,8 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
       const { water, bulk, time } = product.cook;
       const goodWater = water !== undefined && rate("product", product.id, "cook water", water, [VOLUME_UNIT], [VOLUME_UNIT, MASS_UNIT]);
       if (bulk !== undefined) rate("product", product.id, "bulk mass", bulk, [MASS_UNIT], [VOLUME_UNIT]);
+      noBound("product", product.id, "cook water", water);
+      noBound("product", product.id, "bulk mass", bulk);
       if (time !== undefined) span(product.id, "cook time", time, COOK_TIME_UNIT);
       // A water rate for each volume of dry food needs the mass of that volume.
       if (goodWater && convertible(water.per.unit, VOLUME_UNIT) && bulk === undefined)
@@ -684,6 +702,9 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
       if (burned === undefined) error("supplies-resource", "product", product.id, `The stove ${product.id} burns the resource ${String(fuel)}, and the catalog has no such resource.`);
       else if (burned.kind !== "heat") error("supplies-kind", "product", product.id, `The stove ${product.id} burns the resource ${burned.code}, and its kind is ${String(burned.kind)}. A fuel has the kind heat.`);
       const goodRate = fuelRate !== undefined && rate("product", product.id, "fuel rate of the stove", fuelRate, [FUEL_ENERGY_UNIT, MASS_UNIT], [STOVE_TIME_UNIT]);
+      const bound: unknown = isRecord(fuelRate) ? fuelRate["bound"] : undefined;
+      if (bound !== undefined && !(RATE_BOUNDS as readonly unknown[]).includes(bound))
+        error("supplies-amount", "product", product.id, `The fuel rate of the stove ${product.id} has the bound ${shown(bound)}. It must be ${RATE_BOUNDS.join(" or ")}, or the rate has no bound.`);
       if (heating !== undefined && !(HEATING_VALUES as readonly unknown[]).includes(heating))
         error("supplies-amount", "product", product.id, `The fuel rate of the stove ${product.id} has the heating value ${String(heating)}. It must be ${HEATING_VALUES.join(" or ")}.`);
       // A rate in an energy needs its heating value: the higher and the lower value of a fuel differ by 5% to 10%.
