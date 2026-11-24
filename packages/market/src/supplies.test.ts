@@ -37,6 +37,12 @@ describe("the reference catalog of supplies", () => {
       "supplies-no-read food.infant-formula-ready-1kg",
       "supplies-no-read food.infant-formula-ready-1kg",
       "supplies-no-read food.infant-formula-ready-1kg",
+      "supplies-no-read food.infant-formula-ready-2floz",
+      "supplies-no-read food.infant-formula-ready-2floz",
+      "supplies-no-read food.infant-formula-ready-8floz",
+      "supplies-no-read food.infant-formula-ready-8floz",
+      "supplies-no-read food.infant-formula-ready-32floz",
+      "supplies-no-read food.infant-formula-ready-32floz",
       "supplies-no-read food.soup-can",
       "supplies-no-read light.flashlight",
       "supplies-no-read light.flashlight",
@@ -71,6 +77,16 @@ describe("the reference catalog of supplies", () => {
   it("gives the food energy of ready-to-feed infant formula in its own resource, so only the infant draw uses it", () => {
     expect(giftsOf(SUPPLY_CATALOG, "food.infant-formula-ready-1kg", 3)).toEqual([{ resource: "food.infant-formula-ready", read: true, amount: 1890, unit: "kcal" }]);
     expect(supplyWants(SUPPLY_CATALOG).map((want) => want.product)).not.toContain("food.infant-formula-ready-1kg");
+  });
+
+  it("gives each bottle of formula its size from its cited volume, and the bottle as its container", () => {
+    // The FDC item 172319 gives 30.4 g in 1 fl oz and 63 kcal in 100 g. The branded items give bottles of 2, 8 and 32 fl oz.
+    for (const floz of [2, 8, 32]) {
+      const bottle = SUPPLY_CATALOG.products.find((each) => each.id === `food.infant-formula-ready-${String(floz)}floz`);
+      expect(bottle?.size).toMatchObject({ read: true, amount: expect.closeTo(30.4 * floz, 9), unit: "g" });
+      expect(bottle?.opened?.container).toMatchObject({ read: true, amount: expect.closeTo(30.4 * floz, 9), unit: "g", size: true });
+      expect(giftsOf(SUPPLY_CATALOG, bottle?.id ?? "", 1)).toEqual([{ resource: "food.infant-formula-ready", read: true, amount: expect.closeTo(0.63 * 30.4 * floz, 9), unit: "kcal" }]);
+    }
   });
 
   it("gives the food energy of peanut butter in kcal, because it goes to the food need with no converter", () => {
@@ -488,7 +504,7 @@ const ricePrice = (period: string, value: number, unit = "USD/lb", at = "2026-11
 describe("the prices of the supplies from average prices", () => {
   it("gives the price of 1 kg of rice from the last month of its series, and a no read for the oats", () => {
     const prices = averageSupplyPrices(SUPPLY_CATALOG, [ricePrice("2026-09", 1.118), ricePrice("2026-10", 1.101)]);
-    expect(prices.map((each) => each.product)).toEqual(["food.rice-white-1kg", "food.oats-1kg", "food.beans-dry-1kg", "food.peanut-butter-1kg", "food.infant-formula-ready-1kg", "food.pasta-dry-1kg", "food.flour-white-1kg", "food.soup-can"]);
+    expect(prices.map((each) => each.product)).toEqual(["food.rice-white-1kg", "food.oats-1kg", "food.beans-dry-1kg", "food.peanut-butter-1kg", "food.infant-formula-ready-1kg", "food.infant-formula-ready-2floz", "food.infant-formula-ready-8floz", "food.infant-formula-ready-32floz", "food.pasta-dry-1kg", "food.flour-white-1kg", "food.soup-can"]);
     const [rice, oats, beans] = prices;
     expect(beans).toEqual({ product: "food.beans-dry-1kg", read: false, why: "The prices have no average price of the series APU0000714233 of bls-ap." });
     expect(rice).toMatchObject({ read: true, average: "bls-ap:APU0000701312:2026-10", period: "2026-10" });
