@@ -156,6 +156,7 @@ planBuys: build/plan.d.ts#planBuys
 ## ./supplies (build/supplies-entry.d.ts): names
 
 type AverageJoin: build/supplies-entry.d.ts#AverageJoin
+type BoilTemperature: build/supplies-entry.d.ts#BoilTemperature
 type BuyListEnergy: build/supplies-entry.d.ts#BuyListEnergy
 type BuyListEnergyLine: build/supplies-entry.d.ts#BuyListEnergyLine
 type CitedAmount: build/supplies-entry.d.ts#CitedAmount
@@ -963,6 +964,12 @@ interface AverageJoin {
   readonly per: CitedAmount;
 }
 
+### build/supplies-entry.d.ts#BoilTemperature
+interface BoilTemperature {
+  readonly celsius: number;
+  readonly fact: string;
+}
+
 ### build/supplies-entry.d.ts#BuyListEnergy
 interface BuyListEnergy {
   readonly lines: readonly BuyListEnergyLine[];
@@ -1210,10 +1217,8 @@ interface StoveRate extends CitedRate {
 
 ### build/supplies-entry.d.ts#StoveYield
 interface StoveYield extends StoveRate {
-  readonly start?: {
-    readonly celsius: number;
-    readonly fact: string;
-  } | undefined;
+  readonly start?: BoilTemperature | undefined;
+  readonly end?: BoilTemperature | undefined;
 }
 
 ### build/supplies-entry.d.ts#SupplyCatalog
