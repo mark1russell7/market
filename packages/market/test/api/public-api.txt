@@ -166,6 +166,7 @@ type CookFacts: build/supplies-entry.d.ts#CookFacts
 type DeviceFacts: build/supplies-entry.d.ts#DeviceFacts
 FOOD_PLANS: build/supplies-entry.d.ts#FOOD_PLANS
 FOOD_PLAN_GROUPS: build/supplies-entry.d.ts#FOOD_PLAN_GROUPS
+type FactorRange: build/supplies-entry.d.ts#FactorRange
 type FoodPlan: build/supplies-entry.d.ts#FoodPlan
 type FoodPlanCheck: build/supplies-entry.d.ts#FoodPlanCheck
 type FoodPlanGroup: build/supplies-entry.d.ts#FoodPlanGroup
@@ -1067,6 +1068,12 @@ export declare const FOOD_PLANS: readonly FoodPlan[];
 ### build/supplies-entry.d.ts#FOOD_PLAN_GROUPS
 export declare const FOOD_PLAN_GROUPS: readonly ["child-1", "child-2-3", "child-4-5", "child-6-8", "child-9-11", "female-12-13", "female-14-19", "female-20-50", "female-51-70", "female-71-up", "male-12-13", "male-14-19", "male-20-50", "male-51-70", "male-71-up"];
 
+### build/supplies-entry.d.ts#FactorRange
+interface FactorRange {
+  readonly low: number;
+  readonly high: number;
+}
+
 ### build/supplies-entry.d.ts#FoodPlan
 interface FoodPlan {
   readonly id: string;
@@ -1198,6 +1205,7 @@ type ShelfLife = CitedAmount | {
 interface StoveFactor {
   readonly factor: number;
   readonly bound?: RateBound | undefined;
+  readonly typical?: FactorRange | undefined;
   readonly fact: string;
 }
 
