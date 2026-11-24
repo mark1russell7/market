@@ -199,6 +199,21 @@ export interface StoveFacts {
 }
 
 /**
+ * The cited facts of a device that runs on cells, for example a radio or a flashlight.
+ *
+ * - `need`: the code of the need that the device gives, in hours, for example `alert.watch` or `light.see`.
+ * - `battery`: the code of the resource of its cells, in a count, for example `battery.aa`.
+ * - `run`: the run time on a count of cells, in the mode of the need, for example 48 h on 3 `{each}`. A device with no cited run time has a no read.
+ *
+ * The rate of a device is a fact of the device. The daily need is not in the catalog.
+ */
+export interface DeviceFacts {
+  readonly need: string;
+  readonly battery: string;
+  readonly run: CitedRate | NoRead;
+}
+
+/**
  * The factor of more fuel than a calm test, from a cited source. For example, a canister stove in cold and wind needs as much as 4 times the fuel.
  * `factor` is a finite number of 1 or more. `bound` is optional, as on a stove rate.
  */
@@ -275,6 +290,8 @@ export interface SupplyProduct {
   readonly cook?: CookFacts | undefined;
   /** The cited facts of a stove: its fuel and its fuel rate. */
   readonly stove?: StoveFacts | undefined;
+  /** The cited facts of a device that runs on cells: its need, its cells and its run time. */
+  readonly device?: DeviceFacts | undefined;
   /** The cited facts of an opened container: the amount of one container and its use with no cold storage. */
   readonly opened?: OpenedFacts | undefined;
 }
@@ -379,6 +396,8 @@ const VOLUME_UNIT = "L";
 const COOK_TIME_UNIT = "min";
 /** The unit of the time of the fuel rate of a stove. */
 const STOVE_TIME_UNIT = "h";
+/** The unit of the run time of a device. */
+const DEVICE_TIME_UNIT = "h";
 /** The unit of the cook water of a dry food. */
 const COOK_WATER_UNIT = "L/kg";
 /** The unit of the energy of a fuel for each mass. */
@@ -429,6 +448,8 @@ function countUnit(unit: string): boolean {
  * - An error for a stove that burns a resource that is not in the catalog, or a resource that is not of the kind heat.
  * - An error for a fuel rate of a stove that is not an energy or a mass in a time. A rate in an energy with no
  *   heating value is also an error.
+ * - An error for a device with no need code. An error for cells that are not a resource of the catalog of the kind
+ *   power in a bare count. An error for a run time of a device that is not a time on a count of its cells.
  * - A warning for each value with no read, and for a no read with a blank reason.
  * - A warning for each fact and each source that no product uses.
  *
@@ -658,10 +679,10 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
   const fieldsOf = (raw: SupplyProduct): { readonly product: CheckedProduct; readonly dropped: boolean } => {
     const id = raw.id;
     const fields: Record<string, unknown> = { ...raw };
-    for (const field of ["size", "energy", "perPerson", "average", "cook", "stove", "opened"] as const) {
+    for (const field of ["size", "energy", "perPerson", "average", "cook", "stove", "opened", "device"] as const) {
       const value: unknown = raw[field];
       if (value === undefined || isRecord(value)) continue;
-      const must = field === "cook" || field === "stove" || field === "opened" ? "a record of facts" : "an amount with its reason or a no read";
+      const must = field === "cook" || field === "stove" || field === "opened" || field === "device" ? "a record of facts" : "an amount with its reason or a no read";
       error("supplies-amount", "product", id, `The field ${field} of the product ${id} is ${shown(value)}. It must be ${must}, or the product has no field ${field}.`);
       fields[field] = undefined;
     }
@@ -807,6 +828,23 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
       // A rate in an energy needs its heating value: the higher and the lower value of a fuel differ by 5% to 10%.
       if (goodRate && convertible(fuelRate.unit, FUEL_ENERGY_UNIT) && heating === undefined)
         error("supplies-amount", "product", product.id, `The fuel rate of the stove ${product.id} is an energy, and it has no heating value. Give ${HEATING_VALUES.join(" or ")}.`);
+    }
+    if (product.device !== undefined) {
+      const { need, battery, run } = product.device;
+      if (typeof need !== "string" || need.trim() === "") error("supplies-amount", "product", product.id, `The device ${product.id} gives the need ${shown(need)}. It must be the code of a need, for example alert.watch.`);
+      const cell = typeof battery === "string" ? resources.get(battery) : undefined;
+      if (cell === undefined) error("supplies-resource", "product", product.id, `The device ${product.id} runs on the resource ${String(battery)}, and the catalog has no such resource.`);
+      else if (cell.kind !== "power") error("supplies-kind", "product", product.id, `The device ${product.id} runs on the resource ${cell.code}, and its kind is ${String(cell.kind)}. A cell has the kind power.`);
+      else if (!countUnit(cell.unit)) error("supplies-unit", "product", product.id, `The device ${product.id} runs on the resource ${cell.code} in ${cell.unit}. The cells of a device are a bare count, for example {each}.`);
+      const raw: unknown = run;
+      if (isRecord(raw) && raw["read"] === false) {
+        const why = raw["why"];
+        warning("supplies-no-read", "product", product.id, `The run time of the device ${product.id} is no read: ${String(why)}`);
+        if (typeof why !== "string" || why.trim() === "") warning("supplies-no-reason", "product", product.id, `The no read of the run time of the device ${product.id} has no reason.`);
+      } else {
+        noBound("product", product.id, "run time of the device", raw);
+        rate("product", product.id, "run time of the device", raw, [DEVICE_TIME_UNIT], [cell !== undefined && countUnit(cell.unit) ? cell.unit : "{each}"]);
+      }
     }
     if (product.opened !== undefined) {
       const { container, noCold } = product.opened;

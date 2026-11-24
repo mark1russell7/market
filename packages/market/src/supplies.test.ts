@@ -47,11 +47,14 @@ describe("the reference catalog of supplies", () => {
       "supplies-no-read food.infant-formula-powder-1kg",
       "supplies-no-read food.soup-can",
       "supplies-no-read light.flashlight",
+      "supplies-no-read light.flashlight",
+      "supplies-no-read power.aa-alkaline",
       "supplies-no-read heat.sleeping-bag",
       "supplies-no-read heat.stove-canister-1-burner",
       "supplies-no-read heat.stove-propane-2-burner",
       "supplies-no-read heat.stove-butane-1-burner",
       "supplies-no-read first-aid.kit",
+      "supplies-no-read communication.noaa-radio",
       "supplies-no-read communication.noaa-radio",
       "supplies-no-read power.anker-737",
       "supplies-no-read power.anker-737",
@@ -372,7 +375,7 @@ describe("the gate of the catalog", () => {
   it("refuses a resource with a kind that is not a supply kind", () => {
     const resources = SUPPLY_CATALOG.resources.map((resource) => (resource.code === "food.no-cook" ? { ...resource, kind: "snacks" as never } : resource));
     expect(errors({ ...SUPPLY_CATALOG, resources })).toEqual(["supplies-kind"]);
-    expect(SUPPLY_CATALOG.resources.map((resource) => resource.kind)).toEqual(["water", "food", "food", "food", "food", "food", "food", "food", "power", "heat", "heat", "heat"]);
+    expect(SUPPLY_CATALOG.resources.map((resource) => resource.kind)).toEqual(["water", "food", "food", "food", "food", "food", "food", "food", "power", "power", "heat", "heat", "heat"]);
   });
 
   it("refuses a unit from JSON that is not a known unit, in an amount and in a resource, and does not throw", () => {
