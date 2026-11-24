@@ -139,7 +139,7 @@ describe("the stoves of the reference catalog", () => {
       fuel: "fuel.isobutane-mix",
       rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate" },
       boil: { amount: 16, unit: "L", per: { amount: 227, unit: "g" }, fact: "msr.pocketrocket-2-rate", start: { celsius: 21, fact: "msr.test-conditions" }, end: { celsius: 100, fact: "msr.test-conditions" }, bound: "most" },
-      adverse: { factor: 4, fact: "msr.adverse-factor", bound: "most" },
+      adverse: { factor: 4, typical: { low: 3, high: 4 }, fact: "msr.adverse-factor" },
     });
     expect(product("heat.stove-propane-2-burner").stove).toEqual({ fuel: "fuel.propane", rate: { amount: 16.4, unit: "oz", per: { amount: 1, unit: "h" }, fact: "coleman.propane-2-burner-rate", bound: "least" } });
     expect(product("heat.stove-butane-1-burner").stove).toEqual({ fuel: "fuel.butane", rate: { amount: 8.8, unit: "oz", per: { amount: 1.25, unit: "h" }, fact: "coleman.butane-1-burner-rate", bound: "least" } });
@@ -302,7 +302,7 @@ describe("the gate of the cook facts, the stoves and the fuel energy", () => {
     expect(errors(stove({ ...boil, end: { celsius: 100, fact: "no.such-fact" } }))).toEqual(["supplies-fact"]);
   });
 
-  it("examines an adverse factor: a finite number of 1 or more, a known fact, and a known bound or no bound", () => {
+  it("examines an adverse factor: a finite number of 1 or more, a known fact, a known bound or no bound, and a typical range that holds the factor", () => {
     const stove = (adverse: unknown): SupplyCatalog => withProduct({ ...radio, stove: { fuel: "fuel.butane", adverse: adverse as never } });
     const fact = "ready.kit-radio";
     expect(errors(stove({ factor: 4, fact, bound: "most" }))).toEqual([]);
@@ -315,11 +315,24 @@ describe("the gate of the cook facts, the stoves and the fuel energy", () => {
     expect(errors(stove({ factor: "4", fact }))).toEqual(["supplies-amount"]);
     expect(errors(stove({ factor: 4, fact: "no.such-fact" }))).toEqual(["supplies-fact"]);
     expect(errors(stove(3)).sort()).toEqual(["supplies-amount", "supplies-fact"]);
+    expect(errors(stove({ factor: 4, typical: { low: 3, high: 4 }, fact }))).toEqual([]);
+    expect(errors(stove({ factor: 3.5, typical: { low: 3, high: 4 }, fact }))).toEqual([]);
+    expect(errors(stove({ factor: 3, typical: { low: 3, high: 3 }, fact }))).toEqual([]);
+    expect(errors(stove({ factor: 4, typical: { low: 3, high: 4 }, fact, bound: "most" }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ factor: 5, typical: { low: 3, high: 4 }, fact }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ factor: 2, typical: { low: 3, high: 4 }, fact }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ factor: 4, typical: { low: 4, high: 3 }, fact }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ factor: 1, typical: { low: 0.5, high: 2 }, fact }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ factor: 4, typical: { low: 3, high: Number.POSITIVE_INFINITY }, fact }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ factor: 4, typical: { low: 3 }, fact }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ factor: 4, typical: [3, 4], fact }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ factor: Number.NaN, typical: { low: 3, high: 4 }, fact }))).toEqual(["supplies-amount"]);
   });
 
-  it("keeps the adverse factor of the canister stove as the most factor of the maker article", () => {
+  it("keeps the adverse factor of the canister stove as the high end of the typical range of the maker article, with no bound", () => {
     const adverse = product("heat.stove-canister-1-burner").stove?.adverse;
-    expect(adverse).toEqual({ factor: 4, fact: "msr.adverse-factor", bound: "most" });
+    expect(adverse).toEqual({ factor: 4, typical: { low: 3, high: 4 }, fact: "msr.adverse-factor" });
+    expect(adverse?.factor).toBe(adverse?.typical?.high);
     expect(SUPPLY_CATALOG.facts.find((each) => each.id === adverse?.fact)?.source).toBe("msr.fuel-to-carry");
   });
 

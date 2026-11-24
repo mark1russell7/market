@@ -222,8 +222,8 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - Only the fuel rate, the boil yield and the adverse factor of a stove have a bound (`RATE_BOUNDS`: `least` or `most`). The gate refuses an unknown bound, and a bound on a cook water, a bulk mass or a fuel energy.
 - Since 0.8.6, the canister stove has a boil yield: 16 L of water for each 227 g of fuel, from its maker page. The maker test is in calm air from a warm start, so the yield has `bound: "most"`. A reader takes no value from it until a cited field figure exists.
 - Since 0.8.10, the canister stove has an adverse factor (`stove.adverse`). The maker tells that cold, snow melt and wind can need 3 to 4 times the fuel of its boil chart.
-- The catalog keeps the high end, 4, with `bound: "most"`, as it keeps "up to" on a burn time. The low end gives nothing on the safe side.
-- The bound is the word of the maker. Wind stronger than its example of 5 mph can need more fuel.
+- Since 0.10.0, the factor has the typical range of the article (`typical: { low: 3, high: 4 }`) and no bound. The range makes no claim of a ceiling: wind stronger than the example of 5 mph can need more fuel.
+- The factor is the high end, 4, the side with more fuel. The gate refuses a factor outside its typical range, and a factor with a bound and a typical range.
 - Since 0.8.12, a boil yield can cite its end (`stove.boil.end`): the boil point at the site of the test. A test at a high place boils below 100 °C.
 - The canister yield ends at 100 °C. The cited test conditions are at sea level, and the test ends at 212 °F (100 °C).
 - The start of 21 °C is the general test convention of the maker blog for most makers. The spec page of this stove gives no start of its own. A field figure with `bound: "least"` brings its own start.

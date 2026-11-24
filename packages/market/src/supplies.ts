@@ -186,7 +186,7 @@ export interface OpenedFacts {
  * - `boil`: the water that a mass of fuel boils, from a cited start temperature. A boil test of a maker gives the most
  *   yield, so the yield has `bound: "most"`. A stove with no cited yield has no field `boil`.
  * - `adverse`: the factor of more boil fuel than the calm boil yield in cold, snow melt and wind, from a cited source.
- *   A factor of "as much as" a value is the most factor, so it has `bound: "most"`.
+ *   A source that gives a typical range, for example "3 to 4 times", gives `typical`. A typical range is not a bound.
  * - `heating`: the heating value of a rate in an energy. Ratings in BTU/h usually give the higher value. A rate in a mass
  *   has no heating value.
  */
@@ -214,12 +214,24 @@ export interface DeviceFacts {
 }
 
 /**
- * The factor of more fuel than a calm test, from a cited source. For example, a canister stove in cold and wind needs as much as 4 times the fuel.
- * `factor` is a finite number of 1 or more. `bound` is optional, as on a stove rate.
+ * A typical range of a factor from a cited source, for example "3 to 4 times". `low` is 1 or more, and `high` is `low` or more.
+ * The range makes no claim of a ceiling or a floor: a value outside the range is possible.
+ */
+export interface FactorRange {
+  readonly low: number;
+  readonly high: number;
+}
+
+/**
+ * The factor of more fuel than a calm test, from a cited source. For example, cold, snow melt and wind can need 3 to 4 times the fuel of a canister stove.
+ * - `factor` is a finite number of 1 or more: the value that a reader takes.
+ * - `bound` is optional, as on a stove rate.
+ * - `typical` is optional: the typical range of the source. `factor` is in the range. A factor with `typical` has no bound.
  */
 export interface StoveFactor {
   readonly factor: number;
   readonly bound?: RateBound | undefined;
+  readonly typical?: FactorRange | undefined;
   readonly fact: string;
 }
 
@@ -897,6 +909,17 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
         const factorBound = isRecord(factor) ? factor["bound"] : undefined;
         if (factorBound !== undefined && !(RATE_BOUNDS as readonly unknown[]).includes(factorBound))
           error("supplies-amount", "product", product.id, `The adverse factor of the stove ${product.id} has the bound ${shown(factorBound)}. It must be ${RATE_BOUNDS.join(" or ")}, or the factor has no bound.`);
+        const typical = isRecord(factor) ? factor["typical"] : undefined;
+        if (typical !== undefined) {
+          const low = isRecord(typical) ? typical["low"] : undefined;
+          const high = isRecord(typical) ? typical["high"] : undefined;
+          if (factorBound !== undefined)
+            error("supplies-amount", "product", product.id, `The adverse factor of the stove ${product.id} has a bound and a typical range. A typical range is not a bound, so the factor must have only one of the two.`);
+          if (typeof low !== "number" || typeof high !== "number" || !Number.isFinite(low) || !Number.isFinite(high) || !(low >= 1) || !(high >= low))
+            error("supplies-amount", "product", product.id, `The typical range of the adverse factor of the stove ${product.id} is ${shown(typical)}. Its low and high must be finite numbers, with 1 <= low <= high.`);
+          else if (typeof value === "number" && Number.isFinite(value) && value >= 1 && !(value >= low && value <= high))
+            error("supplies-amount", "product", product.id, `The adverse factor of the stove ${product.id} is ${shown(value)}, outside its typical range ${low} to ${high}.`);
+        }
         cite(product.id, "The adverse factor of the stove", isRecord(factor) ? factor["fact"] : undefined);
       }
       // A rate in an energy needs its heating value: the higher and the lower value of a fuel differ by 5% to 10%.
