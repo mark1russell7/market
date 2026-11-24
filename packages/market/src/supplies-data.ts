@@ -3,8 +3,12 @@ import { SUPPLY_FORMAT, type SupplyCatalog } from "./supplies.ts";
 // The reference catalog of supplies. Each value has a cited fact, the definition of the product, or a no read.
 // Each fact is in own words, not a quote. The shelf life of a food is a product of the FoodKeeper data of USDA FSIS:
 // the entry `/foodkeeper` of `@mark1russell7/stock` gives its due rule, so this catalog does not copy its times.
+// Each cited rate of a cook fact or of a fuel energy keeps its two values as the source gives them. A field with no
+// cited value is not in the catalog.
 
 const CHECKED = "2026-11-22";
+/** The date of the check of the sources of the cook facts and the fuel energy. */
+const COOK_CHECKED = "2026-11-24";
 
 /** The reference catalog of supplies. A household adds its own products to a copy of it. */
 export const SUPPLY_CATALOG: SupplyCatalog = {
@@ -13,6 +17,42 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
     { id: "ready.water", title: "Water", url: "https://www.ready.gov/water", license: "us-public-domain", checked: CHECKED, by: "FEMA (Ready.gov)" },
     { id: "ready.kit", title: "Build A Kit", url: "https://www.ready.gov/kit", license: "us-public-domain", checked: CHECKED, by: "FEMA (Ready.gov)" },
     { id: "fdc.sr-legacy", title: "FoodData Central, SR Legacy", url: "https://fdc.nal.usda.gov/", license: "cc0", checked: CHECKED, by: "USDA Agricultural Research Service" },
+    { id: "usarice.cook", title: "How to Cook Rice", url: "https://usarice.com/thinkrice/how-to/how-to-cook-rice", license: "all-rights-reserved", checked: COOK_CHECKED, by: "USA Rice" },
+    {
+      id: "quaker.oats",
+      title: "Quaker Old Fashioned Oats",
+      url: "https://www.quakeroats.com/products/hot-cereals/old-fashioned-oats",
+      license: "all-rights-reserved",
+      checked: COOK_CHECKED,
+      by: "The Quaker Oats Company",
+    },
+    {
+      id: "usda.pinto-beans",
+      title: "Pinto Beans, Dry (MyPlate Facts, January 2020)",
+      url: "https://fns-prod.azureedge.us/sites/default/files/resource-files/PintoBeansDry.pdf",
+      license: "us-public-domain",
+      checked: COOK_CHECKED,
+      by: "USDA Food and Nutrition Service (USDA Foods)",
+    },
+    { id: "ronzoni.spaghetti", title: "Twirlin' Spaghetti", url: "https://www.ronzoni.com/products/spaghetti", license: "all-rights-reserved", checked: COOK_CHECKED, by: "Ronzoni" },
+    {
+      id: "nist.propane",
+      title: "Propane, NIST Chemistry WebBook, SRD 69",
+      url: "https://webbook.nist.gov/cgi/cbook.cgi?ID=C74986&Mask=1",
+      license: "all-rights-reserved",
+      checked: COOK_CHECKED,
+      by: "National Institute of Standards and Technology",
+      note: "The page shows a copyright of the U.S. Secretary of Commerce. The catalog keeps only the cited values.",
+    },
+    {
+      id: "nist.butane",
+      title: "Butane, NIST Chemistry WebBook, SRD 69",
+      url: "https://webbook.nist.gov/cgi/cbook.cgi?ID=C106978&Mask=1",
+      license: "all-rights-reserved",
+      checked: COOK_CHECKED,
+      by: "National Institute of Standards and Technology",
+      note: "The page shows a copyright of the U.S. Secretary of Commerce. The catalog keeps only the cited values.",
+    },
   ],
   facts: [
     {
@@ -72,6 +112,62 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       locator: "FDC ID 171148, portion 1 can (530 g)",
     },
     {
+      id: "fdc.rice-white-cup",
+      use: "fact",
+      text: "The item 168877 (white long-grain rice, raw, enriched) has a portion of 1 cup of 185 g.",
+      source: "fdc.sr-legacy",
+      locator: "FDC ID 168877, portion 1 cup (185 g)",
+    },
+    {
+      id: "fdc.oats-cup",
+      use: "fact",
+      text: "The item 173904 (oats, regular and quick, not fortified, dry) has a portion of 1 cup of 81 g.",
+      source: "fdc.sr-legacy",
+      locator: "FDC ID 173904, portion 1 cup (81 g)",
+    },
+    {
+      id: "usarice.long-grain-white",
+      use: "fact",
+      text: "The chart of the page gives 2 parts of liquid for each 1 part of white long-grain rice, in volume, and a cook time of 15 to 18 minutes.",
+      source: "usarice.cook",
+      locator: "Rice cooking chart, white, long grain",
+    },
+    {
+      id: "quaker.oats-stovetop",
+      use: "fact",
+      text: "The stovetop directions of the page give 1 cup of water for 1/2 cup of oats, and a cook time of 5 minutes.",
+      source: "quaker.oats",
+      locator: "Cooking instructions, stovetop, 1 serving",
+    },
+    {
+      id: "usda.pinto-beans-cook",
+      use: "fact",
+      text: "The sheet tells to soak the beans first. Then the beans cook in new water on low heat for 1 to 1.5 hours. It gives no amount of water.",
+      source: "usda.pinto-beans",
+      locator: "Uses and Tips",
+    },
+    {
+      id: "ronzoni.spaghetti-cook",
+      use: "fact",
+      text: "The cooking directions of the page give 9 minutes for al dente and 11 minutes for tender. They give the water for each box, and no mass of a box.",
+      source: "ronzoni.spaghetti",
+      locator: "Cooking Directions",
+    },
+    {
+      id: "nist.propane-combustion",
+      use: "fact",
+      text: "The page gives -2219.2 kJ/mol for the standard enthalpy of combustion of the gas (Pittam and Pilcher, 1972), and a molecular weight of 44.0956. Thus 1 mol is 44.0956 g.",
+      source: "nist.propane",
+      locator: "Gas phase thermochemistry data, enthalpy of combustion of gas at standard conditions",
+    },
+    {
+      id: "nist.butane-combustion",
+      use: "fact",
+      text: "The page gives -2877.5 kJ/mol for the standard enthalpy of combustion of the gas (Pittam and Pilcher, 1972), and a molecular weight of 58.1222. Thus 1 mol is 58.1222 g.",
+      source: "nist.butane",
+      locator: "Gas phase thermochemistry data, enthalpy of combustion of gas at standard conditions",
+    },
+    {
       id: "ready.kit-flashlight",
       use: "fact",
       text: "The basic kit of the page has a flashlight and extra batteries.",
@@ -108,6 +204,21 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
     { code: "food.flour", unit: "kg", title: "Flour, to bake or cook with water and fuel", kind: "food" },
     { code: "food.no-cook", unit: "kcal", title: "Food energy to eat with no water and no fuel", kind: "food" },
     { code: "energy.battery", unit: "Wh", title: "Energy in a battery", kind: "power" },
+    {
+      code: "fuel.propane",
+      unit: "kg",
+      title: "Propane, a fuel to cook with",
+      kind: "heat",
+      // The standard enthalpy of combustion gives liquid water, so it is the higher heating value.
+      fuelEnergy: { amount: 2219.2, unit: "kJ", per: { amount: 44.0956, unit: "g" }, fact: "nist.propane-combustion", heating: "higher" },
+    },
+    {
+      code: "fuel.butane",
+      unit: "kg",
+      title: "Butane, a fuel to cook with",
+      kind: "heat",
+      fuelEnergy: { amount: 2877.5, unit: "kJ", per: { amount: 58.1222, unit: "g" }, fact: "nist.butane-combustion", heating: "higher" },
+    },
   ],
   products: [
     {
@@ -133,6 +244,11 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of dry rice." },
       energy: { read: true, amount: 3650, unit: "kcal", scaled: { rate: { amount: 365, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.rice-white" }, of: { amount: 1, unit: "kg", size: true } } },
       shelf: { read: true, foodKeeper: 338 },
+      cook: {
+        water: { amount: 2, unit: "cup", per: { amount: 1, unit: "cup" }, fact: "usarice.long-grain-white" },
+        bulk: { amount: 185, unit: "g", per: { amount: 1, unit: "cup" }, fact: "fdc.rice-white-cup" },
+        time: { low: 15, high: 18, unit: "min", fact: "usarice.long-grain-white" },
+      },
       average: {
         read: true,
         source: "bls-ap",
@@ -148,6 +264,11 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of dry oats." },
       energy: { read: true, amount: 3790, unit: "kcal", scaled: { rate: { amount: 379, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.oats" }, of: { amount: 1, unit: "kg", size: true } } },
       shelf: { read: true, foodKeeper: 375 },
+      cook: {
+        water: { amount: 1, unit: "cup", per: { amount: 0.5, unit: "cup" }, fact: "quaker.oats-stovetop" },
+        bulk: { amount: 81, unit: "g", per: { amount: 1, unit: "cup" }, fact: "fdc.oats-cup" },
+        time: { low: 5, high: 5, unit: "min", fact: "quaker.oats-stovetop" },
+      },
       average: { read: false, why: "The known series of average prices have no series of oats yet." },
     },
     {
@@ -158,6 +279,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of dry beans." },
       energy: { read: true, amount: 3410, unit: "kcal", scaled: { rate: { amount: 341, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.beans-black" }, of: { amount: 1, unit: "kg", size: true } } },
       shelf: { read: true, foodKeeper: 333 },
+      cook: { time: { low: 1, high: 1.5, unit: "h", fact: "usda.pinto-beans-cook" } },
       average: {
         read: true,
         source: "bls-ap",
@@ -183,6 +305,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of dry pasta." },
       energy: { read: true, amount: 3710, unit: "kcal", scaled: { rate: { amount: 371, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.pasta" }, of: { amount: 1, unit: "kg", size: true } } },
       shelf: { read: true, foodKeeper: 335 },
+      cook: { time: { low: 9, high: 11, unit: "min", fact: "ronzoni.spaghetti-cook" } },
       average: {
         read: true,
         source: "bls-ap",

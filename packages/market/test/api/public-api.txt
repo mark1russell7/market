@@ -159,6 +159,9 @@ type AverageJoin: build/supplies-entry.d.ts#AverageJoin
 type BuyListEnergy: build/supplies-entry.d.ts#BuyListEnergy
 type BuyListEnergyLine: build/supplies-entry.d.ts#BuyListEnergyLine
 type CitedAmount: build/supplies-entry.d.ts#CitedAmount
+type CitedRate: build/supplies-entry.d.ts#CitedRate
+type CitedSpan: build/supplies-entry.d.ts#CitedSpan
+type CookFacts: build/supplies-entry.d.ts#CookFacts
 FOOD_PLANS: build/supplies-entry.d.ts#FOOD_PLANS
 FOOD_PLAN_GROUPS: build/supplies-entry.d.ts#FOOD_PLAN_GROUPS
 type FoodPlan: build/supplies-entry.d.ts#FoodPlan
@@ -166,7 +169,10 @@ type FoodPlanCheck: build/supplies-entry.d.ts#FoodPlanCheck
 type FoodPlanGroup: build/supplies-entry.d.ts#FoodPlanGroup
 type FoodPlanMember: build/supplies-entry.d.ts#FoodPlanMember
 type FoodPlanSize: build/supplies-entry.d.ts#FoodPlanSize
+type FuelEnergy: build/supplies-entry.d.ts#FuelEnergy
 type GiftOf: build/supplies-entry.d.ts#GiftOf
+HEATING_VALUES: build/supplies-entry.d.ts#HEATING_VALUES
+type HeatingValue: build/supplies-entry.d.ts#HeatingValue
 type NoRead: build/supplies-entry.d.ts#NoRead
 SUPPLY_CATALOG: build/supplies-entry.d.ts#SUPPLY_CATALOG
 SUPPLY_CODES: build/supplies-entry.d.ts#SUPPLY_CODES
@@ -174,6 +180,7 @@ SUPPLY_FORMAT: build/supplies-entry.d.ts#SUPPLY_FORMAT
 SUPPLY_KINDS: build/supplies-entry.d.ts#SUPPLY_KINDS
 type ScaledReason: build/supplies-entry.d.ts#ScaledReason
 type ShelfLife: build/supplies-entry.d.ts#ShelfLife
+type StoveFacts: build/supplies-entry.d.ts#StoveFacts
 type SupplyCatalog: build/supplies-entry.d.ts#SupplyCatalog
 type SupplyCode: build/supplies-entry.d.ts#SupplyCode
 type SupplyFinding: build/supplies-entry.d.ts#SupplyFinding
@@ -186,8 +193,10 @@ type SupplyResource: build/supplies-entry.d.ts#SupplyResource
 averageSupplyPrices: build/supplies-entry.d.ts#averageSupplyPrices
 buyListEnergy: build/supplies-entry.d.ts#buyListEnergy
 checkSupplies: build/supplies-entry.d.ts#checkSupplies
+cookWater: build/supplies-entry.d.ts#cookWater
 foodPlanCheck: build/supplies-entry.d.ts#foodPlanCheck
 foodPlanCost: build/supplies-entry.d.ts#foodPlanCost
+fuelEnergyPerMass: build/supplies-entry.d.ts#fuelEnergyPerMass
 giftsOf: build/supplies-entry.d.ts#giftsOf
 kitMax: build/supplies-entry.d.ts#kitMax
 supplyWants: build/supplies-entry.d.ts#supplyWants
@@ -1003,6 +1012,32 @@ type CitedAmount = {
   readonly scaled?: never;
 };
 
+### build/supplies-entry.d.ts#CitedRate
+interface CitedRate {
+  readonly amount: number;
+  readonly unit: string;
+  readonly per: {
+    readonly amount: number;
+    readonly unit: string;
+  };
+  readonly fact: string;
+}
+
+### build/supplies-entry.d.ts#CitedSpan
+interface CitedSpan {
+  readonly low: number;
+  readonly high: number;
+  readonly unit: string;
+  readonly fact: string;
+}
+
+### build/supplies-entry.d.ts#CookFacts
+interface CookFacts {
+  readonly water?: CitedRate | undefined;
+  readonly bulk?: CitedRate | undefined;
+  readonly time?: CitedSpan | undefined;
+}
+
 ### build/supplies-entry.d.ts#FOOD_PLANS
 export declare const FOOD_PLANS: readonly FoodPlan[];
 
@@ -1045,6 +1080,11 @@ interface FoodPlanSize {
   readonly change: number;
 }
 
+### build/supplies-entry.d.ts#FuelEnergy
+interface FuelEnergy extends CitedRate {
+  readonly heating: HeatingValue;
+}
+
 ### build/supplies-entry.d.ts#GiftOf
 type GiftOf = {
   readonly resource: string;
@@ -1056,6 +1096,12 @@ type GiftOf = {
   readonly read: false;
   readonly why: string;
 };
+
+### build/supplies-entry.d.ts#HEATING_VALUES
+export declare const HEATING_VALUES: readonly ["higher", "lower"];
+
+### build/supplies-entry.d.ts#HeatingValue
+type HeatingValue = (typeof HEATING_VALUES)[number];
 
 ### build/supplies-entry.d.ts#NoRead
 interface NoRead {
@@ -1113,6 +1159,12 @@ type ShelfLife = CitedAmount | {
   readonly foodKeeper: number;
 } | NoRead;
 
+### build/supplies-entry.d.ts#StoveFacts
+interface StoveFacts {
+  readonly fuel: string;
+  readonly rate?: CitedAmount | undefined;
+}
+
 ### build/supplies-entry.d.ts#SupplyCatalog
 interface SupplyCatalog {
   readonly format: typeof SUPPLY_FORMAT;
@@ -1168,6 +1220,8 @@ interface SupplyProduct {
   readonly size?: CitedAmount | NoRead | undefined;
   readonly shelf: ShelfLife;
   readonly average?: AverageJoin | NoRead | undefined;
+  readonly cook?: CookFacts | undefined;
+  readonly stove?: StoveFacts | undefined;
 }
 
 ### build/supplies-entry.d.ts#SupplyResource
@@ -1176,6 +1230,7 @@ interface SupplyResource {
   readonly unit: string;
   readonly title: string;
   readonly kind: SupplyKind;
+  readonly fuelEnergy?: FuelEnergy | undefined;
 }
 
 ### build/supplies-entry.d.ts#averageSupplyPrices
@@ -1189,11 +1244,17 @@ export declare function buyListEnergy(catalog: SupplyCatalog, units: Readonly<Re
 ### build/supplies-entry.d.ts#checkSupplies
 export declare function checkSupplies(catalog: SupplyCatalog, options?: SupplyGateOptions): SupplyFinding[];
 
+### build/supplies-entry.d.ts#cookWater
+export declare function cookWater(product: SupplyProduct): Quantity | undefined;
+
 ### build/supplies-entry.d.ts#foodPlanCheck
 export declare function foodPlanCheck(cost: Quantity, plan: FoodPlan, members: readonly FoodPlanMember[], days: number): FoodPlanCheck;
 
 ### build/supplies-entry.d.ts#foodPlanCost
 export declare function foodPlanCost(plan: FoodPlan, members: readonly FoodPlanMember[], days: number): Quantity;
+
+### build/supplies-entry.d.ts#fuelEnergyPerMass
+export declare function fuelEnergyPerMass(resource: SupplyResource): Quantity | undefined;
 
 ### build/supplies-entry.d.ts#giftsOf
 export declare function giftsOf(catalog: SupplyCatalog, id: string, units: number): GiftOf[];

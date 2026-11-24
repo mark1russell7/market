@@ -156,6 +156,11 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - A catalog from JSON can have a field of a product that is null or not a record, for example `size: null`. The gate gives one error for each such field and does not throw. Then it examines the product with no such field.
 - market has no runtime dependency on `@mark1russell7/stock`. The code that calls the gate gives the ids. The tests of market gate the reference catalog with the ids of stock.
 - The gate does not examine a resource code against a layer of stores. The code that joins the catalog to a layer of stores gives that gate.
+- Since 0.8.1, a food product can have cook facts in the field `cook`. The field `water` is the water for each volume or mass of the dry food. The field `bulk` is the mass of a volume of the dry food. The field `time` is the cook time from low to high. Each cites a fact and keeps the two values of the source, for example 2 cup of water for 1 cup of rice.
+- A water rate for each volume needs a bulk mass, or the gate gives the error `supplies-fact`. Cook facts on a product that is not food give the error `supplies-kind`.
+- A resource of a fuel can have the field `fuelEnergy`: a cited energy for each mass, with its heating value (`higher` or `lower`). For example, 2219.2 kJ in 44.0956 g of propane. The gate examines its fact and its units.
+- A product can have the field `stove`: the resource of the fuel that it burns and, as an option, its fuel rate. The fuel rate converts to `W` or to `kg/h`. A fuel that is not a resource of the catalog is the error `supplies-resource`.
+- A field with no cited value is not in the catalog. It is not 0 and not a default.
 
 | Function | What it does |
 | --- | --- |
@@ -166,6 +171,8 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 | `averageSupplyPrices(catalog, prices, { since })` | It gives the price of one unit of each product with a join, from the last month of its series. A series with no price and a unit that does not fit give a no read. With `since`, so does a last price before that month. |
 | `foodPlanCost(plan, members, days)` | It gives the cost of a food plan for the members of a household and a count of days. It applies the change for the size of the household. |
 | `foodPlanCheck(cost, plan, members, days)` | It compares the cost of the food of a buy list with the cost of the plan. A ratio above 1 tells that a price or an amount is possibly wrong. |
+| `cookWater(product)` | It gives the cook water of a dry food in `L/kg`. A water rate for each volume divides by the bulk mass. With no water rate, or with no bulk mass for a rate for each volume, it gives `undefined`. |
+| `fuelEnergyPerMass(resource)` | It gives the energy of a fuel in `kJ/kg`, for example 50327 kJ/kg for propane. A resource with no fuel energy gives `undefined`. |
 | `buyListEnergy(catalog, units)` | It gives the food energy of each line of a buy list in `kcal`, with the resources of the product, and their sum. |
 
 `SUPPLY_CATALOG` is the reference catalog. Its facts come from Ready.gov (FEMA, a US federal work) and from FoodData Central (USDA, CC0 1.0). It has gaps:
@@ -177,6 +184,10 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - Each product with a size in its definition has that size, and the soup has the 530 g of its FDC portion. A product with no known size has no field `size`. It does not have a no read. These products are the flashlight, the sleeping bag, the first aid kit, the radio and the power bank.
 - The water container has no size. It is sold empty, so 1 gal is its capacity and not an amount as sold. Its gift gives the 1 gal of water that it holds when it is full.
 - The shelf life of commercially bottled water is no read. The source gives no time, so the date on the label applies.
+- The resources `fuel.propane` and `fuel.butane` are in `kg`. Their fuel energy is the higher heating value from the NIST Chemistry WebBook (SRD 69). It is the standard enthalpy of combustion of the gas for each mole, and the molecular weight. The page has a copyright of the U.S. Secretary of Commerce, so the catalog keeps only the cited values.
+- The cook water of the rice comes from USA Rice and of the oats from the label of Quaker. The bulk mass of 1 cup of each comes from FoodData Central. The cook times of the beans come from a USDA sheet, and of the pasta from the label of Ronzoni.
+- The beans and the pasta have no cook water. The USDA sheet gives no amount of water, and the pasta label gives the water for each box with no mass of a box. The flour has no cook facts.
+- The catalog has no stove. The pages of the makers give a power in BTU/h, and `@mark1russell7/quantity` has no unit BTU. No page gives a fuel rate in a mass for each time.
 - The oats have no series of average prices. The pasta has its own resource `food.pasta-dry`, because the cook drains its water, and rice and oats absorb their water. The dry beans, the pasta and the flour join the BLS series `APU0000714233`, `APU0000701322` and `APU0000701111` in `USD/lb`. The rice joins the BLS series `APU0000701312` in `USD/lb`, so 1 kg of rice costs 2.2046 times the price of 1 lb.
 
 `FOOD_PLANS` has the costs of the Thrifty Food Plan of USDA for October 2026, in the U.S. average. The costs come from the monthly report of the cost of food (a US federal work). Each cost is for one person of an age and sex group, in a household of four. The changes for the other sizes come from footnote 2 of the report. The plan is a full diet, so a list of dry staples costs much less than the plan. A low ratio is normal. The check of the amount of food is a check of its energy, not of its cost. The members of a household are input data.
