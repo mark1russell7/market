@@ -13,14 +13,20 @@ function pathsOf(value: unknown, at: Path = []): Path[] {
   return out;
 }
 
-/** This function gives a deep copy of a value with a new value at a place. An absent value deletes the key. */
+/** This function gives a deep copy of a value with a new value at a place. An absent value deletes the key of a record. */
 function withValueAt(value: unknown, path: Path, put: unknown, absent: boolean): unknown {
-  if (path.length === 0) return put;
   const [head, ...rest] = path;
-  const copy: Record<string | number, unknown> = Array.isArray(value) ? [...(value as unknown[])] : { ...(value as Record<string, unknown>) };
-  if (rest.length === 0 && absent && !Array.isArray(copy)) delete copy[head as string];
-  else copy[head as string | number] = withValueAt(copy[head as string | number], rest, put, absent);
-  return copy;
+  if (head === undefined) return put;
+  if (Array.isArray(value)) {
+    const copy: unknown[] = [...(value as unknown[])];
+    copy[Number(head)] = withValueAt(copy[Number(head)], rest, put, absent);
+    return copy;
+  }
+  const record: Record<string, unknown> = { ...(value as Record<string, unknown>) };
+  const key = String(head);
+  if (rest.length === 0 && absent) return Object.fromEntries(Object.entries(record).filter(([each]) => each !== key));
+  record[key] = withValueAt(record[key], rest, put, absent);
+  return record;
 }
 
 const PATHS = pathsOf(SUPPLY_CATALOG);
@@ -70,12 +76,7 @@ describe("the supplies gate with a bad value at any place of the catalog", () =>
     fc.assert(
       fc.property(fc.integer({ min: 1, max: PATHS.length - 1 }), fc.integer({ min: 1, max: PATHS.length - 1 }), fc.constantFrom(...BAD), fc.constantFrom(...BAD), (i, j, a, b) => {
         const once = withValueAt(SUPPLY_CATALOG, PATHS[i] ?? [], a.value, a.absent === true);
-        let twice: unknown = once;
-        try {
-          twice = withValueAt(once, PATHS[j] ?? [], b.value, b.absent === true);
-        } catch {
-          // The first value took the place of the second place: keep the catalog with one bad value.
-        }
+        const twice = withValueAt(once, PATHS[j] ?? [], b.value, b.absent === true);
         expect(() => checkSupplies(twice as never)).not.toThrow();
       }),
       { numRuns: 1000, seed: 20261125 },
