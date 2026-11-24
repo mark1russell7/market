@@ -526,15 +526,15 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
   const facts = new Map(catalog.facts.map((fact) => [fact.id, fact]));
   const used = new Set<string>();
 
-  /**
-   * This function examines a cited rate: its fact, its two amounts and their units. The amount converts to one of the
-   * units `to`, and the amount of the rate converts to one of the units `per`. It gives true for a good rate.
-   */
-  // Only a stove rate and a boil yield have a bound. A bound on another rate is an error, because its reader gives a bare value.
+  // Only the fuel rate, the boil yield and the adverse factor of a stove have a bound. A bound on another rate is an error, because its reader gives a bare value.
   const noBound = (record: "resource" | "product", id: string, what: string, value: unknown): void => {
     if (isRecord(value) && value["bound"] !== undefined)
       error("supplies-amount", record, id, `The ${what} of the ${record} ${id} has the bound ${shown(value["bound"])}. Only the fuel rate, the boil yield and the adverse factor of a stove have a bound.`);
   };
+  /**
+   * This function examines a cited rate: its fact, its two amounts and their units. The amount converts to one of the
+   * units `to`, and the amount of the rate converts to one of the units `per`. It gives true for a good rate.
+   */
   const rate = (record: "resource" | "product", id: string, what: string, value: unknown, to: readonly string[], per: readonly string[]): boolean => {
     if (!isRecord(value)) {
       error("supplies-amount", record, id, `The ${what} of the ${record} ${id} is ${shown(value)}. It must be a rate with its fact.`);
