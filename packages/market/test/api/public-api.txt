@@ -204,6 +204,7 @@ foodPlanCost: build/supplies-entry.d.ts#foodPlanCost
 fuelEnergyPerMass: build/supplies-entry.d.ts#fuelEnergyPerMass
 giftsOf: build/supplies-entry.d.ts#giftsOf
 kitMax: build/supplies-entry.d.ts#kitMax
+soakWater: build/supplies-entry.d.ts#soakWater
 supplyWants: build/supplies-entry.d.ts#supplyWants
 
 ## Declarations
@@ -1039,6 +1040,7 @@ interface CitedSpan {
 ### build/supplies-entry.d.ts#CookFacts
 interface CookFacts {
   readonly water?: CitedRate | undefined;
+  readonly soak?: CitedRate | undefined;
   readonly bulk?: CitedRate | undefined;
   readonly time?: CitedSpan | undefined;
 }
@@ -1295,6 +1297,9 @@ export declare function giftsOf(catalog: SupplyCatalog, id: string, units: numbe
 
 ### build/supplies-entry.d.ts#kitMax
 export declare function kitMax(people: number): (product: SupplyProduct) => number;
+
+### build/supplies-entry.d.ts#soakWater
+export declare function soakWater(product: SupplyProduct): Quantity | undefined;
 
 ### build/supplies-entry.d.ts#supplyWants
 export declare function supplyWants(catalog: SupplyCatalog, max?: (product: SupplyProduct) => number): ProductWant[];

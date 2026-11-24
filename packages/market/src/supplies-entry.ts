@@ -13,6 +13,7 @@ export {
   averageSupplyPrices,
   checkSupplies,
   cookWater,
+  soakWater,
   fuelEnergyPerMass,
   giftsOf,
   kitMax,
