@@ -27,6 +27,8 @@ function citedFacts(catalog: SupplyCatalog): { readonly where: string; readonly 
     const boil = each.stove?.boil;
     if (boil !== undefined) out.push({ where: `${each.id} stove.boil`, fact: boil.fact });
     if (boil?.start !== undefined) out.push({ where: `${each.id} stove.boil.start`, fact: boil.start.fact });
+    const adverse = each.stove?.adverse;
+    if (adverse !== undefined) out.push({ where: `${each.id} stove.adverse`, fact: adverse.fact });
   }
   return out;
 }
@@ -39,7 +41,7 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
 
   it("gives each cook and fuel field a fact with a source and a license", () => {
     const cited = citedFacts(SUPPLY_CATALOG);
-    expect(cited.length).toBe(18);
+    expect(cited.length).toBe(19);
     for (const { where, fact } of cited) {
       const unit = SUPPLY_CATALOG.facts.find((each) => each.id === fact);
       expect(unit?.use, where).toBe("fact");
@@ -136,6 +138,7 @@ describe("the stoves of the reference catalog", () => {
       fuel: "fuel.isobutane-mix",
       rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate" },
       boil: { amount: 16, unit: "L", per: { amount: 227, unit: "g" }, fact: "msr.pocketrocket-2-rate", start: { celsius: 21, fact: "msr.test-conditions" }, bound: "most" },
+      adverse: { factor: 4, fact: "msr.adverse-factor", bound: "most" },
     });
     expect(product("heat.stove-propane-2-burner").stove).toEqual({ fuel: "fuel.propane", rate: { amount: 16.4, unit: "oz", per: { amount: 1, unit: "h" }, fact: "coleman.propane-2-burner-rate", bound: "least" } });
     expect(product("heat.stove-butane-1-burner").stove).toEqual({ fuel: "fuel.butane", rate: { amount: 8.8, unit: "oz", per: { amount: 1.25, unit: "h" }, fact: "coleman.butane-1-burner-rate", bound: "least" } });
@@ -278,6 +281,27 @@ describe("the gate of the cook facts, the stoves and the fuel energy", () => {
     expect(errors(stove({ ...boil, start: { ...start, celsius: -1 } }))).toEqual(["supplies-amount"]);
     expect(errors(stove({ ...boil, start: { ...start, celsius: Number.NaN } }))).toEqual(["supplies-amount"]);
     expect(errors(stove({ ...boil, start: { ...start, fact: "no.such-fact" } }))).toEqual(["supplies-fact"]);
+  });
+
+  it("examines an adverse factor: a finite number of 1 or more, a known fact, and a known bound or no bound", () => {
+    const stove = (adverse: unknown): SupplyCatalog => withProduct({ ...radio, stove: { fuel: "fuel.butane", adverse: adverse as never } });
+    const fact = "ready.kit-radio";
+    expect(errors(stove({ factor: 4, fact, bound: "most" }))).toEqual([]);
+    expect(errors(stove({ factor: 4, fact, bound: "least" }))).toEqual([]);
+    expect(errors(stove({ factor: 1, fact }))).toEqual([]);
+    expect(errors(stove({ factor: 4, fact, bound: "Most" }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ factor: 0.5, fact }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ factor: Number.POSITIVE_INFINITY, fact }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ factor: Number.NaN, fact }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ factor: "4", fact }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ factor: 4, fact: "no.such-fact" }))).toEqual(["supplies-fact"]);
+    expect(errors(stove(3)).sort()).toEqual(["supplies-amount", "supplies-fact"]);
+  });
+
+  it("keeps the adverse factor of the canister stove as the most factor of the maker article", () => {
+    const adverse = product("heat.stove-canister-1-burner").stove?.adverse;
+    expect(adverse).toEqual({ factor: 4, fact: "msr.adverse-factor", bound: "most" });
+    expect(SUPPLY_CATALOG.facts.find((each) => each.id === adverse?.fact)?.source).toBe("msr.fuel-to-carry");
   });
 
   it("keeps the boil yield of the canister stove as the most yield of the maker test, from 21 °C", () => {

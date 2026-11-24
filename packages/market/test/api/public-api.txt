@@ -183,6 +183,7 @@ SUPPLY_FORMAT: build/supplies-entry.d.ts#SUPPLY_FORMAT
 SUPPLY_KINDS: build/supplies-entry.d.ts#SUPPLY_KINDS
 type ScaledReason: build/supplies-entry.d.ts#ScaledReason
 type ShelfLife: build/supplies-entry.d.ts#ShelfLife
+type StoveFactor: build/supplies-entry.d.ts#StoveFactor
 type StoveFacts: build/supplies-entry.d.ts#StoveFacts
 type StoveRate: build/supplies-entry.d.ts#StoveRate
 type StoveYield: build/supplies-entry.d.ts#StoveYield
@@ -1178,11 +1179,19 @@ type ShelfLife = CitedAmount | {
   readonly foodKeeper: number;
 } | NoRead;
 
+### build/supplies-entry.d.ts#StoveFactor
+interface StoveFactor {
+  readonly factor: number;
+  readonly bound?: RateBound | undefined;
+  readonly fact: string;
+}
+
 ### build/supplies-entry.d.ts#StoveFacts
 interface StoveFacts {
   readonly fuel: string;
   readonly rate?: StoveRate | undefined;
   readonly boil?: StoveYield | undefined;
+  readonly adverse?: StoveFactor | undefined;
   readonly heating?: HeatingValue | undefined;
 }
 

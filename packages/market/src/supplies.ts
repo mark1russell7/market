@@ -176,6 +176,8 @@ export interface OpenedFacts {
  *   A burn time of "up to" a time gives the least rate, so the rate has `bound: "least"`. A burn time of "approximately" a time has no bound.
  * - `boil`: the water that a mass of fuel boils, from a cited start temperature. A boil test of a maker gives the most
  *   yield, so the yield has `bound: "most"`. A stove with no cited yield has no field `boil`.
+ * - `adverse`: the factor of more boil fuel than the calm boil yield in cold, snow melt and wind, from a cited source.
+ *   A factor of "as much as" a value is the most factor, so it has `bound: "most"`.
  * - `heating`: the heating value of a rate in an energy. Ratings in BTU/h usually give the higher value. A rate in a mass
  *   has no heating value.
  */
@@ -183,7 +185,18 @@ export interface StoveFacts {
   readonly fuel: string;
   readonly rate?: StoveRate | undefined;
   readonly boil?: StoveYield | undefined;
+  readonly adverse?: StoveFactor | undefined;
   readonly heating?: HeatingValue | undefined;
+}
+
+/**
+ * The factor of more fuel than a calm test, from a cited source. For example, a canister stove in cold and wind needs as much as 4 times the fuel.
+ * `factor` is a finite number of 1 or more. `bound` is optional, as on a stove rate.
+ */
+export interface StoveFactor {
+  readonly factor: number;
+  readonly bound?: RateBound | undefined;
+  readonly fact: string;
 }
 
 /** The gift of one unit of a product: an amount of one resource, or no read. */
@@ -438,7 +451,7 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
   // Only a stove rate and a boil yield have a bound. A bound on another rate is an error, because its reader gives a bare value.
   const noBound = (record: "resource" | "product", id: string, what: string, value: unknown): void => {
     if (isRecord(value) && value["bound"] !== undefined)
-      error("supplies-amount", record, id, `The ${what} of the ${record} ${id} has the bound ${shown(value["bound"])}. Only the fuel rate and the boil yield of a stove have a bound.`);
+      error("supplies-amount", record, id, `The ${what} of the ${record} ${id} has the bound ${shown(value["bound"])}. Only the fuel rate, the boil yield and the adverse factor of a stove have a bound.`);
   };
   const rate = (record: "resource" | "product", id: string, what: string, value: unknown, to: readonly string[], per: readonly string[]): boolean => {
     if (!isRecord(value)) {
@@ -735,7 +748,7 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
         error("supplies-fact", "product", product.id, `The soak water of the product ${product.id} is for a volume of dry food, and the product has no bulk mass. The bulk mass converts the volume to a mass.`);
     }
     if (product.stove !== undefined) {
-      const { fuel, rate: fuelRate, boil, heating } = product.stove;
+      const { fuel, rate: fuelRate, boil, adverse, heating } = product.stove;
       const burned = typeof fuel === "string" ? resources.get(fuel) : undefined;
       if (burned === undefined) error("supplies-resource", "product", product.id, `The stove ${product.id} burns the resource ${String(fuel)}, and the catalog has no such resource.`);
       else if (burned.kind !== "heat") error("supplies-kind", "product", product.id, `The stove ${product.id} burns the resource ${burned.code}, and its kind is ${String(burned.kind)}. A fuel has the kind heat.`);
@@ -759,6 +772,16 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
             error("supplies-amount", "product", product.id, `The start temperature of the boil yield of the stove ${product.id} is ${shown(celsius)}. It must be a number from 0 °C to less than 100 °C.`);
           cite(product.id, "The start temperature of the boil yield", start["fact"]);
         }
+      }
+      if (adverse !== undefined) {
+        const factor: unknown = adverse;
+        const value = isRecord(factor) ? factor["factor"] : undefined;
+        if (typeof value !== "number" || !Number.isFinite(value) || !(value >= 1))
+          error("supplies-amount", "product", product.id, `The adverse factor of the stove ${product.id} is ${shown(value)}. It must be a finite number of 1 or more.`);
+        const factorBound = isRecord(factor) ? factor["bound"] : undefined;
+        if (factorBound !== undefined && !(RATE_BOUNDS as readonly unknown[]).includes(factorBound))
+          error("supplies-amount", "product", product.id, `The adverse factor of the stove ${product.id} has the bound ${shown(factorBound)}. It must be ${RATE_BOUNDS.join(" or ")}, or the factor has no bound.`);
+        cite(product.id, "The adverse factor of the stove", isRecord(factor) ? factor["fact"] : undefined);
       }
       // A rate in an energy needs its heating value: the higher and the lower value of a fuel differ by 5% to 10%.
       if (goodRate && convertible(fuelRate.unit, FUEL_ENERGY_UNIT) && heating === undefined)

@@ -105,6 +105,14 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       by: "MSR (Cascade Designs)",
     },
     {
+      id: "msr.fuel-to-carry",
+      title: "How much fuel should I carry on a trip?",
+      url: "https://support.cascadedesigns.com/hc/en-us/articles/35376986926867-How-much-fuel-should-I-carry-on-a-trip",
+      license: "all-rights-reserved",
+      checked: COOK_CHECKED,
+      by: "MSR (Cascade Designs)",
+    },
+    {
       id: "msr.stove-performance",
       title: "BTUs, Boil Time and Water Boiled: Understanding Stove Performance (2023)",
       url: "https://www.cascadedesigns.com/blog/btus-boil-time-and-water-boiled-understanding-stove-performance/",
@@ -323,6 +331,13 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       text: "The tech specs give a burn time of approximately 60 minutes for each canister of 227 g of MSR IsoPro fuel. They give 16 L of water boiled for each canister.",
       source: "msr.pocketrocket-2",
       locator: "Tech Specs",
+    },
+    {
+      id: "msr.adverse-factor",
+      use: "fact",
+      text: "The article tells that low temperatures, melting snow and wind can need 3 to 4 times as much fuel as the baseline. For an open-flame stove like the PocketRocket, a 5 mph wind can cause up to three times more fuel use.",
+      source: "msr.fuel-to-carry",
+      locator: "The paragraph before the chart, and Conditions affect consumption",
     },
     {
       id: "msr.test-conditions",
@@ -595,6 +610,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
         rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate" },
         // The maker test is in calm air from 21 °C, so the yield is the most: wind and cold water boil less water.
         boil: { amount: 16, unit: "L", per: { amount: 227, unit: "g" }, fact: "msr.pocketrocket-2-rate", start: { celsius: 21, fact: "msr.test-conditions" }, bound: "most" },
+        adverse: { factor: 4, fact: "msr.adverse-factor", bound: "most" },
       },
       shelf: { read: false, why: "The source gives no shelf life." },
     },
