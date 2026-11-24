@@ -58,8 +58,8 @@ export interface ScaledReason {
 
 /**
  * A resource that a supply gives, with its unit and its kind, for example `water.stored` in `L` of the kind `water`. The
- * codes are the resource codes of a store. The kind tells which gifts in a unit of energy are food energy: a gift of
- * `food.no-cook` in kcal is, and a gift of `energy.battery` in Wh is not.
+ * codes are the resource codes of a store. The kind tells which gifts in a unit of energy are food energy. A gift of
+ * `food.no-cook` in kcal is food energy, and a gift of `energy.battery` in Wh is not.
  */
 export interface SupplyResource {
   readonly code: string;
@@ -231,8 +231,9 @@ function countUnit(unit: string): boolean {
  * - An error for an amount with no reason, with two reasons, or with a blank definition. A catalog from JSON can have them.
  * - An error for a scaled amount that is not the rate times the amount of its reason, or that has a bad factor.
  * - An error for an amount that cites the size and is not equal to the size, and for a size that cites itself.
- * - An error for a food energy that is not equal to the sum of the gifts of the product of a food resource in a unit
- *   of energy. A gift with no read makes the sum unknown, so the gate does not compare it.
+ * - An error for a food energy that is not equal to the sum of the food gifts of the product in a unit of energy. A
+ *   food gift in another unit, for example a mass, makes the sum a lower limit. Then the error is for a sum that is more
+ *   than the food energy. A gift with no read or a bad value makes the sum unknown, and the gate does not compare it.
  * - An error for a resource with a kind that is not a supply kind.
  * - An error for a unit that is not a unit of `@mark1russell7/quantity`.
  * - An error for a unit that does not convert to the unit of its resource.
@@ -406,22 +407,31 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
     // An unknown kind has its own error above, so this rule examines only a known kind that is not food.
     if (product.energy !== undefined && product.kind !== "food" && (SUPPLY_KINDS as readonly string[]).includes(product.kind)) error("supplies-kind", "product", product.id, `The product ${product.id} has a food energy, and its kind is ${String(product.kind)}. Only a product of the kind food has a food energy.`);
     if (product.energy !== undefined) amount(product, "food energy", product.energy, ENERGY_UNIT);
-    // `amount` gave the error of an amount that is not a finite number, so this check skips it.
-    if (product.energy?.read === true && finite(product.energy.amount) && known(product.energy.unit) && convertible(product.energy.unit, ENERGY_UNIT)) {
-      // The gifts of food resources in a unit of energy share the food energy of the product, so their sum must be
-      // equal to it. A gift of another kind, for example the energy of a battery, is not food energy.
+    // `amount` gave the error of an amount that is not a finite number more than 0, so this check skips it.
+    if (product.energy?.read === true && positive(product.energy.amount) && known(product.energy.unit) && convertible(product.energy.unit, ENERGY_UNIT)) {
+      // The food gifts in a unit of energy share the food energy of the product. A gift of another kind, for example
+      // the energy of a battery, is not food energy.
       const energy = valueIn(amountIn(product.energy.amount, product.energy.unit), ENERGY_UNIT);
-      const foodGifts = product.gives.filter((gift) => {
-        const resource = resources.get(gift.resource);
-        return resource !== undefined && resource.kind === "food" && known(resource.unit) && convertible(resource.unit, ENERGY_UNIT);
+      const food = product.gives.filter((gift) => resources.get(gift.resource)?.kind === "food");
+      const inEnergy = food.filter((gift) => {
+        const unit = resources.get(gift.resource)?.unit;
+        return known(unit) && convertible(unit as string, ENERGY_UNIT);
       });
-      // A gift with no read, or with a value that the gift check refuses, makes the sum unknown.
-      const sum = foodGifts.every((gift) => gift.amount.read && finite(gift.amount.amount) && known(gift.amount.unit) && convertible(gift.amount.unit, ENERGY_UNIT))
-        ? foodGifts.reduce((total, gift) => (gift.amount.read ? total + valueIn(amountIn(gift.amount.amount, gift.amount.unit), ENERGY_UNIT) : total), 0)
-        : undefined;
-      if (foodGifts.length > 0 && sum !== undefined && !same(sum, energy)) {
-        const names = foodGifts.map((gift) => gift.resource).join(", ");
-        error("supplies-energy", "product", product.id, `The product ${product.id} gives ${String(sum)} kcal of food energy in its gifts (${names}), and its food energy is ${String(energy)} kcal. The two must be equal.`);
+      // A food gift in another unit, for example the mass of dry rice, also has food energy. Then the sum is a lower limit.
+      const lower = inEnergy.length < food.length;
+      // A gift of a resource that is not in the catalog, a gift with no read, or a value that the gift check refuses
+      // makes the sum unknown. The other checks give the finding.
+      const unknownSum =
+        product.gives.some((gift) => !resources.has(gift.resource)) ||
+        !inEnergy.every((gift) => gift.amount.read && positive(gift.amount.amount) && known(gift.amount.unit) && convertible(gift.amount.unit, ENERGY_UNIT));
+      if (inEnergy.length > 0 && !unknownSum) {
+        const sum = inEnergy.reduce((total, gift) => (gift.amount.read ? total + valueIn(amountIn(gift.amount.amount, gift.amount.unit), ENERGY_UNIT) : total), 0);
+        const names = inEnergy.map((gift) => gift.resource).join(", ");
+        const given = Number.isFinite(sum) ? `${String(sum)} kcal` : "more kcal than the largest finite number";
+        if (lower && !same(sum, energy) && !(sum < energy))
+          error("supplies-energy", "product", product.id, `The product ${product.id} gives ${given} of food energy in its gifts (${names}), and its food energy is ${String(energy)} kcal. Its other food gifts also have food energy, so the sum must not be more than the food energy.`);
+        else if (!lower && !same(sum, energy))
+          error("supplies-energy", "product", product.id, `The product ${product.id} gives ${given} of food energy in its gifts (${names}), and its food energy is ${String(energy)} kcal. The two must be equal.`);
       }
     }
     if (product.size !== undefined) {

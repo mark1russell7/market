@@ -291,8 +291,26 @@ describe("the gate of the catalog", () => {
     );
     // A gift with no read makes the sum unknown: the gate gives its warning, and no error of the energy.
     expect(errors(catalog({ ...two, gives: [two.gives[0]!, { resource: "food.test-ready", amount: { read: false, why: "The label is not read." } }] }))).toEqual([]);
+    // A food gift of 0 kcal, or a gift of a resource that is not in the catalog, gives its own error and no error of the energy.
+    expect(errors(catalog({ ...two, gives: [two.gives[0]!, { resource: "food.test-ready", amount: { ...half, amount: 0 } }] }))).toEqual(["supplies-amount"]);
+    expect(errors(catalog({ ...butter, gives: [{ ...gift, amount: half }, { resource: "food.unknown", amount: half }] }))).toEqual(["supplies-resource"]);
+    // A sum that overflows has no finite value, and the message does not print Infinity.
+    const huge = { read: true, amount: 1e308, unit: "kcal", definition: "A test." } as const;
+    const overflow = checkSupplies(catalog({ ...two, gives: [{ ...gift, amount: huge }, { resource: "food.test-ready", amount: huge }] })).find((finding) => finding.code === "supplies-energy");
+    expect(overflow?.message).toContain("more kcal than the largest finite number");
+    expect(overflow?.message).not.toContain("Infinity");
     // A gift of a battery in Wh is not food energy, so the gate does not compare it with the food energy.
     expect(errors(catalog({ ...butter, gives: [...butter.gives, { resource: "energy.battery", amount: { read: true, amount: 10, unit: "Wh", definition: "A test." } }] }))).toEqual([]);
+  });
+
+  it("takes the sum as a lower limit when a food gift is in a mass, for example dry rice next to a ready meal", () => {
+    const meal = { resource: "food.no-cook", amount: { read: true, amount: 500, unit: "kcal", definition: "A test." } } as const;
+    const kit = (amount: number): SupplyCatalog => withProduct({ ...plainRice, gives: [...plainRice.gives, meal], energy: { read: true, amount, unit: "kcal", definition: "A test." } });
+    // The true total is 3650 kcal of rice and 500 kcal of the meal. The sum of the gifts in kcal is 500 kcal.
+    expect(errors(kit(4150))).toEqual([]);
+    expect(errors(kit(500))).toEqual([]);
+    expect(errors(kit(400))).toEqual(["supplies-energy"]);
+    expect(checkSupplies(kit(400)).find((finding) => finding.code === "supplies-energy")?.message).toContain("must not be more than the food energy");
   });
 
   it("refuses a resource with a kind that is not a supply kind", () => {
