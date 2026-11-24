@@ -272,6 +272,35 @@ describe("the gate of the catalog", () => {
     expect(errors(withProduct({ ...rice, energy: { read: true, amount: 100, unit: "kcal", definition: "A test." } }))).toEqual([]);
   });
 
+  it("compares the food energy with the sum of the gifts of food resources in a unit of energy, and not with a battery", () => {
+    const butter = SUPPLY_CATALOG.products.find((product) => product.id === "food.peanut-butter-1kg")!;
+    const gift = butter.gives[0]!;
+    const half = { read: true, amount: 2990, unit: "kcal", definition: "A test." } as const;
+    // A food resource of the test in kcal, next to food.no-cook.
+    const catalog = (product: SupplyProduct): SupplyCatalog => ({
+      ...SUPPLY_CATALOG,
+      resources: [...SUPPLY_CATALOG.resources, { code: "food.test-ready", unit: "kcal", title: "A test resource", kind: "food" }],
+      products: SUPPLY_CATALOG.products.map((each) => (each.id === butter.id ? product : each)),
+    });
+    // Two food gifts of 2990 kcal each sum to the 5980 kcal of the food energy. One alone does not.
+    const two = { ...butter, gives: [{ ...gift, amount: half }, { resource: "food.test-ready", amount: half }] };
+    expect(errors(catalog(two))).toEqual([]);
+    expect(errors(catalog({ ...butter, gives: [{ ...gift, amount: half }] }))).toEqual(["supplies-energy"]);
+    expect(checkSupplies(catalog({ ...two, gives: [two.gives[0]!, { resource: "food.test-ready", amount: { ...half, amount: 1000 } }] })).find((finding) => finding.code === "supplies-energy")?.message).toContain(
+      "gives 3990 kcal of food energy in its gifts (food.no-cook, food.test-ready)",
+    );
+    // A gift with no read makes the sum unknown: the gate gives its warning, and no error of the energy.
+    expect(errors(catalog({ ...two, gives: [two.gives[0]!, { resource: "food.test-ready", amount: { read: false, why: "The label is not read." } }] }))).toEqual([]);
+    // A gift of a battery in Wh is not food energy, so the gate does not compare it with the food energy.
+    expect(errors(catalog({ ...butter, gives: [...butter.gives, { resource: "energy.battery", amount: { read: true, amount: 10, unit: "Wh", definition: "A test." } }] }))).toEqual([]);
+  });
+
+  it("refuses a resource with a kind that is not a supply kind", () => {
+    const resources = SUPPLY_CATALOG.resources.map((resource) => (resource.code === "food.no-cook" ? { ...resource, kind: "snacks" as never } : resource));
+    expect(errors({ ...SUPPLY_CATALOG, resources })).toEqual(["supplies-kind"]);
+    expect(SUPPLY_CATALOG.resources.map((resource) => resource.kind)).toEqual(["water", "food", "food", "food", "food", "food", "power"]);
+  });
+
   it("refuses a unit from JSON that is not a known unit, in an amount and in a resource, and does not throw", () => {
     const foo = withProduct({ ...rice, energy: { read: true, amount: 3650, unit: "foo", fact: "fdc.rice-white" } });
     expect(errors(foo)).toEqual(["supplies-unit"]);

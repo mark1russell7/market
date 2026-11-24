@@ -1175,6 +1175,7 @@ interface SupplyResource {
   readonly code: string;
   readonly unit: string;
   readonly title: string;
+  readonly kind: SupplyKind;
 }
 
 ### build/supplies-entry.d.ts#averageSupplyPrices
