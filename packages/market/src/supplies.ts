@@ -181,6 +181,12 @@ export interface SupplyProduct {
    * bag. A product with no field `perPerson` is one for the household. `kitMax` gives the count of units from it.
    */
   readonly perPerson?: CitedAmount | undefined;
+  /**
+   * The count of persons that the count `perPerson` is for, a whole number of 1 or more. The default is 1. Example: 1
+   * tent for each 3 persons is `perPerson` 1 `{each}` and `forPersons` 3. A decimal cannot hold 1/3, and this field can.
+   * The fact of `perPerson` gives this count too.
+   */
+  readonly forPersons?: number | undefined;
   /** The food energy of one unit, in a unit of energy. A cooking converter gives it. */
   readonly energy?: CitedAmount | NoRead | undefined;
   /**
@@ -693,6 +699,12 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
       if (product.perPerson.read === true && known(product.perPerson.unit) && !countUnit(product.perPerson.unit))
         error("supplies-unit", "product", product.id, `The count for each person of the product ${product.id} is in ${product.perPerson.unit}. It must be one bare count, for example {each}.`);
     }
+    if (product.forPersons !== undefined) {
+      // The count of persons divides the count for each person, so it has no meaning without it.
+      if (product.perPerson === undefined) error("supplies-amount", "product", product.id, `The product ${product.id} has a count of persons (forPersons) and no count perPerson. The count of persons is for the count perPerson.`);
+      if (!(Number.isSafeInteger(product.forPersons) && product.forPersons >= 1))
+        error("supplies-amount", "product", product.id, `The count of persons (forPersons) of the product ${product.id} is ${shown(product.forPersons)}. It must be a whole number of 1 or more.`);
+    }
     if (product.average !== undefined) amount(product, "average price", product.average.read ? product.average.per : product.average, product.average.read && isRecord(product.average.per) ? product.average.per.unit : "");
     if (product.shelf === undefined) continue;
     if ("foodKeeper" in product.shelf) {
@@ -721,8 +733,9 @@ export function supplyWants(catalog: SupplyCatalog, max: (product: SupplyProduct
 
 /**
  * This function gives the largest count of units of each product for a household, for `supplyWants`. A product with a
- * count for each person has that count times the persons, up to the next whole unit. Each other product has 1. The
- * product is exact: the count is the decimal of its number, so 1.1 for each person of 50 persons gives 55, not 56.
+ * count for each person has that count times the persons, divided by its count of persons (`forPersons`). The result
+ * goes up to the next whole unit. Each other product has 1. The calculation is exact: the count is the decimal of its number, so 1.1
+ * for each person of 50 persons gives 55, not 56. 1 for each 3 persons of 7 persons gives 3.
  *
  * @param people - The count of persons of the household. The persons are input data of the user.
  * @returns The function `max` of `supplyWants`
@@ -731,7 +744,10 @@ export function supplyWants(catalog: SupplyCatalog, max: (product: SupplyProduct
 export function kitMax(people: number): (product: SupplyProduct) => number {
   if (!(Number.isSafeInteger(people) && people >= 0)) throw new RangeError(`The count of persons is ${String(people)}. It must be a whole number of 0 or more.`);
   const persons = rationals.fromNumber(people);
-  return (product) => (product.perPerson === undefined ? 1 : rationals.toNumber(rationals.ceil(rationals.mul(rationals.fromNumber(product.perPerson.amount), persons))));
+  return (product) =>
+    product.perPerson === undefined
+      ? 1
+      : rationals.toNumber(rationals.ceil(rationals.div(rationals.mul(rationals.fromNumber(product.perPerson.amount), persons), rationals.fromNumber(product.forPersons ?? 1))));
 }
 
 /** The gift of a count of units: an amount in the unit of its resource, or no read. */
