@@ -483,4 +483,30 @@ describe("the prices of the supplies from average prices", () => {
     expect(errors(withProduct({ ...rice, average: { ...join, per: { read: true, amount: 1, unit: "kg", fact: "unknown" } } }))).toEqual(["supplies-fact"]);
     expect(codes(withProduct({ ...rice, average: { read: false, why: "" } }))).toContain("supplies-no-reason");
   });
+
+  it("gives a finding, and does not throw, for a field of a product that is null or not a record", () => {
+    const raw = (change: Record<string, unknown>): SupplyCatalog => withProduct({ ...rice, ...change } as unknown as SupplyProduct);
+    const join = rice.average as Extract<SupplyProduct["average"], { read: true }>;
+    expect(errors(raw({ energy: null }))).toEqual(["supplies-amount"]);
+    expect(errors(raw({ perPerson: 2 }))).toEqual(["supplies-amount"]);
+    expect(errors(raw({ average: null }))).toEqual(["supplies-amount"]);
+    expect(errors(raw({ average: { ...join, per: null } }))).toEqual(["supplies-amount"]);
+    expect(errors(raw({ shelf: null }))).toEqual(["supplies-shelf"]);
+    // The gift and the scaled energy cite the size, so a size of null also gives their two errors.
+    expect(errors(raw({ size: null }))).toEqual(["supplies-amount", "supplies-fact", "supplies-fact"]);
+    // A list of gifts that is not a list, or a gift that is not a record, gives one error and no error of the basis.
+    expect(errors(raw({ gives: null }))).toEqual(["supplies-resource"]);
+    expect(errors(raw({ gives: [null] }))).toEqual(["supplies-amount"]);
+    expect(errors(raw({ gives: [{ resource: "food.grain-dry", amount: null }] }))).toEqual(["supplies-amount"]);
+    // A removed food gift makes the sum of food energy unknown, so it gives no error of the energy.
+    const butter = SUPPLY_CATALOG.products.find((product) => product.id === "food.peanut-butter-1kg")!;
+    const half = { ...butter.gives[0]!, amount: { read: true, amount: 2990, unit: "kcal", definition: "A test." } };
+    const butterWith = (gives: unknown[]): SupplyCatalog => ({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === butter.id ? ({ ...butter, gives } as unknown as SupplyProduct) : each)) });
+    expect(errors(butterWith([half, null]))).toEqual(["supplies-amount"]);
+    // A field that is not there, or a record in place of a list, has a plain text in the message.
+    expect(checkSupplies(raw({ shelf: undefined })).find((finding) => finding.code === "supplies-shelf")?.message).toContain("is not there.");
+    expect(checkSupplies(raw({ gives: {} })).find((finding) => finding.code === "supplies-resource")?.message).toContain("is a record.");
+    expect(checkSupplies(raw({ gives: [{ amount: null }] })).find((finding) => finding.code === "supplies-amount")?.message).toContain("A gift of an unknown resource");
+    expect(checkSupplies(raw({ size: null })).find((finding) => finding.code === "supplies-amount")?.message).toContain("The field size of the product food.rice-white-1kg is null.");
+  });
 });

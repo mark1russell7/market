@@ -1,5 +1,6 @@
 import { checkSources, checkUnits, type CitedUnit, type Finding, type FindingCode, type GateOptions, type Source } from "@mark1russell7/guidebook";
 import { canonicalUnit, convertible, divide, kindOf, multiply, quantity, rationals, UnitError, valueIn, whyNotConvertible, type Quantity } from "@mark1russell7/quantity";
+import { isRecord } from "@mark1russell7/optional/read";
 import { latestAverages, moneyOf, monthSchema, type AveragePrice } from "./average.ts";
 import type { PartWant } from "./offers.ts";
 import type { ProductWant } from "./order.ts";
@@ -176,6 +177,18 @@ function amountIn(value: number, unit: string): Quantity {
   return quantity(value, canonicalUnit(unit));
 }
 
+/** A product after the check of its fields: a shelf life that is not a record is not there. */
+type CheckedProduct = Omit<SupplyProduct, "shelf"> & { readonly shelf: SupplyProduct["shelf"] | undefined };
+
+/** This function gives a short text of a value from JSON that is not a record, for a message. */
+function shown(value: unknown): string {
+  if (value === undefined) return "not there";
+  if (value === null) return "null";
+  if (Array.isArray(value)) return "a list";
+  if (typeof value === "object") return "a record";
+  return `a value of the type ${typeof value}`;
+}
+
 /** This function tells if a value from JSON is a finite number. `quantity` throws for another value. */
 function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
@@ -229,6 +242,8 @@ function countUnit(unit: string): boolean {
  * - An error for a fact that is not a fact of the catalog, and for an amount that is not more than 0. The basis of a
  *   product is also a fact.
  * - An error for an amount with no reason, with two reasons, or with a blank definition. A catalog from JSON can have them.
+ * - An error for a field of a product that is null or not a record, for example `size: null` from JSON. The gate then
+ *   examines the product with no such field, and does not throw.
  * - An error for a scaled amount that is not the rate times the amount of its reason, or that has a bad factor.
  * - An error for an amount that cites the size and is not equal to the size, and for a size that cites itself.
  * - An error for a food energy that is not equal to the sum of the food gifts of the product in a unit of energy. A
@@ -283,7 +298,7 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
     if (typeof text !== "string" || text.trim() === "") error("supplies-fact", "product", product, `The definition of the ${what} of the product ${product} is blank.`);
   };
   /** This function examines an amount whose reason is the size of the product. The two amounts must be equal. */
-  const sized = (record: SupplyProduct, what: string, value: { readonly amount: unknown; readonly unit: unknown; readonly size?: unknown }): void => {
+  const sized = (record: CheckedProduct, what: string, value: { readonly amount: unknown; readonly unit: unknown; readonly size?: unknown }): void => {
     const product = record.id;
     if (value.size !== true) {
       error("supplies-fact", "product", product, `The field size of the ${what} of the product ${product} is ${String(value.size)}. A reason that cites the size has size: true.`);
@@ -317,7 +332,7 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
     }
   };
   /** This function examines a scaled reason: its factors, and the amount against the rate times the amount of the reason. */
-  const scaled = (record: SupplyProduct, what: string, reason: ScaledReason, value: number, unit: string): void => {
+  const scaled = (record: CheckedProduct, what: string, reason: ScaledReason, value: number, unit: string): void => {
     const product = record.id;
     // A catalog from JSON can have a scaled reason with no rate, no amount of the rate or no amount.
     const { rate, of } = (typeof reason === "object" && reason !== null ? reason : {}) as Partial<ScaledReason>;
@@ -366,8 +381,14 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
   };
 
   /** This function examines one cited amount, and gives the unit check to `units`. */
-  const amount = (record: SupplyProduct, what: string, value: CitedAmount | NoRead, unit: string): void => {
+  const amount = (record: CheckedProduct, what: string, value: CitedAmount | NoRead, unit: string): void => {
     const product = record.id;
+    // A catalog from JSON can give null in place of an amount, for example the amount of the item of an average price.
+    const raw: unknown = value;
+    if (!isRecord(raw)) {
+      error("supplies-amount", "product", product, `The ${what} of the product ${product} is ${shown(value)}. It must be an amount with its reason, or a no read.`);
+      return;
+    }
     if (!value.read) {
       warning("supplies-no-read", "product", product, `The ${what} of the product ${product} is no read: ${String(value.why)}`);
       if (typeof value.why !== "string" || value.why.trim() === "") warning("supplies-no-reason", "product", product, `The no read of the ${what} of the product ${product} has no reason.`);
@@ -385,8 +406,46 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
     else if (known(unit) && !convertible(value.unit, unit)) error("supplies-unit", "product", product, `The ${what} of the product ${product} is in ${value.unit}, and ${value.unit} does not convert to ${unit}.`);
   };
 
+  /**
+   * This function examines the fields of a product that are records or lists. A catalog from JSON can give null or
+   * another value in place of each. The function gives one finding for each such field, and gives the product with
+   * no such field. `dropped` is true when it removed a gift, so the rule of a product with no gift does not apply.
+   */
+  const fieldsOf = (raw: SupplyProduct): { readonly product: CheckedProduct; readonly dropped: boolean } => {
+    const id = raw.id;
+    const fields: Record<string, unknown> = { ...raw };
+    for (const field of ["size", "energy", "perPerson", "average"] as const) {
+      const value: unknown = raw[field];
+      if (value === undefined || isRecord(value)) continue;
+      error("supplies-amount", "product", id, `The field ${field} of the product ${id} is ${shown(value)}. It must be an amount with its reason or a no read, or the product has no field ${field}.`);
+      fields[field] = undefined;
+    }
+    const shelf: unknown = raw.shelf;
+    if (!isRecord(shelf)) {
+      error("supplies-shelf", "product", id, `The shelf life of the product ${id} is ${shown(shelf)}. It must be an amount with its reason, a FoodKeeper id or a no read.`);
+      fields["shelf"] = undefined;
+    }
+    const gives: unknown = raw.gives;
+    let dropped = false;
+    if (!Array.isArray(gives)) {
+      error("supplies-resource", "product", id, `The field gives of the product ${id} is ${shown(gives)}. It must be a list of gifts.`);
+      fields["gives"] = [];
+      dropped = true;
+    } else {
+      fields["gives"] = gives.filter((gift: unknown) => {
+        if (isRecord(gift) && isRecord(gift["amount"])) return true;
+        const resource = isRecord(gift) && typeof gift["resource"] === "string" ? gift["resource"] : "an unknown resource";
+        error("supplies-amount", "product", id, `A gift of ${resource} of the product ${id} is ${isRecord(gift) ? `a gift with the amount ${shown(gift["amount"])}` : shown(gift)}. Each gift has a resource and an amount with its reason or a no read.`);
+        dropped = true;
+        return false;
+      });
+    }
+    return { product: fields as unknown as CheckedProduct, dropped };
+  };
+
   const products = new Set<string>();
-  for (const product of catalog.products) {
+  for (const raw of catalog.products) {
+    const { product, dropped } = fieldsOf(raw);
     if (products.has(product.id)) error("supplies-twice", "product", product.id, `The product ${product.id} is two times in the catalog.`);
     products.add(product.id);
     if (!(SUPPLY_KINDS as readonly string[]).includes(product.kind)) error("supplies-kind", "product", product.id, `The kind ${String(product.kind)} of the product ${product.id} is not a supply kind.`);
@@ -398,7 +457,7 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
       if (resource === undefined) error("supplies-resource", "product", product.id, `The product ${product.id} gives the resource ${gift.resource}, and the catalog has no such resource.`);
       else amount(product, `gift of ${gift.resource}`, gift.amount, resource.unit);
     }
-    if (product.gives.length === 0 && product.basis === undefined) error("supplies-basis", "product", product.id, `The product ${product.id} gives no resource and has no basis. A product that gives no resource cites a fact in its basis.`);
+    if (product.gives.length === 0 && !dropped && product.basis === undefined) error("supplies-basis", "product", product.id, `The product ${product.id} gives no resource and has no basis. A product that gives no resource cites a fact in its basis.`);
     if (product.basis !== undefined) {
       const fact = facts.get(product.basis);
       if (fact === undefined || fact.use !== "fact") error("supplies-fact", "product", product.id, `The basis of the product ${product.id} cites ${String(product.basis)}, and the catalog has no fact with that id.`);
@@ -419,9 +478,10 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
       });
       // A food gift in another unit, for example the mass of dry rice, also has food energy. Then the sum is a lower limit.
       const lower = inEnergy.length < food.length;
-      // A gift of a resource that is not in the catalog, a gift with no read, or a value that the gift check refuses
-      // makes the sum unknown. The other checks give the finding.
+      // A gift that the field check removed, a gift of a resource that is not in the catalog, a gift with no read, or a
+      // value that the gift check refuses makes the sum unknown. The other checks give the finding.
       const unknownSum =
+        dropped ||
         product.gives.some((gift) => !resources.has(gift.resource)) ||
         !inEnergy.every((gift) => gift.amount.read && positive(gift.amount.amount) && known(gift.amount.unit) && convertible(gift.amount.unit, ENERGY_UNIT));
       if (inEnergy.length > 0 && !unknownSum) {
@@ -449,7 +509,8 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
       if (product.perPerson.read === true && known(product.perPerson.unit) && !countUnit(product.perPerson.unit))
         error("supplies-unit", "product", product.id, `The count for each person of the product ${product.id} is in ${product.perPerson.unit}. It must be one bare count, for example {each}.`);
     }
-    if (product.average !== undefined) amount(product, "average price", product.average.read ? product.average.per : product.average, product.average.read ? product.average.per.unit : "");
+    if (product.average !== undefined) amount(product, "average price", product.average.read ? product.average.per : product.average, product.average.read && isRecord(product.average.per) ? product.average.per.unit : "");
+    if (product.shelf === undefined) continue;
     if ("foodKeeper" in product.shelf) {
       if (!(Number.isSafeInteger(product.shelf.foodKeeper) && product.shelf.foodKeeper > 0)) error("supplies-shelf", "product", product.id, `The FoodKeeper id of the product ${product.id} is ${String(product.shelf.foodKeeper)}. It must be a whole number more than 0.`);
       else if (foodKeeper !== undefined && !foodKeeper.has(product.shelf.foodKeeper))
