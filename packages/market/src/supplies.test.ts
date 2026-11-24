@@ -396,6 +396,26 @@ describe("the gate of the catalog", () => {
     for (const people of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) expect(() => kitMax(people), String(people)).toThrow(RangeError);
   });
 
+  it("gives one unit for each k persons exactly, where a decimal count for each person cannot hold 1/k", () => {
+    const bag = SUPPLY_CATALOG.products.find((product) => product.id === "heat.sleeping-bag")!;
+    const forK = (amount: number, forPersons: number): SupplyProduct => ({ ...bag, perPerson: { read: true, amount, unit: "{each}", definition: "A test." }, forPersons });
+    const tent = forK(1, 3);
+    expect([0, 1, 2, 3, 4, 6, 7, 9, 10].map((people) => kitMax(people)(tent))).toEqual([0, 1, 1, 1, 2, 2, 3, 3, 4]);
+    expect(kitMax(4)(forK(2, 3))).toBe(3);
+    expect(kitMax(5)(forK(1, 1))).toBe(kitMax(5)(bag));
+    // The decimal 0.333 is not 1/3: for 3000 persons it gives 999 units, and 1 for each 3 persons gives 1000.
+    expect(kitMax(3000)(forK(0.333, 1))).toBe(999);
+    expect(kitMax(3000)(tent)).toBe(1000);
+  });
+
+  it("refuses a count of persons that is not a whole number of 1 or more, or that has no count for each person", () => {
+    const bag = SUPPLY_CATALOG.products.find((product) => product.id === "heat.sleeping-bag")!;
+    const withK = (forPersons: unknown): SupplyCatalog => ({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((product) => (product.id === bag.id ? { ...bag, forPersons: forPersons as number } : product)) });
+    expect(errors(withK(3))).toEqual([]);
+    for (const value of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, "3", null]) expect(errors(withK(value)), String(value)).toEqual(["supplies-amount"]);
+    expect(errors(withProduct({ ...rice, forPersons: 3 }))).toEqual(["supplies-amount"]);
+  });
+
   it("refuses a FoodKeeper id that is not a whole number more than 0, and a shelf life in a unit that is not a time", () => {
     expect(errors(withProduct({ ...rice, shelf: { read: true, foodKeeper: 0 } }))).toEqual(["supplies-shelf"]);
     expect(errors(withProduct({ ...rice, shelf: { read: true, amount: 2, unit: "kg", definition: "A wrong unit." } }))).toEqual(["supplies-unit"]);
