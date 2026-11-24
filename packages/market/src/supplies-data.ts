@@ -44,6 +44,22 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       checked: COOK_CHECKED,
       by: "USDA Food and Nutrition Service (USDA Foods)",
     },
+    {
+      id: "usda.refried-beans",
+      title: "Refried Beans: USDA Recipe for Schools (2019)",
+      url: "https://theicn.org/cnrb/pdfs/schools/Refried-Beans.pdf",
+      license: "us-public-domain",
+      checked: COOK_CHECKED,
+      by: "USDA Food and Nutrition Service, through the Institute of Child Nutrition",
+    },
+    {
+      id: "usda.spaghetti-meat-sauce",
+      title: "Spaghetti and Meat Sauce: USDA Recipe for CACFP (2019)",
+      url: "https://theicn.org/cnrb/pdfs/cacfp/Spaghetti_and_Meat_Sauce_25-50_(2)_F.pdf",
+      license: "us-public-domain",
+      checked: COOK_CHECKED,
+      by: "USDA Food and Nutrition Service, through the Institute of Child Nutrition",
+    },
     { id: "ronzoni.spaghetti", title: "Twirlin' Spaghetti", url: "https://www.ronzoni.com/products/spaghetti", license: "all-rights-reserved", checked: COOK_CHECKED, by: "Ronzoni" },
     {
       id: "nist.propane",
@@ -84,6 +100,22 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       id: "msr.pocketrocket-2",
       title: "PocketRocket 2 Stove (SKU 09884)",
       url: "https://cascadedesigns.com/products/pocketrocket-2-stove",
+      license: "all-rights-reserved",
+      checked: COOK_CHECKED,
+      by: "MSR (Cascade Designs)",
+    },
+    {
+      id: "msr.fuel-to-carry",
+      title: "How much fuel should I carry on a trip?",
+      url: "https://support.cascadedesigns.com/hc/en-us/articles/35376986926867-How-much-fuel-should-I-carry-on-a-trip",
+      license: "all-rights-reserved",
+      checked: COOK_CHECKED,
+      by: "MSR (Cascade Designs)",
+    },
+    {
+      id: "msr.stove-performance",
+      title: "BTUs, Boil Time and Water Boiled: Understanding Stove Performance (2023)",
+      url: "https://www.cascadedesigns.com/blog/btus-boil-time-and-water-boiled-understanding-stove-performance/",
       license: "all-rights-reserved",
       checked: COOK_CHECKED,
       by: "MSR (Cascade Designs)",
@@ -168,6 +200,13 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       locator: "FDC ID 611722",
     },
     {
+      id: "fdc.infant-formula-powder",
+      use: "fact",
+      text: "The item 173554 (infant formula, store brand, powder) gives 524 kcal in 100 g. Its portion of 1 scoop is 8.4 g.",
+      source: "fdc.sr-legacy",
+      locator: "FDC ID 173554, portion 1 scoop (8.4 g)",
+    },
+    {
       id: "fdc.pasta",
       use: "fact",
       text: "The item 168927 (pasta, dry, unenriched) gives 371 kcal in 100 g.",
@@ -224,6 +263,27 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       locator: "Uses and Tips",
     },
     {
+      id: "usda.refried-beans-soak",
+      use: "fact",
+      text: "The recipe tells to add 1 3/4 qt of cold water to each 1 lb of dry beans, cover and refrigerate overnight. Then discard the water.",
+      source: "usda.refried-beans",
+      locator: "Page 4, Soaking Beans, overnight method",
+    },
+    {
+      id: "usda.refried-beans-cook",
+      use: "fact",
+      text: "The recipe tells to add 1 3/4 qt of water for each lb of dry beans after the soak. Boil gently with the lid tilted until tender, about 2 hours.",
+      source: "usda.refried-beans",
+      locator: "Page 4, after Soaking Beans",
+    },
+    {
+      id: "usda.spaghetti-meat-sauce-cook",
+      use: "fact",
+      text: "For 25 servings, the recipe heats 3 gal of water to a rolling boil. Then it adds 1 lb 9 oz of dry whole-wheat spaghetti and cooks it about 8 minutes.",
+      source: "usda.spaghetti-meat-sauce",
+      locator: "Pages 1 and 2, the water of step 8 and the spaghetti of step 9, 25 servings",
+    },
+    {
       id: "ronzoni.spaghetti-cook",
       use: "fact",
       text: "The cooking directions of the page give 9 minutes for al dente and 11 minutes for tender. They give the water for each box, and no mass of a box.",
@@ -273,6 +333,20 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       locator: "Tech Specs",
     },
     {
+      id: "msr.adverse-factor",
+      use: "fact",
+      text: "The article tells that low temperatures, melting snow and wind can need 3 to 4 times as much fuel as the baseline. For an open-flame stove like the PocketRocket, a 5 mph wind can cause up to three times more fuel use.",
+      source: "msr.fuel-to-carry",
+      locator: "The paragraph before the chart, and Conditions affect consumption",
+    },
+    {
+      id: "msr.test-conditions",
+      use: "fact",
+      text: "The page tells that most makers test a stove at sea level, at 70F (21C) and with no wind. A boil test starts with 1 liter of water at room temperature and ends at 212F (100C). In the field, water and air are often colder, and there is usually some wind.",
+      source: "msr.stove-performance",
+      locator: "Test Conditions",
+    },
+    {
       id: "ready.kit-flashlight",
       use: "fact",
       text: "The basic kit of the page has a flashlight and extra batteries.",
@@ -309,6 +383,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
     { code: "food.flour", unit: "kg", title: "Flour, to bake or cook with water and fuel", kind: "food" },
     { code: "food.no-cook", unit: "kcal", title: "Food energy to eat with no water and no fuel", kind: "food" },
     { code: "food.infant-formula-ready", unit: "kcal", title: "Infant formula, ready to feed, with no water and no fuel", kind: "food" },
+    { code: "food.infant-formula-powder", unit: "kg", title: "Infant formula, powder, to mix with safe water and no fuel", kind: "food" },
     { code: "energy.battery", unit: "Wh", title: "Energy in a battery", kind: "power" },
     { code: "battery.aa", unit: "{each}", title: "AA cells", kind: "power" },
     {
@@ -388,7 +463,11 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of dry pinto beans." },
       energy: { read: true, amount: 3470, unit: "kcal", scaled: { rate: { amount: 347, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.beans-pinto" }, of: { amount: 1, unit: "kg", size: true } } },
       shelf: { read: true, foodKeeper: 333 },
-      cook: { time: { low: 1, high: 1.5, unit: "h", fact: "usda.pinto-beans-cook" } },
+      cook: {
+        water: { amount: 1.75, unit: "qt", per: { amount: 1, unit: "lb" }, fact: "usda.refried-beans-cook" },
+        soak: { amount: 1.75, unit: "qt", per: { amount: 1, unit: "lb" }, fact: "usda.refried-beans-soak" },
+        time: { low: 1, high: 1.5, unit: "h", fact: "usda.pinto-beans-cook" },
+      },
       average: {
         read: true,
         source: "bls-ap",
@@ -451,6 +530,16 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       average: { read: false, why: "The known series of average prices have no series of infant formula yet." },
     },
     {
+      id: "food.infant-formula-powder-1kg",
+      title: "Infant formula, powder, 1 kg",
+      kind: "food",
+      gives: [{ resource: "food.infant-formula-powder", amount: { read: true, amount: 1, unit: "kg", size: true } }],
+      size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as 1 kg of infant formula powder, in one or more containers." },
+      energy: { read: true, amount: 5240, unit: "kcal", scaled: { rate: { amount: 524, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.infant-formula-powder" }, of: { amount: 1, unit: "kg", size: true } } },
+      shelf: { read: false, why: "The catalog has no cited shelf life of infant formula. The use-by date on the container applies." },
+      average: { read: false, why: "The known series of average prices have no series of infant formula yet." },
+    },
+    {
       id: "food.pasta-dry-1kg",
       title: "Dry pasta, 1 kg",
       kind: "food",
@@ -458,7 +547,10 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of dry pasta." },
       energy: { read: true, amount: 3710, unit: "kcal", scaled: { rate: { amount: 371, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.pasta" }, of: { amount: 1, unit: "kg", size: true } } },
       shelf: { read: true, foodKeeper: 335 },
-      cook: { time: { low: 9, high: 11, unit: "min", fact: "ronzoni.spaghetti-cook" } },
+      cook: {
+        water: { amount: 3, unit: "gal", per: { amount: 25, unit: "oz" }, fact: "usda.spaghetti-meat-sauce-cook" },
+        time: { low: 9, high: 11, unit: "min", fact: "ronzoni.spaghetti-cook" },
+      },
       average: {
         read: true,
         source: "bls-ap",
@@ -524,7 +616,13 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       kind: "heat",
       basis: "ready.food-camp-stove",
       gives: [],
-      stove: { fuel: "fuel.isobutane-mix", rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate" } },
+      stove: {
+        fuel: "fuel.isobutane-mix",
+        rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate" },
+        // The maker test is in calm air from 21 °C, so the yield is the most: wind and cold water boil less water.
+        boil: { amount: 16, unit: "L", per: { amount: 227, unit: "g" }, fact: "msr.pocketrocket-2-rate", start: { celsius: 21, fact: "msr.test-conditions" }, bound: "most" },
+        adverse: { factor: 4, fact: "msr.adverse-factor", bound: "most" },
+      },
       shelf: { read: false, why: "The source gives no shelf life." },
     },
     {

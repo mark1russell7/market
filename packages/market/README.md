@@ -161,7 +161,7 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - A resource of a fuel can have the field `fuelEnergy`: a cited energy for each mass, with its heating value (`higher` or `lower`). For example, 2219.2 kJ in 44.0956 g of propane. The gate examines its fact and its units.
 - A product can have the field `stove`: the resource of the fuel that it burns and, as an option, its fuel rate at full heat. The fuel rate is an energy or a mass in a time, for example 227 g in 90 min. A rate in an energy also has its heating value.
 - The fuel of a stove is a resource of the catalog with the kind `heat`. A fuel that is not in the catalog is the error `supplies-resource`.
-- Since 0.8.7, a product can have the field `device`: the need that it gives, the resource of its cells and its run time. The run time is a time on a count of cells, for example 48 h on 3 `{each}`, or a no read.
+- Since 0.8.11, a product can have the field `device`: the need that it gives, the resource of its cells and its run time. The run time is a time on a count of cells, for example 48 h on 3 `{each}`, or a no read.
 - The cells of a device are a resource of the catalog with the kind `power` in a bare count. A device on `energy.battery` in `Wh` is the error `supplies-unit`.
 - The run time is a fact of the device. The daily need, for example the 24 h of `alert.watch`, is not in the catalog.
 - The cook time starts when the water boils. The heat to boil the water is a calculation from the cook water.
@@ -185,6 +185,7 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The energy of the power bank is no read. The page of the maker gives 24,000 mAh and no Wh, and a charge does not convert to energy without its voltage.
 - The flashlight, the sleeping bag, the first aid kit and the NOAA weather radio cite the kit list of Ready.gov. Their shelf life is no read, because the source gives no time.
 - Peanut butter gives `food.no-cook` in kcal: food that needs no water and no fuel. This is important in a long power cut. The unit of a resource is the unit that its next step takes. A cooking converter takes dry food in kg, and no-cook food goes to the food need in kcal. It has no series of average prices yet.
+- Since 0.8.7, the catalog has infant formula powder. Its resource and its product are in the tables below. The powder is not ready to feed: a converter mixes it with safe water first.
 - The canned soup is ready to serve, so it also gives `food.no-cook`. One can is 530 g, the portion of the FDC item, so it gives 217.3 kcal. It has no series of average prices yet.
 - Each product with a size in its definition has that size, and the soup has the 530 g of its FDC portion. A product with no known size has no field `size`. It does not have a no read. These products are the flashlight, the sleeping bag, the three stoves, the first aid kit, the radio and the power bank.
 - The water container has no size. It is sold empty, so 1 gal is its capacity and not an amount as sold. Its gift gives the 1 gal of water that it holds when it is full.
@@ -192,18 +193,44 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The shelf life of commercially bottled water is no read. The source gives no time, so the date on the label applies.
 - The resources `fuel.propane` and `fuel.butane` are in `kg`. Their fuel energy is the higher heating value from the NIST Chemistry WebBook (SRD 69). It is the standard enthalpy of combustion of the gas for each mole, and the molecular weight. The page has a copyright of the U.S. Secretary of Commerce, so the catalog keeps only the cited values.
 - The cook water of the rice comes from USA Rice and of the oats from the label of Quaker. The bulk mass of 1 cup of each comes from FoodData Central. The cook times of the beans come from a USDA sheet, and of the pasta from the label of Ronzoni.
-- The beans and the pasta have no cook water. The USDA sheet gives no amount of water, and the pasta label gives the water for each box with no mass of a box. The flour has no cook facts.
+- Since 0.8.8, the dry beans have a cook water and a soak water. A USDA recipe for schools gives 1 3/4 qt of water for each lb of dry beans for each of the two. The cook discards the soak water, so `soakWater` is a second draw on the stored water.
+- Since 0.8.8, the dry pasta has a cook water from a USDA recipe for child care. It gives 3 gal for 1 lb 9 oz of dry spaghetti, approximately 16 L/kg.
+- The USDA recipes do not agree on the pasta water. The recipe for a pasta salad gives 2 gal 3 qt for 6 lb 4 oz. That is approximately 3.7 L/kg. The catalog keeps the spaghetti recipe, because it is the same pasta. The flour has no cook facts.
 - The dry beans are pinto beans. Their food energy comes from the raw pinto bean item of FoodData Central, the same bean as the USDA sheet of the cook time.
 - Since 0.8.5, the catalog has three stoves. They are a canister stove with 1 burner, a propane stove with 2 burners and a butane cartridge stove with 1 burner. Ready.gov names camp stoves as a source of heat to cook, so each stove cites it as its basis.
 - The fuel rate of each stove is a mass in a time from the page of its maker. The rates are 227 g in 60 min, 16.4 oz in 1 h and 8.8 oz in 1.25 h. A rate in a mass needs no heating value.
 - The two Coleman pages give an upper limit of the time ("up to"). Thus each of their rates is a lower limit of the fuel that the stove burns at full heat, and it has `bound: "least"`. A reader that takes a rate as the value takes only a rate with no bound. The butane page gives no burner setting for its time.
 - The MSR page gives a burn time of "approximately" 60 min. Thus its rate has no bound.
 - Each Coleman page also gives a rating in BTU. At the higher heating value of the catalog, the rating gives less fuel than the burn time. The propane stove gives 0.419 kg/h against 0.465 kg/h. The butane stove gives 0.163 kg/h against 0.200 kg/h. Thus the catalog takes the burn time, the side with more fuel. The rating is not an upper limit of the fuel.
-- Only the fuel rate of a stove has a bound (`RATE_BOUNDS`). The gate refuses an unknown bound, and a bound on a cook water, a bulk mass or a fuel energy.
+- Only the fuel rate, the boil yield and the adverse factor of a stove have a bound (`RATE_BOUNDS`: `least` or `most`). The gate refuses an unknown bound, and a bound on a cook water, a bulk mass or a fuel energy.
+- Since 0.8.6, the canister stove has a boil yield: 16 L of water for each 227 g of fuel, from its maker page. The maker test is in calm air from a warm start, so the yield has `bound: "most"`. A reader takes no value from it until a cited field figure exists.
+- Since 0.8.10, the canister stove has an adverse factor (`stove.adverse`). The maker tells that cold, snow melt and wind can need 3 to 4 times the fuel of its boil chart.
+- The catalog keeps the high end, 4, with `bound: "most"`, as it keeps "up to" on a burn time. The low end gives nothing on the safe side.
+- The bound is the word of the maker. Wind stronger than its example of 5 mph can need more fuel.
+- The start of 21 °C is the general test convention of the maker blog for most makers. The spec page of this stove gives no start of its own. A field figure with `bound: "least"` brings its own start.
 - The canister stove burns `fuel.isobutane-mix`. The mix of a canister differs between makers, and the read page gives no mix. Thus this fuel has no fuel energy, and a converter gives a no read for its energy.
 - The product ids of the stoves name no maker. The source records name the maker and the model.
 - A cup is 236.6 mL in `@mark1russell7/quantity` and in FoodData Central. A cup on a label can be 240 mL, a difference of 1.4%.
 - The oats have no series of average prices. The pasta has its own resource `food.pasta-dry`, because the cook drains its water, and rice and oats absorb their water. The dry beans, the pasta and the flour join the BLS series `APU0000714233`, `APU0000701322` and `APU0000701111` in `USD/lb`. The rice joins the BLS series `APU0000701312` in `USD/lb`, so 1 kg of rice costs 2.2046 times the price of 1 lb.
+
+The infant formula of the catalog:
+
+| Resource | Unit | Next step |
+| --- | --- | --- |
+| `food.infant-formula-ready` | `kcal` | It goes to the formula need with no water and no fuel. |
+| `food.infant-formula-powder` | `kg` | A converter mixes it with safe water, with no fuel. The converter gives `food.infant-formula-ready`. |
+
+| Product | Gift | Food energy | Fact |
+| --- | --- | --- | --- |
+| `food.infant-formula-ready-1kg` | 630 kcal of `food.infant-formula-ready` | 630 kcal | `fdc.infant-formula-ready`: FDC 172319, 63 kcal in 100 g |
+| `food.infant-formula-powder-1kg` | 1 kg of `food.infant-formula-powder` | 5240 kcal | `fdc.infant-formula-powder`: FDC 173554, 524 kcal in 100 g |
+
+- The two FDC items are the powder and the ready-to-feed formula of one store brand, in the SR Legacy file of FoodData Central (CC0 1.0).
+- The size of each product is 1 kg by definition, in one or more containers. The fact of the powder also gives 8.4 g for 1 scoop.
+- The powder is in `kg`, as the dry rice. The amount of mix water is a calculation from the mass, so the unit of the next step is a mass.
+- The powder has no cook facts. It is not a food to cook, and it needs no fuel.
+- The powder has no field `opened`. The WIC guide tells to prepare one bottle at a time with powder, so a feed opens no container of ready formula.
+- No product of the two has a part, so `supplyWants` gives no want for them. The mix rule is in `@mark1russell7/stack-needs`.
 
 `FOOD_PLANS` has the costs of the Thrifty Food Plan of USDA for October 2026, in the U.S. average. The costs come from the monthly report of the cost of food (a US federal work). Each cost is for one person of an age and sex group, in a household of four. The changes for the other sizes come from footnote 2 of the report. The plan is a full diet, so a list of dry staples costs much less than the plan. A low ratio is normal. The check of the amount of food is a check of its energy, not of its cost. The members of a household are input data.
 

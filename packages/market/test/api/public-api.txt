@@ -184,8 +184,10 @@ SUPPLY_FORMAT: build/supplies-entry.d.ts#SUPPLY_FORMAT
 SUPPLY_KINDS: build/supplies-entry.d.ts#SUPPLY_KINDS
 type ScaledReason: build/supplies-entry.d.ts#ScaledReason
 type ShelfLife: build/supplies-entry.d.ts#ShelfLife
+type StoveFactor: build/supplies-entry.d.ts#StoveFactor
 type StoveFacts: build/supplies-entry.d.ts#StoveFacts
 type StoveRate: build/supplies-entry.d.ts#StoveRate
+type StoveYield: build/supplies-entry.d.ts#StoveYield
 type SupplyCatalog: build/supplies-entry.d.ts#SupplyCatalog
 type SupplyCode: build/supplies-entry.d.ts#SupplyCode
 type SupplyFinding: build/supplies-entry.d.ts#SupplyFinding
@@ -204,6 +206,7 @@ foodPlanCost: build/supplies-entry.d.ts#foodPlanCost
 fuelEnergyPerMass: build/supplies-entry.d.ts#fuelEnergyPerMass
 giftsOf: build/supplies-entry.d.ts#giftsOf
 kitMax: build/supplies-entry.d.ts#kitMax
+soakWater: build/supplies-entry.d.ts#soakWater
 supplyWants: build/supplies-entry.d.ts#supplyWants
 
 ## Declarations
@@ -1039,6 +1042,7 @@ interface CitedSpan {
 ### build/supplies-entry.d.ts#CookFacts
 interface CookFacts {
   readonly water?: CitedRate | undefined;
+  readonly soak?: CitedRate | undefined;
   readonly bulk?: CitedRate | undefined;
   readonly time?: CitedSpan | undefined;
 }
@@ -1128,7 +1132,7 @@ interface OpenedFacts {
 }
 
 ### build/supplies-entry.d.ts#RATE_BOUNDS
-export declare const RATE_BOUNDS: readonly ["least"];
+export declare const RATE_BOUNDS: readonly ["least", "most"];
 
 ### build/supplies-entry.d.ts#RateBound
 type RateBound = (typeof RATE_BOUNDS)[number];
@@ -1183,16 +1187,33 @@ type ShelfLife = CitedAmount | {
   readonly foodKeeper: number;
 } | NoRead;
 
+### build/supplies-entry.d.ts#StoveFactor
+interface StoveFactor {
+  readonly factor: number;
+  readonly bound?: RateBound | undefined;
+  readonly fact: string;
+}
+
 ### build/supplies-entry.d.ts#StoveFacts
 interface StoveFacts {
   readonly fuel: string;
   readonly rate?: StoveRate | undefined;
+  readonly boil?: StoveYield | undefined;
+  readonly adverse?: StoveFactor | undefined;
   readonly heating?: HeatingValue | undefined;
 }
 
 ### build/supplies-entry.d.ts#StoveRate
 interface StoveRate extends CitedRate {
   readonly bound?: RateBound | undefined;
+}
+
+### build/supplies-entry.d.ts#StoveYield
+interface StoveYield extends StoveRate {
+  readonly start?: {
+    readonly celsius: number;
+    readonly fact: string;
+  } | undefined;
 }
 
 ### build/supplies-entry.d.ts#SupplyCatalog
@@ -1294,6 +1315,9 @@ export declare function giftsOf(catalog: SupplyCatalog, id: string, units: numbe
 
 ### build/supplies-entry.d.ts#kitMax
 export declare function kitMax(people: number): (product: SupplyProduct) => number;
+
+### build/supplies-entry.d.ts#soakWater
+export declare function soakWater(product: SupplyProduct): Quantity | undefined;
 
 ### build/supplies-entry.d.ts#supplyWants
 export declare function supplyWants(catalog: SupplyCatalog, max?: (product: SupplyProduct) => number): ProductWant[];
