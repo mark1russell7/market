@@ -171,12 +171,31 @@ describe("the gate of the catalog", () => {
     expect(errors(reason({ rate, of: { amount: 1, unit: "kg", fact: "fdc.rice-white", definition: "Also a definition." } }))).toEqual(["supplies-fact"]);
     expect(errors(reason({ rate, of: { amount: 1, unit: "kg", definition: " " } }))).toEqual(["supplies-fact"]);
     expect(errors(reason({ rate: { ...rate, per: { amount: 0, unit: "g" } }, of }))).toEqual(["supplies-amount"]);
-    expect(errors(reason({ rate, of: { ...of, unit: "foo" } }))).toEqual(["supplies-amount"]);
+    expect(errors(reason({ rate, of: { ...of, unit: "foo" } }))).toEqual(["supplies-unit"]);
+    expect(errors(reason({ rate, of: { ...of, amount: "1" } }))).toEqual(["supplies-amount"]);
     // kcal in 100 g times 1 L is not an energy.
     expect(errors(reason({ rate, of: { ...of, unit: "L" } }))).toEqual(["supplies-unit"]);
     expect(errors(reason({ rate }))).toEqual(["supplies-fact"]);
     expect(errors(reason(undefined))).toEqual(["supplies-fact"]);
     expect(errors(withProduct({ ...rice, energy: { ...energy, fact: "fdc.rice-white" } as unknown as SupplyProduct["energy"] }))).toEqual(["supplies-fact"]);
+  });
+
+  it("gives a finding and does not throw for an amount that quantity refuses", () => {
+    const energy = rice.energy as Extract<SupplyProduct["energy"], { scaled: unknown }>;
+    const butter = SUPPLY_CATALOG.products.find((product) => product.id === "food.peanut-butter-1kg")!;
+    const withButter = (product: SupplyProduct): SupplyCatalog => ({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === butter.id ? product : each)) });
+    const cited = (amount: unknown): SupplyCatalog => withProduct({ ...rice, energy: { read: true, amount, unit: "kcal", fact: "fdc.rice-white" } as SupplyProduct["energy"] });
+    // A food energy that is not a finite number, also with a scaled reason.
+    for (const amount of [Number.NaN, "3650", undefined, Number.POSITIVE_INFINITY]) expect(errors(cited(amount))).toEqual(["supplies-amount"]);
+    expect(errors(withProduct({ ...rice, energy: { ...energy, amount: Number.NaN } }))).toEqual(["supplies-amount"]);
+    // A gift in kcal that is not a finite number.
+    const gift = butter.gives[0]!;
+    expect(errors(withButter({ ...butter, gives: [{ ...gift, amount: { ...gift.amount, amount: Number.NaN } as typeof gift.amount }] }))).toContain("supplies-amount");
+    // A factor in a level unit, and factors whose product overflows.
+    const { rate, of } = energy.scaled;
+    expect(errors(withProduct({ ...rice, energy: { ...energy, scaled: { rate, of: { ...of, amount: 1, unit: "dB" } } } }))).toEqual(["supplies-unit"]);
+    const overflow = { ...energy, scaled: { rate: { ...rate, amount: 1e300, per: { amount: 1e-300, unit: "g" } }, of } };
+    expect(errors(withProduct({ ...rice, energy: overflow }))).toEqual(["supplies-amount"]);
   });
 
   it("refuses a food energy that is not equal to a gift of the product in a unit of energy", () => {

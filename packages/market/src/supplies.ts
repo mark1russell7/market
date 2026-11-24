@@ -1,5 +1,5 @@
 import { checkSources, checkUnits, type CitedUnit, type Finding, type FindingCode, type GateOptions, type Source } from "@mark1russell7/guidebook";
-import { canonicalUnit, convertible, divide, kindOf, multiply, quantity, rationals, valueIn, whyNotConvertible, type Quantity } from "@mark1russell7/quantity";
+import { canonicalUnit, convertible, divide, kindOf, multiply, quantity, rationals, UnitError, valueIn, whyNotConvertible, type Quantity } from "@mark1russell7/quantity";
 import { latestAverages, moneyOf, monthSchema, type AveragePrice } from "./average.ts";
 import type { PartWant } from "./offers.ts";
 import type { ProductWant } from "./order.ts";
@@ -167,6 +167,11 @@ function amountIn(value: number, unit: string): Quantity {
   return quantity(value, canonicalUnit(unit));
 }
 
+/** This function tells if a value from JSON is a finite number. `quantity` throws for another value. */
+function finite(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
 /** This function tells if two amounts are equal, to a relative error of 1e-9 for the rounding of a conversion. */
 function same(a: number, b: number): boolean {
   return Math.abs(a - b) <= 1e-9 * Math.max(Math.abs(a), Math.abs(b));
@@ -278,19 +283,31 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
     ];
     let good = Number.isFinite(value) && value > 0 && known(unit);
     for (const [name, factor, factorUnit] of factors) {
-      if (Number.isFinite(factor) && factor > 0 && known(factorUnit)) continue;
-      error("supplies-amount", "product", product, `The ${name} of the scaled ${what} of the product ${product} is ${String(factor)} ${String(factorUnit)}. It must be a finite number more than 0 in a known unit.`);
-      good = false;
+      if (!known(factorUnit)) {
+        error("supplies-unit", "product", product, `The unit ${String(factorUnit)} of the ${name} of the scaled ${what} of the product ${product} is not a known unit.`);
+        good = false;
+      }
+      if (typeof factor !== "number" || !Number.isFinite(factor) || factor <= 0) {
+        error("supplies-amount", "product", product, `The ${name} of the scaled ${what} of the product ${product} is ${String(factor)}. It must be a finite number more than 0.`);
+        good = false;
+      }
     }
     if (!good) return;
-    const total = multiply(divide(amountIn(rate.amount, rate.unit), amountIn(rate.per.amount, rate.per.unit)), amountIn(of.amount, of.unit));
-    const why = whyNotConvertible(total.unit, unit);
-    if (why !== undefined) {
-      error("supplies-unit", "product", product, `The rate times the amount of the scaled ${what} of the product ${product} is in ${total.unit}, and it does not convert to ${unit}: ${why}.`);
-      return;
+    // The units and the values are known, but quantity can still refuse the product: a level unit, for example dB,
+    // or a value that overflows. Each refusal is a finding, and the gate does not throw.
+    try {
+      const total = multiply(divide(amountIn(rate.amount, rate.unit), amountIn(rate.per.amount, rate.per.unit)), amountIn(of.amount, of.unit));
+      const why = whyNotConvertible(total.unit, unit);
+      if (why !== undefined) {
+        error("supplies-unit", "product", product, `The rate times the amount of the scaled ${what} of the product ${product} is in ${total.unit}, and it does not convert to ${unit}: ${why}.`);
+        return;
+      }
+      const expected = valueIn(total, canonicalUnit(unit));
+      if (!same(expected, value)) error("supplies-amount", "product", product, `The ${what} of the product ${product} is ${String(value)} ${unit}, and its rate times its amount gives ${String(expected)} ${unit}.`);
+    } catch (cause) {
+      const code = cause instanceof UnitError ? "supplies-unit" : "supplies-amount";
+      error(code, "product", product, `The rate times the amount of the scaled ${what} of the product ${product} has no value: ${cause instanceof Error ? cause.message : String(cause)}.`);
     }
-    const expected = valueIn(total, canonicalUnit(unit));
-    if (!same(expected, value)) error("supplies-amount", "product", product, `The ${what} of the product ${product} is ${String(value)} ${unit}, and its rate times its amount gives ${String(expected)} ${unit}.`);
   };
 
   /** This function examines one cited amount, and gives the unit check to `units`. */
@@ -333,13 +350,14 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
     // An unknown kind has its own error above, so this rule examines only a known kind that is not food.
     if (product.energy !== undefined && product.kind !== "food" && (SUPPLY_KINDS as readonly string[]).includes(product.kind)) error("supplies-kind", "product", product.id, `The product ${product.id} has a food energy, and its kind is ${String(product.kind)}. Only a product of the kind food has a food energy.`);
     if (product.energy !== undefined) amount(product.id, "food energy", product.energy, ENERGY_UNIT);
-    if (product.energy?.read === true && known(product.energy.unit) && convertible(product.energy.unit, ENERGY_UNIT)) {
+    // `amount` gave the error of an amount that is not a finite number, so this check skips it.
+    if (product.energy?.read === true && finite(product.energy.amount) && known(product.energy.unit) && convertible(product.energy.unit, ENERGY_UNIT)) {
       // A gift in a unit of energy is the same food energy, so the two values must agree.
       const energy = valueIn(amountIn(product.energy.amount, product.energy.unit), ENERGY_UNIT);
       for (const gift of product.gives) {
         const unit = resources.get(gift.resource)?.unit;
         if (!gift.amount.read || unit === undefined || !known(unit) || !convertible(unit, ENERGY_UNIT)) continue;
-        if (!known(gift.amount.unit) || !convertible(gift.amount.unit, ENERGY_UNIT)) continue;
+        if (!finite(gift.amount.amount) || !known(gift.amount.unit) || !convertible(gift.amount.unit, ENERGY_UNIT)) continue;
         const given = valueIn(amountIn(gift.amount.amount, gift.amount.unit), ENERGY_UNIT);
         if (!same(given, energy))
           error("supplies-energy", "product", product.id, `The product ${product.id} gives ${String(given)} kcal of ${gift.resource}, and its food energy is ${String(energy)} kcal. The two must be equal.`);
