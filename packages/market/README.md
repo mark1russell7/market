@@ -182,6 +182,7 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The energy of the power bank is no read. The page of the maker gives 24,000 mAh and no Wh, and a charge does not convert to energy without its voltage.
 - The flashlight, the sleeping bag, the first aid kit and the NOAA weather radio cite the kit list of Ready.gov. Their shelf life is no read, because the source gives no time.
 - Peanut butter gives `food.no-cook` in kcal: food that needs no water and no fuel. This is important in a long power cut. The unit of a resource is the unit that its next step takes. A cooking converter takes dry food in kg, and no-cook food goes to the food need in kcal. It has no series of average prices yet.
+- Since 0.8.7, the catalog has infant formula powder. Its resource and its product are in the tables below. The powder is not ready to feed: a converter mixes it with safe water first.
 - The canned soup is ready to serve, so it also gives `food.no-cook`. One can is 530 g, the portion of the FDC item, so it gives 217.3 kcal. It has no series of average prices yet.
 - Each product with a size in its definition has that size, and the soup has the 530 g of its FDC portion. A product with no known size has no field `size`. It does not have a no read. These products are the flashlight, the sleeping bag, the three stoves, the first aid kit, the radio and the power bank.
 - The water container has no size. It is sold empty, so 1 gal is its capacity and not an amount as sold. Its gift gives the 1 gal of water that it holds when it is full.
@@ -204,6 +205,25 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The product ids of the stoves name no maker. The source records name the maker and the model.
 - A cup is 236.6 mL in `@mark1russell7/quantity` and in FoodData Central. A cup on a label can be 240 mL, a difference of 1.4%.
 - The oats have no series of average prices. The pasta has its own resource `food.pasta-dry`, because the cook drains its water, and rice and oats absorb their water. The dry beans, the pasta and the flour join the BLS series `APU0000714233`, `APU0000701322` and `APU0000701111` in `USD/lb`. The rice joins the BLS series `APU0000701312` in `USD/lb`, so 1 kg of rice costs 2.2046 times the price of 1 lb.
+
+The infant formula of the catalog:
+
+| Resource | Unit | Next step |
+| --- | --- | --- |
+| `food.infant-formula-ready` | `kcal` | It goes to the formula need with no water and no fuel. |
+| `food.infant-formula-powder` | `kg` | A converter mixes it with safe water, with no fuel. The converter gives `food.infant-formula-ready`. |
+
+| Product | Gift | Food energy | Fact |
+| --- | --- | --- | --- |
+| `food.infant-formula-ready-1kg` | 630 kcal of `food.infant-formula-ready` | 630 kcal | `fdc.infant-formula-ready`: FDC 172319, 63 kcal in 100 g |
+| `food.infant-formula-powder-1kg` | 1 kg of `food.infant-formula-powder` | 5240 kcal | `fdc.infant-formula-powder`: FDC 173554, 524 kcal in 100 g |
+
+- The two FDC items are the powder and the ready-to-feed formula of one store brand, in the SR Legacy file of FoodData Central (CC0 1.0).
+- The size of each product is 1 kg by definition, in one or more containers. The fact of the powder also gives 8.4 g for 1 scoop.
+- The powder is in `kg`, as the dry rice. The amount of mix water is a calculation from the mass, so the unit of the next step is a mass.
+- The powder has no cook facts. It is not a food to cook, and it needs no fuel.
+- The powder has no field `opened`. The WIC guide tells to prepare one bottle at a time with powder, so a feed opens no container of ready formula.
+- No product of the two has a part, so `supplyWants` gives no want for them. The mix rule is in `@mark1russell7/stack-needs`.
 
 `FOOD_PLANS` has the costs of the Thrifty Food Plan of USDA for October 2026, in the U.S. average. The costs come from the monthly report of the cost of food (a US federal work). Each cost is for one person of an age and sex group, in a household of four. The changes for the other sizes come from footnote 2 of the report. The plan is a full diet, so a list of dry staples costs much less than the plan. A low ratio is normal. The check of the amount of food is a check of its energy, not of its cost. The members of a household are input data.
 

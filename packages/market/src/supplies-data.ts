@@ -192,6 +192,13 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       locator: "FDC ID 611722",
     },
     {
+      id: "fdc.infant-formula-powder",
+      use: "fact",
+      text: "The item 173554 (infant formula, store brand, powder) gives 524 kcal in 100 g. Its portion of 1 scoop is 8.4 g.",
+      source: "fdc.sr-legacy",
+      locator: "FDC ID 173554, portion 1 scoop (8.4 g)",
+    },
+    {
       id: "fdc.pasta",
       use: "fact",
       text: "The item 168927 (pasta, dry, unenriched) gives 371 kcal in 100 g.",
@@ -361,6 +368,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
     { code: "food.flour", unit: "kg", title: "Flour, to bake or cook with water and fuel", kind: "food" },
     { code: "food.no-cook", unit: "kcal", title: "Food energy to eat with no water and no fuel", kind: "food" },
     { code: "food.infant-formula-ready", unit: "kcal", title: "Infant formula, ready to feed, with no water and no fuel", kind: "food" },
+    { code: "food.infant-formula-powder", unit: "kg", title: "Infant formula, powder, to mix with safe water and no fuel", kind: "food" },
     { code: "energy.battery", unit: "Wh", title: "Energy in a battery", kind: "power" },
     {
       code: "fuel.propane",
@@ -503,6 +511,16 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       energy: { read: true, amount: 612.864, unit: "kcal", scaled: { rate: { amount: 63, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.infant-formula-ready" }, of: { amount: 972.8, unit: "g", size: true } } },
       shelf: { read: false, why: "The catalog has no cited shelf life of infant formula. The use-by date on the container applies." },
       opened: { container: { read: true, amount: 972.8, unit: "g", size: true }, noCold: "wic.formula-opened" },
+      average: { read: false, why: "The known series of average prices have no series of infant formula yet." },
+    },
+    {
+      id: "food.infant-formula-powder-1kg",
+      title: "Infant formula, powder, 1 kg",
+      kind: "food",
+      gives: [{ resource: "food.infant-formula-powder", amount: { read: true, amount: 1, unit: "kg", size: true } }],
+      size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as 1 kg of infant formula powder, in one or more containers." },
+      energy: { read: true, amount: 5240, unit: "kcal", scaled: { rate: { amount: 524, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.infant-formula-powder" }, of: { amount: 1, unit: "kg", size: true } } },
+      shelf: { read: false, why: "The catalog has no cited shelf life of infant formula. The use-by date on the container applies." },
       average: { read: false, why: "The known series of average prices have no series of infant formula yet." },
     },
     {
