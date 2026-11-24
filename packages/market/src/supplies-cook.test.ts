@@ -24,6 +24,9 @@ function citedFacts(catalog: SupplyCatalog): { readonly where: string; readonly 
       for (const [name, value] of Object.entries(cook) as [string, CitedRate | CitedSpan | undefined][]) if (value !== undefined) out.push({ where: `${each.id} cook.${name}`, fact: value.fact });
     const rate = each.stove?.rate;
     if (rate !== undefined) out.push({ where: `${each.id} stove.rate`, fact: rate.fact });
+    const boil = each.stove?.boil;
+    if (boil !== undefined) out.push({ where: `${each.id} stove.boil`, fact: boil.fact });
+    if (boil?.start !== undefined) out.push({ where: `${each.id} stove.boil.start`, fact: boil.start.fact });
   }
   return out;
 }
@@ -36,7 +39,7 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
 
   it("gives each cook and fuel field a fact with a source and a license", () => {
     const cited = citedFacts(SUPPLY_CATALOG);
-    expect(cited.length).toBe(13);
+    expect(cited.length).toBe(18);
     for (const { where, fact } of cited) {
       const unit = SUPPLY_CATALOG.facts.find((each) => each.id === fact);
       expect(unit?.use, where).toBe("fact");
@@ -77,12 +80,15 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
       soak: { amount: 1.75, unit: "qt", per: { amount: 1, unit: "lb" }, fact: "usda.refried-beans-soak" },
       time: { low: 1, high: 1.5, unit: "h", fact: "usda.pinto-beans-cook" },
     });
-    expect(product("food.pasta-dry-1kg").cook).toEqual({ time: { low: 9, high: 11, unit: "min", fact: "ronzoni.spaghetti-cook" } });
+    expect(product("food.pasta-dry-1kg").cook).toEqual({
+      water: { amount: 3, unit: "gal", per: { amount: 25, unit: "oz" }, fact: "usda.spaghetti-meat-sauce-cook" },
+      time: { low: 9, high: 11, unit: "min", fact: "ronzoni.spaghetti-cook" },
+    });
   });
 
-  it("has no cook field with no cited fact: the pasta has no water, and the flour has no cook facts", () => {
+  it("has no cook field with no cited fact: the rice and the pasta have no soak, and the flour has no cook facts", () => {
+    expect(product("food.rice-white-1kg").cook?.soak).toBeUndefined();
     expect(product("food.pasta-dry-1kg").cook?.soak).toBeUndefined();
-    expect(product("food.pasta-dry-1kg").cook?.water).toBeUndefined();
     expect("cook" in product("food.flour-white-1kg")).toBe(false);
     for (const each of SUPPLY_CATALOG.products.filter((item) => item.kind !== "food")) expect("cook" in each, each.id).toBe(false);
   });
@@ -97,6 +103,8 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
     expect(cookWater(beans)!.value).toBeCloseTo((1.75 * 0.946352946) / 0.45359237, 9);
     expect(soakWater(beans)!.value).toBeCloseTo((1.75 * 0.946352946) / 0.45359237, 9);
     expect(soakWater(rice)).toBeUndefined();
+    // The USDA recipe gives 3 gal of water for 1 lb 9 oz (25 oz) of dry spaghetti: about 16 L/kg.
+    expect(cookWater(product("food.pasta-dry-1kg"))!.value).toBeCloseTo((3 * 3.785411784) / (25 * 0.028349523125), 9);
     expect(cookWater({ ...rice, cook: { water: { amount: 4, unit: "qt", per: { amount: 1, unit: "lb" }, fact: "usarice.long-grain-white" } } })!.value).toBeCloseTo((4 * 0.946352946) / 0.45359237, 9);
     expect(cookWater({ ...rice, cook: { water: rice.cook!.water } })).toBeUndefined();
   });

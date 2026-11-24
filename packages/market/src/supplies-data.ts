@@ -52,6 +52,14 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       checked: COOK_CHECKED,
       by: "USDA Food and Nutrition Service, through the Institute of Child Nutrition",
     },
+    {
+      id: "usda.spaghetti-meat-sauce",
+      title: "Spaghetti and Meat Sauce: USDA Recipe for CACFP (2019)",
+      url: "https://theicn.org/cnrb/pdfs/cacfp/Spaghetti_and_Meat_Sauce_25-50_(2)_F.pdf",
+      license: "us-public-domain",
+      checked: COOK_CHECKED,
+      by: "USDA Food and Nutrition Service, through the Institute of Child Nutrition",
+    },
     { id: "ronzoni.spaghetti", title: "Twirlin' Spaghetti", url: "https://www.ronzoni.com/products/spaghetti", license: "all-rights-reserved", checked: COOK_CHECKED, by: "Ronzoni" },
     {
       id: "nist.propane",
@@ -252,6 +260,13 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       text: "The recipe tells to add 1 3/4 qt of water for each lb of dry beans after the soak. Boil gently with the lid tilted until tender, about 2 hours.",
       source: "usda.refried-beans",
       locator: "Page 4, after Soaking Beans",
+    },
+    {
+      id: "usda.spaghetti-meat-sauce-cook",
+      use: "fact",
+      text: "For 25 servings, the recipe heats 3 gal of water to a rolling boil. Then it adds 1 lb 9 oz of dry whole-wheat spaghetti and cooks it about 8 minutes.",
+      source: "usda.spaghetti-meat-sauce",
+      locator: "Pages 1 and 2, the water of step 8 and the spaghetti of step 9, 25 servings",
     },
     {
       id: "ronzoni.spaghetti-cook",
@@ -498,7 +513,10 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of dry pasta." },
       energy: { read: true, amount: 3710, unit: "kcal", scaled: { rate: { amount: 371, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.pasta" }, of: { amount: 1, unit: "kg", size: true } } },
       shelf: { read: true, foodKeeper: 335 },
-      cook: { time: { low: 9, high: 11, unit: "min", fact: "ronzoni.spaghetti-cook" } },
+      cook: {
+        water: { amount: 3, unit: "gal", per: { amount: 25, unit: "oz" }, fact: "usda.spaghetti-meat-sauce-cook" },
+        time: { low: 9, high: 11, unit: "min", fact: "ronzoni.spaghetti-cook" },
+      },
       average: {
         read: true,
         source: "bls-ap",
