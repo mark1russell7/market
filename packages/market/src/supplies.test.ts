@@ -56,14 +56,18 @@ describe("the reference catalog of supplies", () => {
       "supplies-no-read first-aid.kit",
       "supplies-no-read communication.noaa-radio",
       "supplies-no-read communication.noaa-radio",
+      "supplies-no-read communication.frs-radio-pair",
+      "supplies-no-read communication.mesh-text-node",
+      "supplies-no-read communication.mesh-text-node",
       "supplies-no-read power.anker-737",
       "supplies-no-read power.anker-737",
     ]);
   });
 
-  it("has a product of each supply kind, and a cited basis for each product that gives no stored resource", () => {
+  it("has a product of each supply kind, and a cited basis or a no read of the basis for each product that gives no stored resource", () => {
     expect(new Set(SUPPLY_CATALOG.products.map((product) => product.kind))).toEqual(new Set(SUPPLY_KINDS));
-    for (const product of SUPPLY_CATALOG.products.filter((each) => each.gives.length === 0)) expect(product.basis, product.id).toBeDefined();
+    for (const product of SUPPLY_CATALOG.products.filter((each) => each.gives.length === 0)) expect(product.basis ?? product.noBasis, product.id).toBeDefined();
+    expect(SUPPLY_CATALOG.products.filter((product) => product.noBasis !== undefined).map((product) => product.id)).toEqual(["communication.mesh-text-node"]);
   });
 
   it("refuses a basis that is not a fact of the catalog, and counts a basis as a use of its fact", () => {
@@ -74,6 +78,29 @@ describe("the reference catalog of supplies", () => {
     expect(errors({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === radio.id ? { ...radio, basis: undefined, gives: plainRice.gives } : each)) })).toEqual([]);
     const unused = checkSupplies(products(undefined)).filter((finding) => finding.code === "supplies-unused");
     expect(unused.map((finding) => finding.id)).toEqual(["ready.kit-radio"]);
+  });
+
+  it("gives a warning for a no read of the basis, and refuses a basis with a no read or a bad no read", () => {
+    const mesh = SUPPLY_CATALOG.products.find((product) => product.id === "communication.mesh-text-node")!;
+    const withMesh = (product: SupplyProduct): SupplyCatalog => ({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === mesh.id ? product : each)) });
+    expect(errors(withMesh(mesh))).toEqual([]);
+    expect(checkSupplies(withMesh(mesh)).filter((finding) => finding.id === mesh.id && finding.level === "warning").map((finding) => finding.message)[0]).toMatch(/basis .* no read/);
+    expect(errors(withMesh({ ...mesh, noBasis: undefined }))).toEqual(["supplies-basis"]);
+    expect(errors(withMesh({ ...mesh, basis: "redcross.kit-two-way-radios" }))).toEqual(["supplies-basis"]);
+    expect(errors(withMesh({ ...mesh, noBasis: { read: true } as unknown as SupplyProduct["noBasis"] }))).toEqual(["supplies-basis"]);
+    expect(errors(withMesh({ ...mesh, noBasis: null as unknown as SupplyProduct["noBasis"] }))).toEqual(["supplies-amount", "supplies-basis"]);
+    expect(codes(withMesh({ ...mesh, noBasis: { read: false, why: " " } }))).toContain("supplies-no-reason");
+  });
+
+  it("examines each note of a product, and counts a note as a use of its fact", () => {
+    const radio = SUPPLY_CATALOG.products.find((product) => product.id === "communication.frs-radio-pair")!;
+    const withRadio = (product: SupplyProduct): SupplyCatalog => ({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === radio.id ? product : each)) });
+    expect(radio.notes).toContain("ecfr.gmrs-license");
+    expect(errors(withRadio({ ...radio, notes: [...radio.notes!, "unknown"] }))).toEqual(["supplies-fact"]);
+    expect(errors(withRadio({ ...radio, notes: [...radio.notes!, radio.notes![0]!] }))).toEqual(["supplies-twice"]);
+    expect(errors(withRadio({ ...radio, notes: "ecfr.frs-power" as unknown as string[] }))).toEqual(["supplies-fact"]);
+    const unused = checkSupplies(withRadio({ ...radio, notes: undefined })).filter((finding) => finding.code === "supplies-unused");
+    expect(unused.map((finding) => finding.id)).toEqual([...radio.notes!, "ecfr.47-95-305", "ecfr.47-95-b", "ecfr.47-95-e", "ecfr.47-1-1102"]);
   });
 
   it("gives the food energy of ready-to-feed infant formula in its own resource, so only the infant draw uses it", () => {
@@ -134,6 +161,7 @@ describe("the reference catalog of supplies", () => {
       "heat.stove-butane-1-burner",
       "first-aid.kit",
       "communication.noaa-radio",
+      "communication.mesh-text-node",
       "power.anker-737",
     ]);
     for (const product of sized) {
