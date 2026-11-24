@@ -154,6 +154,9 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - A product can join a series of average prices. The join names the source, the series and the amount of the item in one unit, with its reason. A product with no series has a no read with its reason.
 - With the option `foodKeeper`, the gate examines each FoodKeeper id of a shelf life. An id that is not in the known ids is the error `supplies-shelf`. The option is a set or a list of ids, for example the ids of `FOODKEEPER_PRODUCTS` of `@mark1russell7/stock/foodkeeper`. With no option, the gate does not examine the ids against the data.
 - A catalog from JSON can have a field of a product that is null or not a record, for example `size: null`. The gate gives one error for each such field and does not throw. Then it examines the product with no such field.
+- Since 0.8.13, the gate also does not throw one level up. A bad catalog, a bad list and a bad item each give a `supplies-format` error.
+- A catalog or an item is bad when it is not a record. A list is bad when it is not a list.
+- The gate then examines the other items. A property test puts a bad value at random places of the catalog, and the gate must not throw.
 - market has no runtime dependency on `@mark1russell7/stock`. The code that calls the gate gives the ids. The tests of market gate the reference catalog with the ids of stock.
 - The gate does not examine a resource code against a layer of stores. The code that joins the catalog to a layer of stores gives that gate.
 - Since 0.8.1, a food product can have cook facts in the field `cook`. The field `water` is the water for each volume or mass of the dry food. The field `bulk` is the mass of a volume of the dry food. The field `time` is the cook time from low to high. Each cites a fact and keeps the two values of the source, for example 2 cup of water for 1 cup of rice.

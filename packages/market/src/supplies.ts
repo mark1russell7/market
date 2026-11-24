@@ -416,10 +416,48 @@ function countUnit(unit: string): boolean {
   return /^{[^{}/]+}$/.test(unit) && kindOf(unit) === "count";
 }
 
+/** The four lists of a catalog, each with the record of its findings. */
+const CATALOG_LISTS = [
+  ["sources", "source"],
+  ["facts", "unit"],
+  ["resources", "resource"],
+  ["products", "product"],
+] as const;
+
+/**
+ * This function gives the sound part of a catalog from JSON, and an error for each bad shape.
+ * The sound part has the four lists, and each item of a list is a record.
+ * A catalog or an item that is not a record gives an error. A list that is not a list also gives an error.
+ * The gate examines only the sound part, so it does not throw.
+ */
+function soundCatalog(input: unknown): { readonly catalog: SupplyCatalog; readonly faults: SupplyFinding[] } {
+  const faults: SupplyFinding[] = [];
+  const root = isRecord(input) ? input : undefined;
+  if (root === undefined)
+    faults.push({ level: "error", code: "supplies-format", record: "product", id: "", message: `The catalog is ${shown(input)}. It must be a record with the lists sources, facts, resources and products.` });
+  const sound: Record<string, unknown> = { ...root };
+  for (const [list, record] of CATALOG_LISTS) {
+    const value = root?.[list];
+    if (!Array.isArray(value)) {
+      if (root !== undefined) faults.push({ level: "error", code: "supplies-format", record, id: list, message: `The list ${list} of the catalog is ${shown(value)}. It must be a list.` });
+      sound[list] = [];
+      continue;
+    }
+    sound[list] = value.filter((item: unknown, index: number) => {
+      if (isRecord(item)) return true;
+      faults.push({ level: "error", code: "supplies-format", record, id: `${list}[${String(index)}]`, message: `The item ${String(index)} of the list ${list} is ${shown(item)}. It must be a record.` });
+      return false;
+    });
+  }
+  return { catalog: sound as unknown as SupplyCatalog, faults };
+}
+
 /**
  * This function examines a catalog. It gives the findings of the sources and the facts (the gate of
  * `@mark1russell7/guidebook`), and the findings of the products:
  *
+ * - An error (`supplies-format`) for a catalog or an item that is not a record, and for a list that is not a list.
+ *   The gate examines the other items.
  * - An error for a product or a resource two times, a kind that is not a supply kind, and a gift of an unknown resource.
  * - An error for a product that gives no resource and has no basis.
  * - An error for a field `energy` on a product that is not food. The field is the food energy of one unit.
@@ -460,9 +498,11 @@ function countUnit(unit: string): boolean {
  * @param options - The options of the gate of the sources, for example the date of the gate, and the known FoodKeeper ids
  */
 export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions = {}): SupplyFinding[] {
+  const shape = soundCatalog(catalog);
+  catalog = shape.catalog;
   const { foodKeeper: knownFoodKeeper, ...gate } = options;
   const foodKeeper = knownFoodKeeper === undefined ? undefined : new Set<number>(knownFoodKeeper);
-  const out: SupplyFinding[] = [...checkSources(catalog.sources, gate), ...checkUnits(catalog.facts, catalog.sources, gate)];
+  const out: SupplyFinding[] = [...shape.faults, ...checkSources(catalog.sources, gate), ...checkUnits(catalog.facts, catalog.sources, gate)];
   const error = (code: SupplyCode, record: "resource" | "product", id: string, message: string): void => {
     out.push({ level: "error", code, record, id, message });
   };
