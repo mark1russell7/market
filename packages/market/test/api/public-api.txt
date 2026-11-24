@@ -162,6 +162,7 @@ type CitedAmount: build/supplies-entry.d.ts#CitedAmount
 type CitedRate: build/supplies-entry.d.ts#CitedRate
 type CitedSpan: build/supplies-entry.d.ts#CitedSpan
 type CookFacts: build/supplies-entry.d.ts#CookFacts
+type DeviceFacts: build/supplies-entry.d.ts#DeviceFacts
 FOOD_PLANS: build/supplies-entry.d.ts#FOOD_PLANS
 FOOD_PLAN_GROUPS: build/supplies-entry.d.ts#FOOD_PLAN_GROUPS
 type FoodPlan: build/supplies-entry.d.ts#FoodPlan
@@ -1042,6 +1043,13 @@ interface CookFacts {
   readonly time?: CitedSpan | undefined;
 }
 
+### build/supplies-entry.d.ts#DeviceFacts
+interface DeviceFacts {
+  readonly need: string;
+  readonly battery: string;
+  readonly run: CitedRate | NoRead;
+}
+
 ### build/supplies-entry.d.ts#FOOD_PLANS
 export declare const FOOD_PLANS: readonly FoodPlan[];
 
@@ -1245,6 +1253,7 @@ interface SupplyProduct {
   readonly average?: AverageJoin | NoRead | undefined;
   readonly cook?: CookFacts | undefined;
   readonly stove?: StoveFacts | undefined;
+  readonly device?: DeviceFacts | undefined;
   readonly opened?: OpenedFacts | undefined;
 }
 

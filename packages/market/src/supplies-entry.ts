@@ -28,6 +28,7 @@ export {
   type RateBound,
   type StoveRate,
   type StoveFacts,
+  type DeviceFacts,
   type ScaledReason,
   type GiftOf,
   type NoRead,
