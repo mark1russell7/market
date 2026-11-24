@@ -161,7 +161,7 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - A resource of a fuel can have the field `fuelEnergy`: a cited energy for each mass, with its heating value (`higher` or `lower`). For example, 2219.2 kJ in 44.0956 g of propane. The gate examines its fact and its units.
 - A product can have the field `stove`: the resource of the fuel that it burns and, as an option, its fuel rate at full heat. The fuel rate is an energy or a mass in a time, for example 227 g in 90 min. A rate in an energy also has its heating value.
 - The fuel of a stove is a resource of the catalog with the kind `heat`. A fuel that is not in the catalog is the error `supplies-resource`.
-- Since 0.8.6, a product can have the field `device`: the need that it gives, the resource of its cells and its run time. The run time is a time on a count of cells, for example 48 h on 3 `{each}`, or a no read.
+- Since 0.8.7, a product can have the field `device`: the need that it gives, the resource of its cells and its run time. The run time is a time on a count of cells, for example 48 h on 3 `{each}`, or a no read.
 - The cells of a device are a resource of the catalog with the kind `power` in a bare count. A device on `energy.battery` in `Wh` is the error `supplies-unit`.
 - The run time is a fact of the device. The daily need, for example the 24 h of `alert.watch`, is not in the catalog.
 - The cook time starts when the water boils. The heat to boil the water is a calculation from the cook water.
