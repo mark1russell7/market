@@ -207,6 +207,8 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - Since 0.8.10, the canister stove has an adverse factor (`stove.adverse`). The maker tells that cold, snow melt and wind can need 3 to 4 times the fuel of its boil chart.
 - The catalog keeps the high end, 4, with `bound: "most"`, as it keeps "up to" on a burn time. The low end gives nothing on the safe side.
 - The bound is the word of the maker. Wind stronger than its example of 5 mph can need more fuel.
+- Since 0.8.12, a boil yield can cite its end (`stove.boil.end`): the boil point at the site of the test. A test at a high place boils below 100 °C.
+- The canister yield ends at 100 °C. The cited test conditions are at sea level, and the test ends at 212 °F (100 °C).
 - The start of 21 °C is the general test convention of the maker blog for most makers. The spec page of this stove gives no start of its own. A field figure with `bound: "least"` brings its own start.
 - The canister stove burns `fuel.isobutane-mix`. The mix of a canister differs between makers, and the read page gives no mix. Thus this fuel has no fuel energy, and a converter gives a no read for its energy.
 - The product ids of the stoves name no maker. The source records name the maker and the model.

@@ -27,6 +27,7 @@ function citedFacts(catalog: SupplyCatalog): { readonly where: string; readonly 
     const boil = each.stove?.boil;
     if (boil !== undefined) out.push({ where: `${each.id} stove.boil`, fact: boil.fact });
     if (boil?.start !== undefined) out.push({ where: `${each.id} stove.boil.start`, fact: boil.start.fact });
+    if (boil?.end !== undefined) out.push({ where: `${each.id} stove.boil.end`, fact: boil.end.fact });
     const adverse = each.stove?.adverse;
     if (adverse !== undefined) out.push({ where: `${each.id} stove.adverse`, fact: adverse.fact });
   }
@@ -41,7 +42,7 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
 
   it("gives each cook and fuel field a fact with a source and a license", () => {
     const cited = citedFacts(SUPPLY_CATALOG);
-    expect(cited.length).toBe(19);
+    expect(cited.length).toBe(20);
     for (const { where, fact } of cited) {
       const unit = SUPPLY_CATALOG.facts.find((each) => each.id === fact);
       expect(unit?.use, where).toBe("fact");
@@ -137,7 +138,7 @@ describe("the stoves of the reference catalog", () => {
     expect(product("heat.stove-canister-1-burner").stove).toEqual({
       fuel: "fuel.isobutane-mix",
       rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate" },
-      boil: { amount: 16, unit: "L", per: { amount: 227, unit: "g" }, fact: "msr.pocketrocket-2-rate", start: { celsius: 21, fact: "msr.test-conditions" }, bound: "most" },
+      boil: { amount: 16, unit: "L", per: { amount: 227, unit: "g" }, fact: "msr.pocketrocket-2-rate", start: { celsius: 21, fact: "msr.test-conditions" }, end: { celsius: 100, fact: "msr.test-conditions" }, bound: "most" },
       adverse: { factor: 4, fact: "msr.adverse-factor", bound: "most" },
     });
     expect(product("heat.stove-propane-2-burner").stove).toEqual({ fuel: "fuel.propane", rate: { amount: 16.4, unit: "oz", per: { amount: 1, unit: "h" }, fact: "coleman.propane-2-burner-rate", bound: "least" } });
@@ -283,6 +284,24 @@ describe("the gate of the cook facts, the stoves and the fuel energy", () => {
     expect(errors(stove({ ...boil, start: { ...start, fact: "no.such-fact" } }))).toEqual(["supplies-fact"]);
   });
 
+  it("examines the end of a boil yield: a cited boil point from more than 0 °C to 102 °C, and more than the start", () => {
+    const stove = (boil: unknown): SupplyCatalog => withProduct({ ...radio, stove: { fuel: "fuel.butane", boil: boil as never } });
+    const fact = "ready.kit-radio";
+    const boil = { amount: 16, unit: "L", per: { amount: 227, unit: "g" }, fact, start: { celsius: 21, fact } };
+    expect(errors(stove({ ...boil, end: { celsius: 100, fact } }))).toEqual([]);
+    expect(errors(stove({ ...boil, end: { celsius: 93.4, fact } }))).toEqual([]);
+    expect(errors(stove({ ...boil, end: { celsius: 101.4, fact } }))).toEqual([]);
+    // A yield with no end is valid. A reader gives no read for it.
+    expect(errors(stove({ ...boil, end: undefined }))).toEqual([]);
+    expect(errors(stove({ ...boil, start: undefined, end: { celsius: 100, fact } }))).toEqual([]);
+    expect(errors(stove({ ...boil, end: 100 }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ ...boil, end: { celsius: 103, fact } }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ ...boil, end: { celsius: 0, fact } }))).toEqual(["supplies-amount", "supplies-amount"]);
+    expect(errors(stove({ ...boil, end: { celsius: Number.NaN, fact } }))).toEqual(["supplies-amount", "supplies-amount"]);
+    expect(errors(stove({ ...boil, end: { celsius: 21, fact } }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ ...boil, end: { celsius: 100, fact: "no.such-fact" } }))).toEqual(["supplies-fact"]);
+  });
+
   it("examines an adverse factor: a finite number of 1 or more, a known fact, and a known bound or no bound", () => {
     const stove = (adverse: unknown): SupplyCatalog => withProduct({ ...radio, stove: { fuel: "fuel.butane", adverse: adverse as never } });
     const fact = "ready.kit-radio";
@@ -308,6 +327,8 @@ describe("the gate of the cook facts, the stoves and the fuel energy", () => {
     const boil = product("heat.stove-canister-1-burner").stove?.boil;
     expect(boil?.bound).toBe("most");
     expect(SUPPLY_CATALOG.facts.find((each) => each.id === boil?.start?.fact)?.source).toBe("msr.stove-performance");
+    // The same fact gives the end: the test is at sea level, and it ends at 212F (100C).
+    expect(boil?.end).toEqual({ celsius: 100, fact: "msr.test-conditions" });
     expect(SUPPLY_CATALOG.sources.find((each) => each.id === "msr.stove-performance")?.license).toBe("all-rights-reserved");
   });
 

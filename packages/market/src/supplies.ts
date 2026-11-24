@@ -147,12 +147,21 @@ export interface StoveRate extends CitedRate {
 
 /**
  * The boil yield of a stove: the volume of water that a mass of fuel boils, for example 16 L for each 227 g canister.
- * `start` is the temperature of the water at the start, with its fact. The yield ends at 100 °C, when the water boils.
+ * `start` is the temperature of the water at the start, with its fact.
+ * `end` is the boil point at the site of the test, with its fact. Water boils at 100 °C at sea level, and below 100 °C at a high place.
+ * A source that names no site gives no end, and the field stays absent.
  * A maker test is in calm air from a warm start, so it gives the most yield, and the yield has `bound: "most"`.
  * A colder start of the test gives less fuel, so a yield with no cited start gives no read.
  */
 export interface StoveYield extends StoveRate {
-  readonly start?: { readonly celsius: number; readonly fact: string } | undefined;
+  readonly start?: BoilTemperature | undefined;
+  readonly end?: BoilTemperature | undefined;
+}
+
+/** A temperature of the water in a boil test, in °C, with its fact. */
+export interface BoilTemperature {
+  readonly celsius: number;
+  readonly fact: string;
 }
 
 /**
@@ -792,6 +801,18 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
           if (typeof celsius !== "number" || !Number.isFinite(celsius) || celsius < 0 || !(celsius < 100))
             error("supplies-amount", "product", product.id, `The start temperature of the boil yield of the stove ${product.id} is ${shown(celsius)}. It must be a number from 0 °C to less than 100 °C.`);
           cite(product.id, "The start temperature of the boil yield", start["fact"]);
+        }
+        // The end is the boil point at the test site: more than 0 °C, and 102 °C or less. The lowest dry land boils at approximately 101.4 °C.
+        const end: unknown = isRecord(boil) ? boil["end"] : undefined;
+        if (end !== undefined && !isRecord(end)) error("supplies-amount", "product", product.id, `The end temperature of the boil yield of the stove ${product.id} is ${shown(end)}. It must be a temperature with its fact.`);
+        else if (isRecord(end)) {
+          const celsius = end["celsius"];
+          if (typeof celsius !== "number" || !Number.isFinite(celsius) || !(celsius > 0) || celsius > 102)
+            error("supplies-amount", "product", product.id, `The end temperature of the boil yield of the stove ${product.id} is ${shown(celsius)}. It must be a number from more than 0 °C to 102 °C.`);
+          const from = isRecord(start) ? start["celsius"] : undefined;
+          if (typeof celsius === "number" && typeof from === "number" && !(from < celsius))
+            error("supplies-amount", "product", product.id, `The boil yield of the stove ${product.id} starts at ${shown(from)} °C and ends at ${shown(celsius)} °C. The end must be more than the start.`);
+          cite(product.id, "The end temperature of the boil yield", end["fact"]);
         }
       }
       if (adverse !== undefined) {
