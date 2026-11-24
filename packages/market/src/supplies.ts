@@ -172,9 +172,9 @@ function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-/** This function tells if two amounts are equal, to a relative error of 1e-9 for the rounding of a conversion. */
+/** This function tells if two amounts are equal, to a relative error of 1e-9 for the rounding of a conversion. A value that is not finite, for example a conversion that overflows, is not equal to a value. */
 function same(a: number, b: number): boolean {
-  return Math.abs(a - b) <= 1e-9 * Math.max(Math.abs(a), Math.abs(b));
+  return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= 1e-9 * Math.max(Math.abs(a), Math.abs(b));
 }
 
 /** This function tells if a text is a unit of `@mark1russell7/quantity`. `convertible` throws for an unknown unit. */

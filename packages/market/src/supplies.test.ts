@@ -204,6 +204,9 @@ describe("the gate of the catalog", () => {
     expect(errors(withButter(butter))).toEqual([]);
     expect(errors(withButter({ ...butter, energy: { read: true, amount: 5000, unit: "kcal", definition: "A test." } }))).toEqual(["supplies-energy"]);
     expect(errors(withButter({ ...butter, energy: { read: true, amount: 5980 * 4.184, unit: "kJ", definition: "A test." } }))).toEqual([]);
+    // A gift whose conversion to kcal overflows is not equal to the food energy.
+    const gift = butter.gives[0]!;
+    expect(errors(withButter({ ...butter, gives: [{ ...gift, amount: { read: true, amount: 1e308, unit: "kW·h", definition: "A test." } }] }))).toContain("supplies-energy");
     // A gift in another resource, for example the mass of a food, is not compared.
     expect(errors(withProduct({ ...rice, energy: { read: true, amount: 100, unit: "kcal", definition: "A test." } }))).toEqual([]);
   });
