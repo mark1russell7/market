@@ -142,6 +142,8 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 
 - A product has a kind (`water`, `food`, `power`, `light`, `heat`, `first-aid` or `communication`), the resources that one unit gives, its shelf life and, as an option, a part for the offers.
 - A product can give no stored resource, for example a radio. Its `basis` is the id of a fact that tells why a kit has it, and the gate examines that fact. A product that gives no resource and has no basis is an error.
+- Since 0.9.0, a product with no cited basis can have the field `noBasis`: a no read with its reason. The gate then gives a warning, not the error `supplies-basis`. A basis and a `noBasis` on one product is an error.
+- Since 0.9.0, a product can have the field `notes`: the ids of more cited facts, for example a license rule or a radio band. The gate examines each id, and a note is a use of its fact.
 - Each amount has a cited fact, the definition of the product, or a no read with its reason. A no read is not 0.
 - An amount can also be a rate of a cited fact times an amount of the product, in the field `scaled`. For example, the food energy of 1 kg of rice is 365 kcal in 100 g times 1 kg. The amount that the rate applies to has its own fact, definition or the size. The gate calculates the product with `@mark1russell7/quantity`, and the error `supplies-amount` tells of an amount that is not equal to it.
 - An amount can cite the size of the product with `size: true`, for example the gift of 1 kg of a package of 1 kg. The size has its own reason, and one place holds it. The gate compares the two amounts in one unit. The error `supplies-amount` tells of an amount that is not equal to the size. The error `supplies-fact` tells of a product with no read size, or of a size that cites itself.
@@ -180,16 +182,23 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 | `fuelEnergyPerMass(resource)` | It gives the energy of a fuel in `kJ/kg`, for example 50327 kJ/kg for propane. A resource with no fuel energy gives `undefined`. |
 | `buyListEnergy(catalog, units)` | It gives the food energy of each line of a buy list in `kcal`, with the resources of the product, and their sum. |
 
-`SUPPLY_CATALOG` is the reference catalog. Its facts come from Ready.gov (FEMA, a US federal work) and from FoodData Central (USDA, CC0 1.0). It has gaps:
+`SUPPLY_CATALOG` is the reference catalog. Its facts come from Ready.gov (FEMA, a US federal work), from FoodData Central (USDA, CC0 1.0) and from the other sources of the catalog. It has gaps:
 
 - The energy of the power bank is no read. The page of the maker gives 24,000 mAh and no Wh, and a charge does not convert to energy without its voltage.
 - The flashlight, the sleeping bag, the first aid kit and the NOAA weather radio cite the kit list of Ready.gov. Their shelf life is no read, because the source gives no time.
 - Peanut butter gives `food.no-cook` in kcal: food that needs no water and no fuel. This is important in a long power cut. The unit of a resource is the unit that its next step takes. A cooking converter takes dry food in kg, and no-cook food goes to the food need in kcal. It has no series of average prices yet.
 - Since 0.8.7, the catalog has infant formula powder. Its resource and its product are in the tables below. The powder is not ready to feed: a converter mixes it with safe water first.
 - The canned soup is ready to serve, so it also gives `food.no-cook`. One can is 530 g, the portion of the FDC item, so it gives 217.3 kcal. It has no series of average prices yet.
-- Each product with a size in its definition has that size, and the soup has the 530 g of its FDC portion. A product with no known size has no field `size`. It does not have a no read. These products are the flashlight, the sleeping bag, the three stoves, the first aid kit, the radio and the power bank.
+- Each product with a size in its definition has that size, and the soup has the 530 g of its FDC portion. A product with no known size has no field `size`. It does not have a no read. These products are the flashlight, the sleeping bag, the three stoves, the first aid kit, the radio, the mesh text node and the power bank.
 - The water container has no size. It is sold empty, so 1 gal is its capacity and not an amount as sold. Its gift gives the 1 gal of water that it holds when it is full.
 - The flashlight gives `light.see` and the radio gives `alert.watch`, each on `battery.aa`. Their run time is no read. The catalog item is no one model, so a household gives the run time of its device as input data. The product `power.aa-alkaline` is one AA cell, from the extra batteries of the kit list.
+- Since 0.9.0, the catalog has two products for a stop of the phone and data networks. Neither has a part, so neither has a price.
+- `communication.frs-radio-pair` is a pair of FRS handheld radios. Its basis is the kit sheet of the American Red Cross, which lists two-way radios. Its size is 2 `{each}` by definition, because a talk needs two radios.
+- Its notes come from the eCFR (47 CFR Part 95, a US federal work). FRS needs no individual license. It has 22 channels that it shares with GMRS, a power limit of 0.5 W or 2 W for each channel, and a fixed antenna.
+- Its notes also tell the GMRS rule: an individual license for a term of ten years, which covers immediate family. The fee table of 47 CFR 1.1102 gives $35 for a new personal license. The catalog has no product for the fee.
+- `communication.mesh-text-node` is a LoRa node of Meshtastic. Its notes come from the Meshtastic docs and from 47 CFR Part 15. The node sends text over a mesh of nodes with no phone network, in the US band 902-928 MHz, and links to a phone over Bluetooth.
+- The mesh text node has a no read of its basis. No kit list of a public agency that the catalog read names a mesh text node.
+- Neither product has the field `device`. No read source gives the cells or the run time of a generic radio or node.
 - The shelf life of commercially bottled water is no read. The source gives no time, so the date on the label applies.
 - Since 0.9.0, the jug of commercially bottled water gives the resource `water.bottled` in `L`. Before 0.9.0, it gave `water.stored`. The water container, filled from the tap, gives `water.stored`.
 - The reason is a rule of the WIC guide "Infant Nutrition and Feeding" of the USDA (`us-public-domain`). The rule comes from the CDC.
