@@ -22,7 +22,7 @@ function citedFacts(catalog: SupplyCatalog): { readonly where: string; readonly 
     if (cook !== undefined)
       for (const [name, value] of Object.entries(cook) as [string, CitedRate | CitedSpan | undefined][]) if (value !== undefined) out.push({ where: `${each.id} cook.${name}`, fact: value.fact });
     const rate = each.stove?.rate;
-    if (rate !== undefined && rate.read && rate.fact !== undefined) out.push({ where: `${each.id} stove.rate`, fact: rate.fact });
+    if (rate !== undefined) out.push({ where: `${each.id} stove.rate`, fact: rate.fact });
   }
   return out;
 }
@@ -126,16 +126,23 @@ describe("the gate of the cook facts, the stoves and the fuel energy", () => {
     expect(errors(withResource({ ...propane, fuelEnergy: null as never }))).toEqual(["supplies-amount"]);
   });
 
-  it("examines a stove: its fuel is a resource of the catalog, and its fuel rate is a power or a mass in a time", () => {
+  it("examines a stove: its fuel is a heat resource of the catalog, and its fuel rate is an energy or a mass in a time", () => {
     const stove = (rate: SupplyProduct["stove"]): SupplyCatalog => withProduct({ ...radio, stove: rate });
     const fact = "ready.kit-radio";
     expect(errors(stove({ fuel: "fuel.butane" }))).toEqual([]);
-    expect(errors(stove({ fuel: "fuel.butane", rate: { read: true, amount: 3.5, unit: "kW", fact } }))).toEqual([]);
-    expect(errors(stove({ fuel: "fuel.propane", rate: { read: true, amount: 180, unit: "g/h", fact } }))).toEqual([]);
+    const hour = { amount: 1, unit: "h" };
+    expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 3.5, unit: "kWh", per: hour, fact }, heating: "higher" }))).toEqual([]);
+    expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 227, unit: "g", per: { amount: 90, unit: "min" }, fact } }))).toEqual([]);
     expect(errors(stove({ fuel: "fuel.wood" }))).toEqual(["supplies-resource"]);
-    expect(errors(stove({ fuel: "fuel.butane", rate: { read: true, amount: 3.5, unit: "kWh", fact } }))).toEqual(["supplies-unit"]);
-    expect(errors(stove({ fuel: "fuel.butane", rate: { read: true, amount: 3.5, unit: "kW", fact: "no.such-fact" } }))).toEqual(["supplies-fact"]);
-    expect(errors(stove({ fuel: "fuel.butane", rate: { read: true, amount: 0, unit: "kW", fact } }))).toEqual(["supplies-amount"]);
+    // A stove burns a fuel: a resource of the kind heat.
+    expect(errors(stove({ fuel: "water.stored" }))).toEqual(["supplies-kind"]);
+    // A rate in an energy needs its heating value. A rate in a mass needs none.
+    expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 3.5, unit: "kWh", per: hour, fact } }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 3.5, unit: "kWh", per: hour, fact }, heating: "gross" as never }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 3.5, unit: "kW", per: hour, fact }, heating: "higher" }))).toEqual(["supplies-unit"]);
+    expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 3.5, unit: "kWh", per: { amount: 1, unit: "kg" }, fact }, heating: "higher" }))).toEqual(["supplies-unit"]);
+    expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 3.5, unit: "kWh", per: hour, fact: "no.such-fact" }, heating: "higher" }))).toEqual(["supplies-fact"]);
+    expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 0, unit: "kWh", per: hour, fact }, heating: "higher" }))).toEqual(["supplies-amount"]);
   });
 
   it("gives a finding, and does not throw, for cook facts or a stove that are not a record, or a rate with no per", () => {

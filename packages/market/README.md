@@ -159,7 +159,9 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - Since 0.8.1, a food product can have cook facts in the field `cook`. The field `water` is the water for each volume or mass of the dry food. The field `bulk` is the mass of a volume of the dry food. The field `time` is the cook time from low to high. Each cites a fact and keeps the two values of the source, for example 2 cup of water for 1 cup of rice.
 - A water rate for each volume needs a bulk mass, or the gate gives the error `supplies-fact`. Cook facts on a product that is not food give the error `supplies-kind`.
 - A resource of a fuel can have the field `fuelEnergy`: a cited energy for each mass, with its heating value (`higher` or `lower`). For example, 2219.2 kJ in 44.0956 g of propane. The gate examines its fact and its units.
-- A product can have the field `stove`: the resource of the fuel that it burns and, as an option, its fuel rate. The fuel rate converts to `W` or to `kg/h`. A fuel that is not a resource of the catalog is the error `supplies-resource`.
+- A product can have the field `stove`: the resource of the fuel that it burns and, as an option, its fuel rate at full heat. The fuel rate is an energy or a mass in a time, for example 227 g in 90 min. A rate in an energy also has its heating value.
+- The fuel of a stove is a resource of the catalog with the kind `heat`. A fuel that is not in the catalog is the error `supplies-resource`.
+- The cook time starts when the water boils. The heat to boil the water is a calculation from the cook water.
 - A field with no cited value is not in the catalog. It is not 0 and not a default.
 
 | Function | What it does |
@@ -187,7 +189,8 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The resources `fuel.propane` and `fuel.butane` are in `kg`. Their fuel energy is the higher heating value from the NIST Chemistry WebBook (SRD 69). It is the standard enthalpy of combustion of the gas for each mole, and the molecular weight. The page has a copyright of the U.S. Secretary of Commerce, so the catalog keeps only the cited values.
 - The cook water of the rice comes from USA Rice and of the oats from the label of Quaker. The bulk mass of 1 cup of each comes from FoodData Central. The cook times of the beans come from a USDA sheet, and of the pasta from the label of Ronzoni.
 - The beans and the pasta have no cook water. The USDA sheet gives no amount of water, and the pasta label gives the water for each box with no mass of a box. The flour has no cook facts.
-- The catalog has no stove. The pages of the makers give a power in BTU/h, and `@mark1russell7/quantity` has no unit BTU. No page gives a fuel rate in a mass for each time.
+- The catalog has no stove. The two pages of makers that this change read give a power in BTU/h, and `@mark1russell7/quantity` 0.4.6 has no unit BTU. These two pages give no fuel rate in a mass for each time.
+- A cup is 236.6 mL in `@mark1russell7/quantity` and in FoodData Central. A cup on a label can be 240 mL, a difference of 1.4%.
 - The oats have no series of average prices. The pasta has its own resource `food.pasta-dry`, because the cook drains its water, and rice and oats absorb their water. The dry beans, the pasta and the flour join the BLS series `APU0000714233`, `APU0000701322` and `APU0000701111` in `USD/lb`. The rice joins the BLS series `APU0000701312` in `USD/lb`, so 1 kg of rice costs 2.2046 times the price of 1 lb.
 
 `FOOD_PLANS` has the costs of the Thrifty Food Plan of USDA for October 2026, in the U.S. average. The costs come from the monthly report of the cost of food (a US federal work). Each cost is for one person of an age and sex group, in a household of four. The changes for the other sizes come from footnote 2 of the report. The plan is a full diet, so a list of dry staples costs much less than the plan. A low ratio is normal. The check of the amount of food is a check of its energy, not of its cost. The members of a household are input data.

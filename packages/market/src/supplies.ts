@@ -114,7 +114,7 @@ export interface FuelEnergy extends CitedRate {
  *
  * - `water`: the water to cook the food, in a volume, for each volume or mass of the dry food.
  * - `bulk`: the mass of a volume of the dry food. It converts a water rate for each volume to a rate for each mass.
- * - `time`: the time on the heat.
+ * - `time`: the time on the heat after the water boils. The heat to boil the water is not in this time.
  *
  * `cookWater` gives the water in `L/kg` of dry food.
  */
@@ -125,12 +125,17 @@ export interface CookFacts {
 }
 
 /**
- * The cited facts of a stove. `fuel` is the code of the resource that the stove burns, for example `fuel.butane`. The
- * fuel rate is a power, for example `kW`, or a mass in a time, for example `g/h`. A stove with no cited rate has no field `rate`.
+ * The cited facts of a stove. `fuel` is the code of the resource that the stove burns, for example `fuel.butane`.
+ *
+ * - `rate`: the fuel that the stove burns in a time at its full heat. It is an energy in a time, for example 15000 BTU
+ *   in 1 h. It can also be a mass in a time, for example 227 g in 90 min for one canister. A stove with no cited rate has no field `rate`.
+ * - `heating`: the heating value of a rate in an energy. Ratings in BTU/h usually give the higher value. A rate in a mass
+ *   has no heating value.
  */
 export interface StoveFacts {
   readonly fuel: string;
-  readonly rate?: CitedAmount | undefined;
+  readonly rate?: CitedRate | undefined;
+  readonly heating?: HeatingValue | undefined;
 }
 
 /** The gift of one unit of a product: an amount of one resource, or no read. */
@@ -294,8 +299,8 @@ const MASS_UNIT = "kg";
 const VOLUME_UNIT = "L";
 /** The unit that a cook time converts to. */
 const COOK_TIME_UNIT = "min";
-/** The units that the fuel rate of a stove converts to: a power, or a mass in a time. */
-const STOVE_RATE_UNITS = ["W", "kg/h"] as const;
+/** The unit of the time of the fuel rate of a stove. */
+const STOVE_TIME_UNIT = "h";
 /** The unit of the cook water of a dry food. */
 const COOK_WATER_UNIT = "L/kg";
 /** The unit of the energy of a fuel for each mass. */
@@ -343,8 +348,9 @@ function countUnit(unit: string): boolean {
  *   mass. The bulk is a mass for each volume. The cook time converts to `min`. The fuel energy of a resource is an
  *   energy for each mass, with a heating value.
  * - An error for cook facts on a product that is not food, and for a cook water for each volume with no bulk mass.
- * - An error for a stove that burns a resource that is not in the catalog.
- * - An error for a fuel rate of a stove that is not a power or a mass in a time.
+ * - An error for a stove that burns a resource that is not in the catalog, or a resource that is not of the kind heat.
+ * - An error for a fuel rate of a stove that is not an energy or a mass in a time. A rate in an energy with no
+ *   heating value is also an error.
  * - A warning for each value with no read, and for a no read with a blank reason.
  * - A warning for each fact and each source that no product uses.
  *
@@ -661,13 +667,16 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
         error("supplies-fact", "product", product.id, `The cook water of the product ${product.id} is for a volume of dry food, and the product has no bulk mass. The bulk mass converts the volume to a mass.`);
     }
     if (product.stove !== undefined) {
-      const { fuel, rate: fuelRate } = product.stove;
-      if (typeof fuel !== "string" || !resources.has(fuel)) error("supplies-resource", "product", product.id, `The stove ${product.id} burns the resource ${String(fuel)}, and the catalog has no such resource.`);
-      if (fuelRate !== undefined) {
-        amount(product, "fuel rate of the stove", fuelRate, "");
-        if (isRecord(fuelRate) && fuelRate.read === true && known(fuelRate.unit) && !STOVE_RATE_UNITS.some((unit) => convertible(fuelRate.unit, unit)))
-          error("supplies-unit", "product", product.id, `The fuel rate of the stove ${product.id} is in ${fuelRate.unit}. It must convert to ${STOVE_RATE_UNITS.join(" or ")}.`);
-      }
+      const { fuel, rate: fuelRate, heating } = product.stove;
+      const burned = typeof fuel === "string" ? resources.get(fuel) : undefined;
+      if (burned === undefined) error("supplies-resource", "product", product.id, `The stove ${product.id} burns the resource ${String(fuel)}, and the catalog has no such resource.`);
+      else if (burned.kind !== "heat") error("supplies-kind", "product", product.id, `The stove ${product.id} burns the resource ${burned.code}, and its kind is ${String(burned.kind)}. A fuel has the kind heat.`);
+      const goodRate = fuelRate !== undefined && rate("product", product.id, "fuel rate of the stove", fuelRate, [FUEL_ENERGY_UNIT, MASS_UNIT], [STOVE_TIME_UNIT]);
+      if (heating !== undefined && !(HEATING_VALUES as readonly unknown[]).includes(heating))
+        error("supplies-amount", "product", product.id, `The fuel rate of the stove ${product.id} has the heating value ${String(heating)}. It must be ${HEATING_VALUES.join(" or ")}.`);
+      // A rate in an energy needs its heating value: the higher and the lower value of a fuel differ by 5% to 10%.
+      if (goodRate && convertible(fuelRate.unit, FUEL_ENERGY_UNIT) && heating === undefined)
+        error("supplies-amount", "product", product.id, `The fuel rate of the stove ${product.id} is an energy, and it has no heating value. Give ${HEATING_VALUES.join(" or ")}.`);
     }
     if (product.size !== undefined) {
       // The size has no single unit to convert to. Its unit must be a mass, a volume or one bare count. An unknown unit

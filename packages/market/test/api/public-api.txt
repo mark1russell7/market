@@ -1162,7 +1162,8 @@ type ShelfLife = CitedAmount | {
 ### build/supplies-entry.d.ts#StoveFacts
 interface StoveFacts {
   readonly fuel: string;
-  readonly rate?: CitedAmount | undefined;
+  readonly rate?: CitedRate | undefined;
+  readonly heating?: HeatingValue | undefined;
 }
 
 ### build/supplies-entry.d.ts#SupplyCatalog
