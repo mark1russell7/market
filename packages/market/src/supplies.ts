@@ -84,6 +84,11 @@ export interface CitedRate {
   readonly per: { readonly amount: number; readonly unit: string };
   /** The `id` of the fact that gives the rate. */
   readonly fact: string;
+  /**
+   * The bound of the rate. `least`: the true rate is this value or more. For example, a page that gives a burn time of "up to 1 h"
+   * gives the least fuel rate. A rate with no field `bound` is the cited value with no bound.
+   */
+  readonly bound?: "least" | undefined;
 }
 
 /** A time from `low` to `high` with its fact, for example 15 to 18 min. A source with one value gives the same value two times. */
@@ -129,6 +134,7 @@ export interface CookFacts {
  *
  * - `rate`: the fuel that the stove burns in a time at its full heat. It is an energy in a time, for example 15000 BTU
  *   in 1 h. It can also be a mass in a time, for example 227 g in 90 min for one canister. A stove with no cited rate has no field `rate`.
+ *   A burn time of "up to" a time gives the least rate, so the rate has `bound: "least"`.
  * - `heating`: the heating value of a rate in an energy. Ratings in BTU/h usually give the higher value. A rate in a mass
  *   has no heating value.
  */

@@ -1021,6 +1021,7 @@ interface CitedRate {
     readonly unit: string;
   };
   readonly fact: string;
+  readonly bound?: "least" | undefined;
 }
 
 ### build/supplies-entry.d.ts#CitedSpan

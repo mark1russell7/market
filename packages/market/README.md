@@ -192,7 +192,7 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The dry beans are pinto beans. Their food energy comes from the raw pinto bean item of FoodData Central, the same bean as the USDA sheet of the cook time.
 - Since 0.8.4, the catalog has three stoves. They are a canister stove with 1 burner, a propane stove with 2 burners and a butane cartridge stove with 1 burner. Ready.gov names camp stoves as a source of heat to cook, so each stove cites it as its basis.
 - The fuel rate of each stove is a mass in a time from the page of its maker. The rates are 227 g in 60 min, 16.4 oz in 1 h and 8.8 oz in 1.25 h. A rate in a mass needs no heating value.
-- The pages of the makers give an upper limit of the time ("up to"). Thus a rate is a lower limit of the fuel that the stove burns at full heat. The butane page gives no burner setting for its time.
+- The pages of the makers give an upper limit of the time ("up to"). Thus a rate is a lower limit of the fuel that the stove burns at full heat. Each rate has `bound: "least"`, so a consumer can tell it from a rate with no bound. The butane page gives no burner setting for its time.
 - The canister stove burns `fuel.isobutane-mix`. The mix of a canister differs between makers, and the read page gives no mix. Thus this fuel has no fuel energy, and a converter gives a no read for its energy.
 - The product ids of the stoves name no maker. The source records name the maker and the model.
 - A cup is 236.6 mL in `@mark1russell7/quantity` and in FoodData Central. A cup on a label can be 240 mL, a difference of 1.4%.

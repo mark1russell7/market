@@ -116,9 +116,9 @@ describe("the stoves of the reference catalog", () => {
   });
 
   it("keeps each fuel rate as the cited numbers", () => {
-    expect(product("heat.stove-canister-1-burner").stove).toEqual({ fuel: "fuel.isobutane-mix", rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate" } });
-    expect(product("heat.stove-propane-2-burner").stove).toEqual({ fuel: "fuel.propane", rate: { amount: 16.4, unit: "oz", per: { amount: 1, unit: "h" }, fact: "coleman.propane-2-burner-rate" } });
-    expect(product("heat.stove-butane-1-burner").stove).toEqual({ fuel: "fuel.butane", rate: { amount: 8.8, unit: "oz", per: { amount: 1.25, unit: "h" }, fact: "coleman.butane-1-burner-rate" } });
+    expect(product("heat.stove-canister-1-burner").stove).toEqual({ fuel: "fuel.isobutane-mix", rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate", bound: "least" } });
+    expect(product("heat.stove-propane-2-burner").stove).toEqual({ fuel: "fuel.propane", rate: { amount: 16.4, unit: "oz", per: { amount: 1, unit: "h" }, fact: "coleman.propane-2-burner-rate", bound: "least" } });
+    expect(product("heat.stove-butane-1-burner").stove).toEqual({ fuel: "fuel.butane", rate: { amount: 8.8, unit: "oz", per: { amount: 1.25, unit: "h" }, fact: "coleman.butane-1-burner-rate", bound: "least" } });
   });
 
   it("gives each fuel rate in kg/h: 0.227, 16.4 oz and 8.8 oz / 1.25 in kg", () => {

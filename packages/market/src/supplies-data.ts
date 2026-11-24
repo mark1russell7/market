@@ -434,7 +434,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       kind: "heat",
       basis: "ready.food-camp-stove",
       gives: [],
-      stove: { fuel: "fuel.isobutane-mix", rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate" } },
+      stove: { fuel: "fuel.isobutane-mix", rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate", bound: "least" } },
       shelf: { read: false, why: "The source gives no shelf life." },
     },
     {
@@ -444,7 +444,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       basis: "ready.food-camp-stove",
       gives: [],
       // The source gives the time with the 2 burners on high.
-      stove: { fuel: "fuel.propane", rate: { amount: 16.4, unit: "oz", per: { amount: 1, unit: "h" }, fact: "coleman.propane-2-burner-rate" } },
+      stove: { fuel: "fuel.propane", rate: { amount: 16.4, unit: "oz", per: { amount: 1, unit: "h" }, fact: "coleman.propane-2-burner-rate", bound: "least" } },
       shelf: { read: false, why: "The source gives no shelf life." },
     },
     {
@@ -453,7 +453,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       kind: "heat",
       basis: "ready.food-camp-stove",
       gives: [],
-      stove: { fuel: "fuel.butane", rate: { amount: 8.8, unit: "oz", per: { amount: 1.25, unit: "h" }, fact: "coleman.butane-1-burner-rate" } },
+      stove: { fuel: "fuel.butane", rate: { amount: 8.8, unit: "oz", per: { amount: 1.25, unit: "h" }, fact: "coleman.butane-1-burner-rate", bound: "least" } },
       shelf: { read: false, why: "The source gives no shelf life." },
     },
     {
