@@ -300,7 +300,7 @@ describe("the gate of the cook facts, the stoves and the fuel energy", () => {
 
   it("keeps the adverse factor of the canister stove as the most factor of the maker article", () => {
     const adverse = product("heat.stove-canister-1-burner").stove?.adverse;
-    expect(adverse).toEqual({ low: 3, high: 4, fact: "msr.adverse-factor" });
+    expect(adverse).toEqual({ factor: 4, fact: "msr.adverse-factor", bound: "most" });
     expect(SUPPLY_CATALOG.facts.find((each) => each.id === adverse?.fact)?.source).toBe("msr.fuel-to-carry");
   });
 

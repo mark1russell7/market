@@ -200,7 +200,7 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - Each Coleman page also gives a rating in BTU. At the higher heating value of the catalog, the rating gives less fuel than the burn time. The propane stove gives 0.419 kg/h against 0.465 kg/h. The butane stove gives 0.163 kg/h against 0.200 kg/h. Thus the catalog takes the burn time, the side with more fuel. The rating is not an upper limit of the fuel.
 - Only the fuel rate, the boil yield and the adverse factor of a stove have a bound (`RATE_BOUNDS`: `least` or `most`). The gate refuses an unknown bound, and a bound on a cook water, a bulk mass or a fuel energy.
 - Since 0.8.6, the canister stove has a boil yield: 16 L of water for each 227 g of fuel, from its maker page. The maker test is in calm air from a warm start, so the yield has `bound: "most"`. A reader takes no value from it until a cited field figure exists.
-- Since 0.8.9, the canister stove has an adverse factor (`stove.adverse`). The maker tells that cold, snow melt and wind can need 3 to 4 times the fuel of its boil chart.
+- Since 0.8.10, the canister stove has an adverse factor (`stove.adverse`). The maker tells that cold, snow melt and wind can need 3 to 4 times the fuel of its boil chart.
 - The catalog keeps the high end, 4, with `bound: "most"`, as it keeps "up to" on a burn time. The low end gives nothing on the safe side.
 - The bound is the word of the maker. Wind stronger than its example of 5 mph can need more fuel.
 - The start of 21 °C is the general test convention of the maker blog for most makers. The spec page of this stove gives no start of its own. A field figure with `bound: "least"` brings its own start.
