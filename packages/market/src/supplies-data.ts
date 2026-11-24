@@ -9,6 +9,7 @@ import { SUPPLY_FORMAT, type SupplyCatalog } from "./supplies.ts";
 const CHECKED = "2026-11-22";
 /** The date of the check of the sources of the cook facts and the fuel energy. */
 const COOK_CHECKED = "2026-11-24";
+const OPENED_CHECKED = "2026-11-24";
 
 /** The reference catalog of supplies. A household adds its own products to a copy of it. */
 export const SUPPLY_CATALOG: SupplyCatalog = {
@@ -16,6 +17,14 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
   sources: [
     { id: "ready.water", title: "Water", url: "https://www.ready.gov/water", license: "us-public-domain", checked: CHECKED, by: "FEMA (Ready.gov)" },
     { id: "ready.kit", title: "Build A Kit", url: "https://www.ready.gov/kit", license: "us-public-domain", checked: CHECKED, by: "FEMA (Ready.gov)" },
+    {
+      id: "wic.infant-guide",
+      title: "Infant Nutrition and Feeding: A Guide for Use in the WIC and CSF Programs",
+      url: "https://wicworks.fna.usda.gov/resources/infant-nutrition-and-feeding-guide",
+      license: "us-public-domain",
+      checked: OPENED_CHECKED,
+      by: "USDA Food and Nutrition Service",
+    },
     { id: "fdc.sr-legacy", title: "FoodData Central, SR Legacy", url: "https://fdc.nal.usda.gov/", license: "cc0", checked: CHECKED, by: "USDA Agricultural Research Service" },
     { id: "usarice.cook", title: "How to Cook Rice", url: "https://usarice.com/thinkrice/how-to/how-to-cook-rice", license: "all-rights-reserved", checked: COOK_CHECKED, by: "USA Rice" },
     {
@@ -89,6 +98,13 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       text: "The item 174266 (peanut butter, smooth style, with salt) gives 598 kcal in 100 g.",
       source: "fdc.sr-legacy",
       locator: "FDC ID 174266",
+    },
+    {
+      id: "wic.formula-opened",
+      use: "fact",
+      text: "With limited access to a refrigerator, use formula immediately after a ready-to-feed container is opened.",
+      source: "wic.infant-guide",
+      locator: "Page 106, Guidelines for Using Infant Formula When Access to Common Kitchen Appliances Is Limited",
     },
     {
       id: "fdc.infant-formula-ready",
@@ -313,6 +329,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as 1 kg of ready-to-feed infant formula, in one or more containers." },
       energy: { read: true, amount: 630, unit: "kcal", scaled: { rate: { amount: 63, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.infant-formula-ready" }, of: { amount: 1, unit: "kg", size: true } } },
       shelf: { read: false, why: "The catalog has no cited shelf life of infant formula. The use-by date on the container applies." },
+      opened: { container: { read: false, why: "The catalog item is 1 kg in one or more containers. The label of a product gives the size of its container." }, noCold: "wic.formula-opened" },
       average: { read: false, why: "The known series of average prices have no series of infant formula yet." },
     },
     {

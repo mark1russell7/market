@@ -23,6 +23,7 @@ export {
   type CookFacts,
   type FuelEnergy,
   type HeatingValue,
+  type OpenedFacts,
   type StoveFacts,
   type ScaledReason,
   type GiftOf,
