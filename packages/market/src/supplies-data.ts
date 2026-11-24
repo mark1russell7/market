@@ -101,13 +101,13 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
     },
   ],
   resources: [
-    { code: "water.stored", unit: "L", title: "Stored drinking water" },
-    { code: "food.grain-dry", unit: "kg", title: "Dry grain, to cook with water and fuel" },
-    { code: "food.legume-dry", unit: "kg", title: "Dry beans, to cook with water and fuel" },
-    { code: "food.pasta-dry", unit: "kg", title: "Dry pasta, to boil in water that the cook drains" },
-    { code: "food.flour", unit: "kg", title: "Flour, to bake or cook with water and fuel" },
-    { code: "food.no-cook", unit: "kcal", title: "Food energy to eat with no water and no fuel" },
-    { code: "energy.battery", unit: "Wh", title: "Energy in a battery" },
+    { code: "water.stored", unit: "L", title: "Stored drinking water", kind: "water" },
+    { code: "food.grain-dry", unit: "kg", title: "Dry grain, to cook with water and fuel", kind: "food" },
+    { code: "food.legume-dry", unit: "kg", title: "Dry beans, to cook with water and fuel", kind: "food" },
+    { code: "food.pasta-dry", unit: "kg", title: "Dry pasta, to boil in water that the cook drains", kind: "food" },
+    { code: "food.flour", unit: "kg", title: "Flour, to bake or cook with water and fuel", kind: "food" },
+    { code: "food.no-cook", unit: "kcal", title: "Food energy to eat with no water and no fuel", kind: "food" },
+    { code: "energy.battery", unit: "Wh", title: "Energy in a battery", kind: "power" },
   ],
   products: [
     {
