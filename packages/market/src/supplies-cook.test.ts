@@ -242,6 +242,8 @@ describe("the gate of the cook facts, the stoves and the fuel energy", () => {
     expect(errors(stove({ ...boil, start: undefined }))).toEqual([]);
     expect(errors(stove({ ...boil, start: 21 }))).toEqual(["supplies-amount"]);
     expect(errors(stove({ ...boil, start: { ...start, celsius: 100 } }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ ...boil, start: { ...start, celsius: 0 } }))).toEqual([]);
+    expect(errors(stove({ ...boil, start: { ...start, celsius: -1 } }))).toEqual(["supplies-amount"]);
     expect(errors(stove({ ...boil, start: { ...start, celsius: Number.NaN } }))).toEqual(["supplies-amount"]);
     expect(errors(stove({ ...boil, start: { ...start, fact: "no.such-fact" } }))).toEqual(["supplies-fact"]);
   });

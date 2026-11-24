@@ -432,10 +432,10 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
    * This function examines a cited rate: its fact, its two amounts and their units. The amount converts to one of the
    * units `to`, and the amount of the rate converts to one of the units `per`. It gives true for a good rate.
    */
-  // Only a stove rate has a bound. A bound on another rate is an error, because its reader gives a bare value.
+  // Only a stove rate and a boil yield have a bound. A bound on another rate is an error, because its reader gives a bare value.
   const noBound = (record: "resource" | "product", id: string, what: string, value: unknown): void => {
     if (isRecord(value) && value["bound"] !== undefined)
-      error("supplies-amount", record, id, `The ${what} of the ${record} ${id} has the bound ${shown(value["bound"])}. Only the fuel rate of a stove has a bound.`);
+      error("supplies-amount", record, id, `The ${what} of the ${record} ${id} has the bound ${shown(value["bound"])}. Only the fuel rate and the boil yield of a stove have a bound.`);
   };
   const rate = (record: "resource" | "product", id: string, what: string, value: unknown, to: readonly string[], per: readonly string[]): boolean => {
     if (!isRecord(value)) {
@@ -743,13 +743,13 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
         const boilBound: unknown = isRecord(boil) ? boil["bound"] : undefined;
         if (boilBound !== undefined && !(RATE_BOUNDS as readonly unknown[]).includes(boilBound))
           error("supplies-amount", "product", product.id, `The boil yield of the stove ${product.id} has the bound ${shown(boilBound)}. It must be ${RATE_BOUNDS.join(" or ")}, or the yield has no bound.`);
-        // The yield ends at the boil, so the water starts below 100 °C. A yield with no start is valid, and it gives no read.
+        // The yield is for liquid water: it starts at 0 °C or more, and below the boil at 100 °C. A yield with no start is valid, and it gives no read.
         const start: unknown = isRecord(boil) ? boil["start"] : undefined;
         if (start !== undefined && !isRecord(start)) error("supplies-amount", "product", product.id, `The start temperature of the boil yield of the stove ${product.id} is ${shown(start)}. It must be a temperature with its fact.`);
         else if (isRecord(start)) {
           const celsius = start["celsius"];
-          if (typeof celsius !== "number" || !Number.isFinite(celsius) || !(celsius < 100))
-            error("supplies-amount", "product", product.id, `The start temperature of the boil yield of the stove ${product.id} is ${shown(celsius)}. It must be a finite number below 100 °C.`);
+          if (typeof celsius !== "number" || !Number.isFinite(celsius) || celsius < 0 || !(celsius < 100))
+            error("supplies-amount", "product", product.id, `The start temperature of the boil yield of the stove ${product.id} is ${shown(celsius)}. It must be a number from 0 °C to less than 100 °C.`);
           cite(product.id, "The start temperature of the boil yield", start["fact"]);
         }
       }
