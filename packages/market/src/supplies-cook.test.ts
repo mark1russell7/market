@@ -1,6 +1,6 @@
 import { canonicalUnit, divide, quantity, valueIn } from "@mark1russell7/quantity";
 import { describe, expect, it } from "vitest";
-import { checkSupplies, cookWater, fuelEnergyPerMass, type CitedRate, type CitedSpan, type SupplyCatalog, type SupplyProduct, type SupplyResource } from "./supplies.ts";
+import { checkSupplies, cookWater, fuelEnergyPerMass, soakWater, type CitedRate, type CitedSpan, type SupplyCatalog, type SupplyProduct, type SupplyResource } from "./supplies.ts";
 import { SUPPLY_CATALOG } from "./supplies-data.ts";
 
 const errors = (catalog: SupplyCatalog): string[] =>
@@ -24,6 +24,9 @@ function citedFacts(catalog: SupplyCatalog): { readonly where: string; readonly 
       for (const [name, value] of Object.entries(cook) as [string, CitedRate | CitedSpan | undefined][]) if (value !== undefined) out.push({ where: `${each.id} cook.${name}`, fact: value.fact });
     const rate = each.stove?.rate;
     if (rate !== undefined) out.push({ where: `${each.id} stove.rate`, fact: rate.fact });
+    const boil = each.stove?.boil;
+    if (boil !== undefined) out.push({ where: `${each.id} stove.boil`, fact: boil.fact });
+    if (boil?.start !== undefined) out.push({ where: `${each.id} stove.boil.start`, fact: boil.start.fact });
   }
   return out;
 }
@@ -36,7 +39,7 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
 
   it("gives each cook and fuel field a fact with a source and a license", () => {
     const cited = citedFacts(SUPPLY_CATALOG);
-    expect(cited.length).toBe(13);
+    expect(cited.length).toBe(18);
     for (const { where, fact } of cited) {
       const unit = SUPPLY_CATALOG.facts.find((each) => each.id === fact);
       expect(unit?.use, where).toBe("fact");
@@ -72,13 +75,20 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
       time: { low: 15, high: 18, unit: "min", fact: "usarice.long-grain-white" },
     });
     expect(product("food.oats-1kg").cook?.time).toEqual({ low: 5, high: 5, unit: "min", fact: "quaker.oats-stovetop" });
-    expect(product("food.beans-dry-1kg").cook).toEqual({ time: { low: 1, high: 1.5, unit: "h", fact: "usda.pinto-beans-cook" } });
-    expect(product("food.pasta-dry-1kg").cook).toEqual({ time: { low: 9, high: 11, unit: "min", fact: "ronzoni.spaghetti-cook" } });
+    expect(product("food.beans-dry-1kg").cook).toEqual({
+      water: { amount: 1.75, unit: "qt", per: { amount: 1, unit: "lb" }, fact: "usda.refried-beans-cook" },
+      soak: { amount: 1.75, unit: "qt", per: { amount: 1, unit: "lb" }, fact: "usda.refried-beans-soak" },
+      time: { low: 1, high: 1.5, unit: "h", fact: "usda.pinto-beans-cook" },
+    });
+    expect(product("food.pasta-dry-1kg").cook).toEqual({
+      water: { amount: 3, unit: "gal", per: { amount: 25, unit: "oz" }, fact: "usda.spaghetti-meat-sauce-cook" },
+      time: { low: 9, high: 11, unit: "min", fact: "ronzoni.spaghetti-cook" },
+    });
   });
 
-  it("has no cook field with no cited fact: the beans and the pasta have no water, and the flour has no cook facts", () => {
-    expect(product("food.beans-dry-1kg").cook?.water).toBeUndefined();
-    expect(product("food.pasta-dry-1kg").cook?.water).toBeUndefined();
+  it("has no cook field with no cited fact: the rice and the pasta have no soak, and the flour has no cook facts", () => {
+    expect(product("food.rice-white-1kg").cook?.soak).toBeUndefined();
+    expect(product("food.pasta-dry-1kg").cook?.soak).toBeUndefined();
     expect("cook" in product("food.flour-white-1kg")).toBe(false);
     for (const each of SUPPLY_CATALOG.products.filter((item) => item.kind !== "food")) expect("cook" in each, each.id).toBe(false);
   });
@@ -88,7 +98,13 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
     expect(cookWater(rice)!.unit).toBe("L/kg");
     expect(cookWater(rice)!.value).toBeCloseTo((2 * 0.2365882365) / 0.185, 9);
     expect(cookWater(product("food.oats-1kg"))!.value).toBeCloseTo((2 * 0.2365882365) / 0.081, 9);
-    expect(cookWater(product("food.beans-dry-1kg"))).toBeUndefined();
+    // The USDA recipe gives 1 3/4 qt of water for each lb of dry beans, for the soak and again for the cook.
+    const beans = product("food.beans-dry-1kg");
+    expect(cookWater(beans)!.value).toBeCloseTo((1.75 * 0.946352946) / 0.45359237, 9);
+    expect(soakWater(beans)!.value).toBeCloseTo((1.75 * 0.946352946) / 0.45359237, 9);
+    expect(soakWater(rice)).toBeUndefined();
+    // The USDA recipe gives 3 gal of water for 1 lb 9 oz (25 oz) of dry spaghetti: about 16 L/kg.
+    expect(cookWater(product("food.pasta-dry-1kg"))!.value).toBeCloseTo((3 * 3.785411784) / (25 * 0.028349523125), 9);
     expect(cookWater({ ...rice, cook: { water: { amount: 4, unit: "qt", per: { amount: 1, unit: "lb" }, fact: "usarice.long-grain-white" } } })!.value).toBeCloseTo((4 * 0.946352946) / 0.45359237, 9);
     expect(cookWater({ ...rice, cook: { water: rice.cook!.water } })).toBeUndefined();
   });
@@ -116,7 +132,11 @@ describe("the stoves of the reference catalog", () => {
   });
 
   it("keeps each fuel rate as the cited numbers", () => {
-    expect(product("heat.stove-canister-1-burner").stove).toEqual({ fuel: "fuel.isobutane-mix", rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate" } });
+    expect(product("heat.stove-canister-1-burner").stove).toEqual({
+      fuel: "fuel.isobutane-mix",
+      rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate" },
+      boil: { amount: 16, unit: "L", per: { amount: 227, unit: "g" }, fact: "msr.pocketrocket-2-rate", start: { celsius: 21, fact: "msr.test-conditions" }, bound: "most" },
+    });
     expect(product("heat.stove-propane-2-burner").stove).toEqual({ fuel: "fuel.propane", rate: { amount: 16.4, unit: "oz", per: { amount: 1, unit: "h" }, fact: "coleman.propane-2-burner-rate", bound: "least" } });
     expect(product("heat.stove-butane-1-burner").stove).toEqual({ fuel: "fuel.butane", rate: { amount: 8.8, unit: "oz", per: { amount: 1.25, unit: "h" }, fact: "coleman.butane-1-burner-rate", bound: "least" } });
   });
@@ -164,12 +184,28 @@ describe("the dry beans of the reference catalog", () => {
     expect(SUPPLY_CATALOG.sources.find((each) => each.id === "usda.pinto-beans")?.url).toBe("https://www.fns.usda.gov/sites/default/files/resource-files/PintoBeansDry.pdf");
     for (const source of SUPPLY_CATALOG.sources) expect(source.url, source.id).not.toMatch(/azureedge/);
   });
+
+  it("cites the soak water and the cook water of the USDA recipe for schools, a work of the US government", () => {
+    for (const fact of ["usda.refried-beans-soak", "usda.refried-beans-cook"]) expect(SUPPLY_CATALOG.facts.find((each) => each.id === fact)?.source, fact).toBe("usda.refried-beans");
+    expect(SUPPLY_CATALOG.sources.find((each) => each.id === "usda.refried-beans")?.license).toBe("us-public-domain");
+  });
 });
 
 describe("the gate of the cook facts, the stoves and the fuel energy", () => {
   it("refuses a cook water for each volume with no bulk mass", () => {
     expect(errors(withProduct({ ...rice, cook: { water: rice.cook!.water } }))).toEqual(["supplies-fact"]);
     expect(errors(withProduct({ ...rice, cook: { water: { ...rice.cook!.water!, per: { amount: 1, unit: "kg" } } } }))).toEqual([]);
+  });
+
+  it("examines a soak water as a cook water: a volume for each volume with a bulk mass, or for each mass, with its fact and no bound", () => {
+    const soak = rice.cook!.water!;
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, soak } }))).toEqual([]);
+    expect(errors(withProduct({ ...rice, cook: { soak } }))).toEqual(["supplies-fact"]);
+    expect(errors(withProduct({ ...rice, cook: { soak: { ...soak, per: { amount: 1, unit: "kg" } } } }))).toEqual([]);
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, soak: { ...soak, unit: "kg" } } }))).toEqual(["supplies-unit"]);
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, soak: { ...soak, amount: 0 } } }))).toEqual(["supplies-amount"]);
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, soak: { ...soak, fact: "no.such-fact" } } }))).toEqual(["supplies-fact"]);
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, soak: { ...soak, bound: "least" } as never } }))).toEqual(["supplies-amount"]);
   });
 
   it("refuses amounts that are not more than 0, units that do not fit, and a time with low more than high", () => {
@@ -218,7 +254,37 @@ describe("the gate of the cook facts, the stoves and the fuel energy", () => {
     // A stove rate has a known bound or no bound.
     expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 227, unit: "g", per: hour, fact, bound: "least" } }))).toEqual([]);
     expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 227, unit: "g", per: hour, fact, bound: "Least" as never } }))).toEqual(["supplies-amount"]);
-    expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 227, unit: "g", per: hour, fact, bound: "most" as never } }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ fuel: "fuel.butane", rate: { amount: 227, unit: "g", per: hour, fact, bound: "most" } }))).toEqual([]);
+  });
+
+  it("examines a boil yield: a volume of water for a mass of fuel, a cited start below 100 °C or no start, and a known bound or no bound", () => {
+    const stove = (boil: unknown): SupplyCatalog => withProduct({ ...radio, stove: { fuel: "fuel.butane", boil: boil as never } });
+    const fact = "ready.kit-radio";
+    const start = { celsius: 21, fact };
+    const boil = { amount: 16, unit: "L", per: { amount: 227, unit: "g" }, fact, start };
+    expect(errors(stove(boil))).toEqual([]);
+    expect(errors(stove({ ...boil, bound: "most" }))).toEqual([]);
+    expect(errors(stove({ ...boil, bound: "least" }))).toEqual([]);
+    expect(errors(stove({ ...boil, bound: "Most" }))).toEqual(["supplies-amount"]);
+    // The water is a volume, and the fuel is a mass.
+    expect(errors(stove({ ...boil, unit: "kg" }))).toEqual(["supplies-unit"]);
+    expect(errors(stove({ ...boil, per: { amount: 1, unit: "h" } }))).toEqual(["supplies-unit"]);
+    expect(errors(stove({ ...boil, fact: "no.such-fact" }))).toEqual(["supplies-fact"]);
+    // A yield with no start is valid, and it gives no read. A start has its fact, and the water starts below the boil.
+    expect(errors(stove({ ...boil, start: undefined }))).toEqual([]);
+    expect(errors(stove({ ...boil, start: 21 }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ ...boil, start: { ...start, celsius: 100 } }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ ...boil, start: { ...start, celsius: 0 } }))).toEqual([]);
+    expect(errors(stove({ ...boil, start: { ...start, celsius: -1 } }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ ...boil, start: { ...start, celsius: Number.NaN } }))).toEqual(["supplies-amount"]);
+    expect(errors(stove({ ...boil, start: { ...start, fact: "no.such-fact" } }))).toEqual(["supplies-fact"]);
+  });
+
+  it("keeps the boil yield of the canister stove as the most yield of the maker test, from 21 °C", () => {
+    const boil = product("heat.stove-canister-1-burner").stove?.boil;
+    expect(boil?.bound).toBe("most");
+    expect(SUPPLY_CATALOG.facts.find((each) => each.id === boil?.start?.fact)?.source).toBe("msr.stove-performance");
+    expect(SUPPLY_CATALOG.sources.find((each) => each.id === "msr.stove-performance")?.license).toBe("all-rights-reserved");
   });
 
   it("refuses a bound on a rate that is not the fuel rate of a stove", () => {
