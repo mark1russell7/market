@@ -498,6 +498,15 @@ describe("the prices of the supplies from average prices", () => {
     expect(errors(raw({ gives: null }))).toEqual(["supplies-resource"]);
     expect(errors(raw({ gives: [null] }))).toEqual(["supplies-amount"]);
     expect(errors(raw({ gives: [{ resource: "food.grain-dry", amount: null }] }))).toEqual(["supplies-amount"]);
+    // A removed food gift makes the sum of food energy unknown, so it gives no error of the energy.
+    const butter = SUPPLY_CATALOG.products.find((product) => product.id === "food.peanut-butter-1kg")!;
+    const half = { ...butter.gives[0]!, amount: { read: true, amount: 2990, unit: "kcal", definition: "A test." } };
+    const butterWith = (gives: unknown[]): SupplyCatalog => ({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === butter.id ? ({ ...butter, gives } as unknown as SupplyProduct) : each)) });
+    expect(errors(butterWith([half, null]))).toEqual(["supplies-amount"]);
+    // A field that is not there, or a record in place of a list, has a plain text in the message.
+    expect(checkSupplies(raw({ shelf: undefined })).find((finding) => finding.code === "supplies-shelf")?.message).toContain("is not there.");
+    expect(checkSupplies(raw({ gives: {} })).find((finding) => finding.code === "supplies-resource")?.message).toContain("is a record.");
+    expect(checkSupplies(raw({ gives: [{ amount: null }] })).find((finding) => finding.code === "supplies-amount")?.message).toContain("A gift of an unknown resource");
     expect(checkSupplies(raw({ size: null })).find((finding) => finding.code === "supplies-amount")?.message).toContain("The field size of the product food.rice-white-1kg is null.");
   });
 });

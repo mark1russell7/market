@@ -182,8 +182,10 @@ type CheckedProduct = Omit<SupplyProduct, "shelf"> & { readonly shelf: SupplyPro
 
 /** This function gives a short text of a value from JSON that is not a record, for a message. */
 function shown(value: unknown): string {
+  if (value === undefined) return "not there";
   if (value === null) return "null";
   if (Array.isArray(value)) return "a list";
+  if (typeof value === "object") return "a record";
   return `a value of the type ${typeof value}`;
 }
 
@@ -432,7 +434,7 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
     } else {
       fields["gives"] = gives.filter((gift: unknown) => {
         if (isRecord(gift) && isRecord(gift["amount"])) return true;
-        const resource = isRecord(gift) ? String(gift["resource"]) : "an unknown resource";
+        const resource = isRecord(gift) && typeof gift["resource"] === "string" ? gift["resource"] : "an unknown resource";
         error("supplies-amount", "product", id, `A gift of ${resource} of the product ${id} is ${isRecord(gift) ? `a gift with the amount ${shown(gift["amount"])}` : shown(gift)}. Each gift has a resource and an amount with its reason or a no read.`);
         dropped = true;
         return false;
@@ -476,9 +478,10 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
       });
       // A food gift in another unit, for example the mass of dry rice, also has food energy. Then the sum is a lower limit.
       const lower = inEnergy.length < food.length;
-      // A gift of a resource that is not in the catalog, a gift with no read, or a value that the gift check refuses
-      // makes the sum unknown. The other checks give the finding.
+      // A gift that the field check removed, a gift of a resource that is not in the catalog, a gift with no read, or a
+      // value that the gift check refuses makes the sum unknown. The other checks give the finding.
       const unknownSum =
+        dropped ||
         product.gives.some((gift) => !resources.has(gift.resource)) ||
         !inEnergy.every((gift) => gift.amount.read && positive(gift.amount.amount) && known(gift.amount.unit) && convertible(gift.amount.unit, ENERGY_UNIT));
       if (inEnergy.length > 0 && !unknownSum) {
