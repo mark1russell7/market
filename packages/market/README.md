@@ -161,6 +161,9 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - A resource of a fuel can have the field `fuelEnergy`: a cited energy for each mass, with its heating value (`higher` or `lower`). For example, 2219.2 kJ in 44.0956 g of propane. The gate examines its fact and its units.
 - A product can have the field `stove`: the resource of the fuel that it burns and, as an option, its fuel rate at full heat. The fuel rate is an energy or a mass in a time, for example 227 g in 90 min. A rate in an energy also has its heating value.
 - The fuel of a stove is a resource of the catalog with the kind `heat`. A fuel that is not in the catalog is the error `supplies-resource`.
+- Since 0.8.11, a product can have the field `device`: the need that it gives, the resource of its cells and its run time. The run time is a time on a count of cells, for example 48 h on 3 `{each}`, or a no read.
+- The cells of a device are a resource of the catalog with the kind `power` in a bare count. A device on `energy.battery` in `Wh` is the error `supplies-unit`.
+- The run time is a fact of the device. The daily need, for example the 24 h of `alert.watch`, is not in the catalog.
 - The cook time starts when the water boils. The heat to boil the water is a calculation from the cook water.
 - A field with no cited value is not in the catalog. It is not 0 and not a default.
 
@@ -186,6 +189,7 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The canned soup is ready to serve, so it also gives `food.no-cook`. One can is 530 g, the portion of the FDC item, so it gives 217.3 kcal. It has no series of average prices yet.
 - Each product with a size in its definition has that size, and the soup has the 530 g of its FDC portion. A product with no known size has no field `size`. It does not have a no read. These products are the flashlight, the sleeping bag, the three stoves, the first aid kit, the radio and the power bank.
 - The water container has no size. It is sold empty, so 1 gal is its capacity and not an amount as sold. Its gift gives the 1 gal of water that it holds when it is full.
+- The flashlight gives `light.see` and the radio gives `alert.watch`, each on `battery.aa`. Their run time is no read. The catalog item is no one model, so a household gives the run time of its device as input data. The product `power.aa-alkaline` is one AA cell, from the extra batteries of the kit list.
 - The shelf life of commercially bottled water is no read. The source gives no time, so the date on the label applies.
 - The resources `fuel.propane` and `fuel.butane` are in `kg`. Their fuel energy is the higher heating value from the NIST Chemistry WebBook (SRD 69). It is the standard enthalpy of combustion of the gas for each mole, and the molecular weight. The page has a copyright of the U.S. Secretary of Commerce, so the catalog keeps only the cited values.
 - The cook water of the rice comes from USA Rice and of the oats from the label of Quaker. The bulk mass of 1 cup of each comes from FoodData Central. The cook times of the beans come from a USDA sheet, and of the pasta from the label of Ronzoni.

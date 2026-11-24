@@ -31,6 +31,7 @@ export {
   type StoveYield,
   type StoveRate,
   type StoveFacts,
+  type DeviceFacts,
   type ScaledReason,
   type GiftOf,
   type NoRead,

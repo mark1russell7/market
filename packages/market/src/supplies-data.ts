@@ -385,6 +385,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
     { code: "food.infant-formula-ready", unit: "kcal", title: "Infant formula, ready to feed, with no water and no fuel", kind: "food" },
     { code: "food.infant-formula-powder", unit: "kg", title: "Infant formula, powder, to mix with safe water and no fuel", kind: "food" },
     { code: "energy.battery", unit: "Wh", title: "Energy in a battery", kind: "power" },
+    { code: "battery.aa", unit: "{each}", title: "AA cells", kind: "power" },
     {
       code: "fuel.propane",
       unit: "kg",
@@ -588,7 +589,17 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       kind: "light",
       basis: "ready.kit-flashlight",
       gives: [],
+      device: { need: "light.see", battery: "battery.aa", run: { read: false, why: "The catalog item is no one model, so it has no run time. A household gives the run time of its flashlight as input data." } },
       shelf: { read: false, why: "The source gives no shelf life. The batteries have the date on their label." },
+    },
+    {
+      id: "power.aa-alkaline",
+      title: "An AA alkaline cell",
+      kind: "power",
+      basis: "ready.kit-flashlight",
+      size: { read: true, amount: 1, unit: "{each}", definition: "The catalog item is defined as one AA alkaline cell." },
+      gives: [{ resource: "battery.aa", amount: { read: true, amount: 1, unit: "{each}", size: true } }],
+      shelf: { read: false, why: "No source is read yet. The cells have the date on their label." },
     },
     {
       id: "heat.sleeping-bag",
@@ -647,6 +658,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       kind: "communication",
       basis: "ready.kit-radio",
       gives: [],
+      device: { need: "alert.watch", battery: "battery.aa", run: { read: false, why: "The catalog item is no one model, so it has no run time. A household gives the run time of its radio as input data." } },
       shelf: { read: false, why: "The source gives no shelf life." },
     },
     {
