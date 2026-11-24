@@ -7,7 +7,7 @@ import { SUPPLY_FORMAT, type SupplyCatalog } from "./supplies.ts";
 // cited value is not in the catalog.
 
 const CHECKED = "2026-11-22";
-/** The date of the check of the sources of the cook facts and the fuel energy. */
+/** The date of the check of the sources of the cook facts, the fuel energy and the stoves. */
 const COOK_CHECKED = "2026-11-24";
 const OPENED_CHECKED = "2026-11-24";
 
@@ -38,7 +38,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
     {
       id: "usda.pinto-beans",
       title: "Pinto Beans, Dry (MyPlate Facts, January 2020)",
-      url: "https://fns-prod.azureedge.us/sites/default/files/resource-files/PintoBeansDry.pdf",
+      url: "https://www.fns.usda.gov/sites/default/files/resource-files/PintoBeansDry.pdf",
       license: "us-public-domain",
       checked: COOK_CHECKED,
       by: "USDA Food and Nutrition Service (USDA Foods)",
@@ -61,6 +61,31 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       checked: COOK_CHECKED,
       by: "National Institute of Standards and Technology",
       note: "The page shows a copyright of the U.S. Secretary of Commerce. The catalog keeps only the cited values.",
+    },
+    { id: "ready.food", title: "Food", url: "https://www.ready.gov/food", license: "us-public-domain", checked: COOK_CHECKED, by: "FEMA (Ready.gov)" },
+    {
+      id: "coleman.propane-2-burner",
+      title: "Classic Propane Gas Camping Stove, 2-Burner (model 5430)",
+      url: "https://www.coleman.com/grills-stoves/camping-stoves/multi-burner/classic-propane-gas-camping-stove-2-burner/SAP_2223621.html",
+      license: "all-rights-reserved",
+      checked: COOK_CHECKED,
+      by: "Coleman",
+    },
+    {
+      id: "coleman.butane-1-burner",
+      title: "Classic 1-Burner Butane Camping Stove (model 2800)",
+      url: "https://www.coleman.com/grills-stoves/camping-stoves/single-burner/classic-1-burner-butane-camping-stove/SAP_2000037885.html",
+      license: "all-rights-reserved",
+      checked: COOK_CHECKED,
+      by: "Coleman",
+    },
+    {
+      id: "msr.pocketrocket-2",
+      title: "PocketRocket 2 Stove (SKU 09884)",
+      url: "https://cascadedesigns.com/products/pocketrocket-2-stove",
+      license: "all-rights-reserved",
+      checked: COOK_CHECKED,
+      by: "MSR (Cascade Designs)",
     },
   ],
   facts: [
@@ -86,11 +111,11 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       locator: "FDC ID 173904",
     },
     {
-      id: "fdc.beans-black",
+      id: "fdc.beans-pinto",
       use: "fact",
-      text: "The item 173734 (black beans, mature seeds, raw) gives 341 kcal in 100 g.",
+      text: "The item 175199 (pinto beans, mature seeds, raw) gives 347 kcal in 100 g. It is the same bean as the USDA sheet of the cook time.",
       source: "fdc.sr-legacy",
-      locator: "FDC ID 173734",
+      locator: "FDC ID 175199",
     },
     {
       id: "fdc.peanut-butter",
@@ -191,6 +216,34 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       locator: "Gas phase thermochemistry data, enthalpy of combustion of gas at standard conditions",
     },
     {
+      id: "ready.food-camp-stove",
+      use: "fact",
+      text: "The page names camp stoves as a source of heat to cook in an emergency. It tells to use a camp stove only outdoors.",
+      source: "ready.food",
+      locator: "Cooking",
+    },
+    {
+      id: "coleman.propane-2-burner-rate",
+      use: "fact",
+      text: "The page tells that one 16.4 oz propane cylinder lasts up to 1 hour with the 2 burners on high. It gives 20,000 BTU in total.",
+      source: "coleman.propane-2-burner",
+      locator: "Product Details, Description",
+    },
+    {
+      id: "coleman.butane-1-burner-rate",
+      use: "fact",
+      text: "The page tells that one 8.8 oz butane cylinder lasts up to 1.25 hours. It gives no burner setting for this time. It gives 7,650 BTU.",
+      source: "coleman.butane-1-burner",
+      locator: "Product Details, Description",
+    },
+    {
+      id: "msr.pocketrocket-2-rate",
+      use: "fact",
+      text: "The tech specs give a burn time of approximately 60 minutes for each canister of 227 g of MSR IsoPro fuel. They give 16 L of water boiled for each canister.",
+      source: "msr.pocketrocket-2",
+      locator: "Tech Specs",
+    },
+    {
       id: "ready.kit-flashlight",
       use: "fact",
       text: "The basic kit of the page has a flashlight and extra batteries.",
@@ -243,6 +296,8 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       kind: "heat",
       fuelEnergy: { amount: 2877.5, unit: "kJ", per: { amount: 58.1222, unit: "g" }, fact: "nist.butane-combustion", heating: "higher" },
     },
+    // The mix of a canister differs between makers, and the read source gives no mix. So this fuel has no fuel energy.
+    { code: "fuel.isobutane-mix", unit: "kg", title: "A mix of isobutane and propane in a screw-on canister, a fuel to cook with", kind: "heat" },
   ],
   products: [
     {
@@ -297,11 +352,11 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
     },
     {
       id: "food.beans-dry-1kg",
-      title: "Dry beans, 1 kg",
+      title: "Dry pinto beans, 1 kg",
       kind: "food",
       gives: [{ resource: "food.legume-dry", amount: { read: true, amount: 1, unit: "kg", size: true } }],
-      size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of dry beans." },
-      energy: { read: true, amount: 3410, unit: "kcal", scaled: { rate: { amount: 341, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.beans-black" }, of: { amount: 1, unit: "kg", size: true } } },
+      size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of dry pinto beans." },
+      energy: { read: true, amount: 3470, unit: "kcal", scaled: { rate: { amount: 347, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.beans-pinto" }, of: { amount: 1, unit: "kg", size: true } } },
       shelf: { read: true, foodKeeper: 333 },
       cook: { time: { low: 1, high: 1.5, unit: "h", fact: "usda.pinto-beans-cook" } },
       average: {
@@ -388,6 +443,34 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       basis: "ready.kit-sleeping-bag",
       perPerson: { read: true, amount: 1, unit: "{each}", fact: "ready.kit-sleeping-bag" },
       gives: [],
+      shelf: { read: false, why: "The source gives no shelf life." },
+    },
+    {
+      id: "heat.stove-canister-1-burner",
+      title: "A canister stove with 1 burner, on a screw-on canister of isobutane and propane",
+      kind: "heat",
+      basis: "ready.food-camp-stove",
+      gives: [],
+      stove: { fuel: "fuel.isobutane-mix", rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate" } },
+      shelf: { read: false, why: "The source gives no shelf life." },
+    },
+    {
+      id: "heat.stove-propane-2-burner",
+      title: "A propane camp stove with 2 burners, on a cylinder of 16.4 oz",
+      kind: "heat",
+      basis: "ready.food-camp-stove",
+      gives: [],
+      // The source gives the time with the 2 burners on high.
+      stove: { fuel: "fuel.propane", rate: { amount: 16.4, unit: "oz", per: { amount: 1, unit: "h" }, fact: "coleman.propane-2-burner-rate", bound: "least" } },
+      shelf: { read: false, why: "The source gives no shelf life." },
+    },
+    {
+      id: "heat.stove-butane-1-burner",
+      title: "A butane cartridge stove with 1 burner, on a cartridge of 8.8 oz",
+      kind: "heat",
+      basis: "ready.food-camp-stove",
+      gives: [],
+      stove: { fuel: "fuel.butane", rate: { amount: 8.8, unit: "oz", per: { amount: 1.25, unit: "h" }, fact: "coleman.butane-1-burner-rate", bound: "least" } },
       shelf: { read: false, why: "The source gives no shelf life." },
     },
     {

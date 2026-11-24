@@ -221,8 +221,8 @@ importers:
         specifier: workspace:*
         version: link:../market-sources
       '@mark1russell7/quantity':
-        specifier: ^0.4.5
-        version: 0.4.5(zod@4.6.7)
+        specifier: ^0.4.8
+        version: 0.4.8(zod@4.6.7)
       '@mark1russell7/service':
         specifier: ^0.8.19
         version: 0.8.20(@opentelemetry/api@1.10.0)(ws@8.22.2)(zod@4.6.7)
@@ -267,8 +267,8 @@ importers:
         specifier: ^1.5.0
         version: 1.5.0
       '@mark1russell7/quantity':
-        specifier: ^0.4.5
-        version: 0.4.5(zod@4.6.7)
+        specifier: ^0.4.8
+        version: 0.4.8(zod@4.6.7)
       '@mark1russell7/strategy-search':
         specifier: ^0.1.2
         version: 0.1.2
@@ -316,8 +316,8 @@ importers:
         specifier: workspace:*
         version: link:../market
       '@mark1russell7/quantity':
-        specifier: ^0.4.5
-        version: 0.4.5(zod@4.6.7)
+        specifier: ^0.4.8
+        version: 0.4.8(zod@4.6.7)
       '@mark1russell7/text':
         specifier: ^0.0.16
         version: 0.0.16
@@ -356,8 +356,8 @@ importers:
         specifier: workspace:*
         version: link:../market
       '@mark1russell7/quantity':
-        specifier: ^0.4.5
-        version: 0.4.5(zod@4.6.7)
+        specifier: ^0.4.8
+        version: 0.4.8(zod@4.6.7)
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.0.0
@@ -655,8 +655,8 @@ packages:
     resolution: {integrity: sha512-QpVjyHD/1JYriLVVJr4P6QpDJJN9q2BiM6CFu0q1hnyEEaH5RlrIMQSsrsKKzyED29VnT08xmliR65WbTkNTFw==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/quantity@0.4.5':
-    resolution: {integrity: sha512-ois3k4ZSiBWpRj8hpG3PUQQS3npv49YYzDZoPrQY14jfesEGi2aaFm5rFTFfqO3EdbajAzf4T1T+Gq6KAPKMOw==}
+  '@mark1russell7/quantity@0.4.8':
+    resolution: {integrity: sha512-E0R4RoDMdNN+oqSCGsWXVIUo/RCGJozvumrBSoBlWcooJ7ALgW3+OxJ3B2PyrMkvBDNSBBEL7jTZ5I53xkaOrQ==}
     engines: {node: '>=22.19'}
     peerDependencies:
       zod: ^4.1.0
@@ -2177,13 +2177,13 @@ snapshots:
 
   '@mark1russell7/algebra@0.8.10(zod@4.6.7)':
     dependencies:
-      '@mark1russell7/quantity': 0.4.5(zod@4.6.7)
+      '@mark1russell7/quantity': 0.4.8(zod@4.6.7)
     optionalDependencies:
       zod: 4.6.7
 
   '@mark1russell7/algebra@0.9.10(zod@4.6.7)':
     dependencies:
-      '@mark1russell7/quantity': 0.4.5(zod@4.6.7)
+      '@mark1russell7/quantity': 0.4.8(zod@4.6.7)
       '@mark1russell7/rigor-statistics': 0.2.19
     optionalDependencies:
       zod: 4.6.7
@@ -2233,7 +2233,7 @@ snapshots:
 
   '@mark1russell7/optional@1.5.0': {}
 
-  '@mark1russell7/quantity@0.4.5(zod@4.6.7)':
+  '@mark1russell7/quantity@0.4.8(zod@4.6.7)':
     dependencies:
       '@mark1russell7/rational': 0.1.2
     optionalDependencies:
@@ -2267,7 +2267,7 @@ snapshots:
     dependencies:
       '@mark1russell7/algebra': 0.8.10(zod@4.6.7)
       '@mark1russell7/collections': 0.11.0(zod@4.6.7)
-      '@mark1russell7/quantity': 0.4.5(zod@4.6.7)
+      '@mark1russell7/quantity': 0.4.8(zod@4.6.7)
       '@mark1russell7/rational': 0.1.2
       '@mark1russell7/rigor-generators': 0.1.16
       '@mark1russell7/text': 0.0.6
@@ -2316,7 +2316,7 @@ snapshots:
 
   '@mark1russell7/vex-domains@0.19.1(zod@4.6.7)':
     dependencies:
-      '@mark1russell7/quantity': 0.4.5(zod@4.6.7)
+      '@mark1russell7/quantity': 0.4.8(zod@4.6.7)
       '@mark1russell7/vex': 0.19.1(zod@4.6.7)
     transitivePeerDependencies:
       - zod
@@ -2347,7 +2347,7 @@ snapshots:
       '@mark1russell7/algebra': 0.8.10(zod@4.6.7)
       '@mark1russell7/coeval': 0.34.0(zod@4.6.7)
       '@mark1russell7/collections': 0.10.0(zod@4.6.7)
-      '@mark1russell7/quantity': 0.4.5(zod@4.6.7)
+      '@mark1russell7/quantity': 0.4.8(zod@4.6.7)
       '@mark1russell7/service': 0.8.20(@opentelemetry/api@1.10.0)(ws@8.22.2)(zod@4.6.7)
       '@opentelemetry/api': 1.10.0
       '@types/ws': 8.18.2

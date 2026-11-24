@@ -23,6 +23,6 @@
   },
   "dependencies": {
     "@mark1russell7/market": "workspace:*",
-    "@mark1russell7/quantity": "^0.4.5"
+    "@mark1russell7/quantity": "^0.4.8"
   }
 }

@@ -16,7 +16,7 @@
   "dependencies": {
     "@mark1russell7/market": "workspace:*",
     "@mark1russell7/market-sources": "workspace:*",
-    "@mark1russell7/quantity": "^0.4.5",
+    "@mark1russell7/quantity": "^0.4.8",
     "@mark1russell7/service": "^0.8.19",
     "@mark1russell7/text": "^0.0.16",
     "@procedures/fs": "^0.58.1",
