@@ -56,14 +56,18 @@ describe("the reference catalog of supplies", () => {
       "supplies-no-read first-aid.kit",
       "supplies-no-read communication.noaa-radio",
       "supplies-no-read communication.noaa-radio",
+      "supplies-no-read communication.frs-radio-pair",
+      "supplies-no-read communication.mesh-text-node",
+      "supplies-no-read communication.mesh-text-node",
       "supplies-no-read power.anker-737",
       "supplies-no-read power.anker-737",
     ]);
   });
 
-  it("has a product of each supply kind, and a cited basis for each product that gives no stored resource", () => {
+  it("has a product of each supply kind, and a cited basis or a no read of the basis for each product that gives no stored resource", () => {
     expect(new Set(SUPPLY_CATALOG.products.map((product) => product.kind))).toEqual(new Set(SUPPLY_KINDS));
-    for (const product of SUPPLY_CATALOG.products.filter((each) => each.gives.length === 0)) expect(product.basis, product.id).toBeDefined();
+    for (const product of SUPPLY_CATALOG.products.filter((each) => each.gives.length === 0)) expect(product.basis ?? product.noBasis, product.id).toBeDefined();
+    expect(SUPPLY_CATALOG.products.filter((product) => product.noBasis !== undefined).map((product) => product.id)).toEqual(["communication.mesh-text-node"]);
   });
 
   it("refuses a basis that is not a fact of the catalog, and counts a basis as a use of its fact", () => {
@@ -74,6 +78,29 @@ describe("the reference catalog of supplies", () => {
     expect(errors({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === radio.id ? { ...radio, basis: undefined, gives: plainRice.gives } : each)) })).toEqual([]);
     const unused = checkSupplies(products(undefined)).filter((finding) => finding.code === "supplies-unused");
     expect(unused.map((finding) => finding.id)).toEqual(["ready.kit-radio"]);
+  });
+
+  it("gives a warning for a no read of the basis, and refuses a basis with a no read or a bad no read", () => {
+    const mesh = SUPPLY_CATALOG.products.find((product) => product.id === "communication.mesh-text-node")!;
+    const withMesh = (product: SupplyProduct): SupplyCatalog => ({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === mesh.id ? product : each)) });
+    expect(errors(withMesh(mesh))).toEqual([]);
+    expect(checkSupplies(withMesh(mesh)).filter((finding) => finding.id === mesh.id && finding.level === "warning").map((finding) => finding.message)[0]).toMatch(/basis .* no read/);
+    expect(errors(withMesh({ ...mesh, noBasis: undefined }))).toEqual(["supplies-basis"]);
+    expect(errors(withMesh({ ...mesh, basis: "redcross.kit-two-way-radios" }))).toEqual(["supplies-basis"]);
+    expect(errors(withMesh({ ...mesh, noBasis: { read: true } as unknown as SupplyProduct["noBasis"] }))).toEqual(["supplies-basis"]);
+    expect(errors(withMesh({ ...mesh, noBasis: null as unknown as SupplyProduct["noBasis"] }))).toEqual(["supplies-amount", "supplies-basis"]);
+    expect(codes(withMesh({ ...mesh, noBasis: { read: false, why: " " } }))).toContain("supplies-no-reason");
+  });
+
+  it("examines each note of a product, and counts a note as a use of its fact", () => {
+    const radio = SUPPLY_CATALOG.products.find((product) => product.id === "communication.frs-radio-pair")!;
+    const withRadio = (product: SupplyProduct): SupplyCatalog => ({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === radio.id ? product : each)) });
+    expect(radio.notes).toContain("ecfr.gmrs-license");
+    expect(errors(withRadio({ ...radio, notes: [...radio.notes!, "unknown"] }))).toEqual(["supplies-fact"]);
+    expect(errors(withRadio({ ...radio, notes: [...radio.notes!, radio.notes![0]!] }))).toEqual(["supplies-twice"]);
+    expect(errors(withRadio({ ...radio, notes: "ecfr.frs-power" as unknown as string[] }))).toEqual(["supplies-fact"]);
+    const unused = checkSupplies(withRadio({ ...radio, notes: undefined })).filter((finding) => finding.code === "supplies-unused");
+    expect(unused.map((finding) => finding.id)).toEqual(radio.notes);
   });
 
   it("gives the food energy of ready-to-feed infant formula in its own resource, so only the infant draw uses it", () => {
@@ -108,7 +135,16 @@ describe("the reference catalog of supplies", () => {
   });
 
   it("gives the water of a jug of 1 gal in litres, exactly as the definition of the gallon", () => {
-    expect(giftsOf(SUPPLY_CATALOG, "water.jug-1gal", 4)).toEqual([{ resource: "water.stored", read: true, amount: 4 * 3.785411784, unit: "L" }]);
+    expect(giftsOf(SUPPLY_CATALOG, "water.jug-1gal", 4)).toEqual([{ resource: "water.bottled", read: true, amount: 4 * 3.785411784, unit: "L" }]);
+  });
+
+  it("gives commercially bottled water its own resource, and tap water stays water.stored", () => {
+    const unit = (code: string): string | undefined => SUPPLY_CATALOG.resources.find((resource) => resource.code === code)?.unit;
+    expect(unit("water.bottled")).toBe("L");
+    expect(unit("water.bottled")).toBe(unit("water.stored"));
+    expect(giftsOf(SUPPLY_CATALOG, "water.container-1gal", 2)).toEqual([{ resource: "water.stored", read: true, amount: 2 * 3.785411784, unit: "L" }]);
+    const bottled = SUPPLY_CATALOG.products.filter((product) => product.gives.some((gift) => gift.resource === "water.bottled"));
+    expect(bottled.map((product) => [product.id, product.title])).toEqual([["water.jug-1gal", "Drinking water, commercially bottled, in a jug of 1 gal"]]);
   });
 
   it("keeps a gift with no read as no read, not as 0", () => {
@@ -134,6 +170,7 @@ describe("the reference catalog of supplies", () => {
       "heat.stove-butane-1-burner",
       "first-aid.kit",
       "communication.noaa-radio",
+      "communication.mesh-text-node",
       "power.anker-737",
     ]);
     for (const product of sized) {
@@ -163,7 +200,7 @@ describe("the reference catalog of supplies", () => {
   it("refuses an unknown product id, and a count of units that is not a finite number of 0 or more", () => {
     expect(() => giftsOf(SUPPLY_CATALOG, "unknown", 1)).toThrow(RangeError);
     for (const units of [Number.NaN, -1, Number.POSITIVE_INFINITY]) expect(() => giftsOf(SUPPLY_CATALOG, "water.jug-1gal", units), String(units)).toThrow(RangeError);
-    expect(giftsOf(SUPPLY_CATALOG, "water.jug-1gal", 0)).toEqual([{ resource: "water.stored", read: true, amount: 0, unit: "L" }]);
+    expect(giftsOf(SUPPLY_CATALOG, "water.jug-1gal", 0)).toEqual([{ resource: "water.bottled", read: true, amount: 0, unit: "L" }]);
   });
 });
 
@@ -375,7 +412,7 @@ describe("the gate of the catalog", () => {
   it("refuses a resource with a kind that is not a supply kind", () => {
     const resources = SUPPLY_CATALOG.resources.map((resource) => (resource.code === "food.no-cook" ? { ...resource, kind: "snacks" as never } : resource));
     expect(errors({ ...SUPPLY_CATALOG, resources })).toEqual(["supplies-kind"]);
-    expect(SUPPLY_CATALOG.resources.map((resource) => resource.kind)).toEqual(["water", "food", "food", "food", "food", "food", "food", "food", "power", "power", "heat", "heat", "heat"]);
+    expect(SUPPLY_CATALOG.resources.map((resource) => resource.kind)).toEqual(["water", "water", "food", "food", "food", "food", "food", "food", "food", "power", "power", "heat", "heat", "heat"]);
   });
 
   it("refuses a unit from JSON that is not a known unit, in an amount and in a resource, and does not throw", () => {

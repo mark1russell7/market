@@ -262,6 +262,16 @@ export interface SupplyProduct {
   /** The `id` of a fact that tells why a kit has the product, for example the kit list of a public agency. */
   readonly basis?: string | undefined;
   /**
+   * The no read of the basis: no source that the catalog read names the product for a kit. The reason tells what is
+   * missing. A product with this field and no gift gets a warning, not the error `supplies-basis`.
+   */
+  readonly noBasis?: NoRead | undefined;
+  /**
+   * The ids of more cited facts of the product, for example a license rule, the channels or the radio band. A reader
+   * shows them with the product. The gate examines each id.
+   */
+  readonly notes?: readonly string[] | undefined;
+  /**
    * The count of units for each person of the household, in one bare count unit, for example 1 `{each}` of a sleeping
    * bag. A product with no field `perPerson` is one for the household. `kitMax` gives the count of units from it.
    */
@@ -459,7 +469,9 @@ function soundCatalog(input: unknown): { readonly catalog: SupplyCatalog; readon
  * - An error (`supplies-format`) for a catalog or an item that is not a record, and for a list that is not a list.
  *   The gate examines the other items.
  * - An error for a product or a resource two times, a kind that is not a supply kind, and a gift of an unknown resource.
- * - An error for a product that gives no resource and has no basis.
+ * - An error for a product that gives no resource and has no basis. A no read of the basis (`noBasis`) gives a warning
+ *   in place of the error. A product with a basis and a no read of the basis is an error.
+ * - An error for a note that is not a fact of the catalog, and for a note two times. A note is a use of its fact.
  * - An error for a field `energy` on a product that is not food. The field is the food energy of one unit.
  * - An error for a fact that is not a fact of the catalog, and for an amount that is not more than 0. The basis of a
  *   product is also a fact.
@@ -719,10 +731,10 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
   const fieldsOf = (raw: SupplyProduct): { readonly product: CheckedProduct; readonly dropped: boolean } => {
     const id = raw.id;
     const fields: Record<string, unknown> = { ...raw };
-    for (const field of ["size", "energy", "perPerson", "average", "cook", "stove", "opened", "device"] as const) {
+    for (const field of ["size", "energy", "perPerson", "average", "cook", "stove", "opened", "device", "noBasis"] as const) {
       const value: unknown = raw[field];
       if (value === undefined || isRecord(value)) continue;
-      const must = field === "cook" || field === "stove" || field === "opened" || field === "device" ? "a record of facts" : "an amount with its reason or a no read";
+      const must = field === "noBasis" ? "a no read with its reason" : field === "cook" || field === "stove" || field === "opened" || field === "device" ? "a record of facts" : "an amount with its reason or a no read";
       error("supplies-amount", "product", id, `The field ${field} of the product ${id} is ${shown(value)}. It must be ${must}, or the product has no field ${field}.`);
       fields[field] = undefined;
     }
@@ -730,6 +742,11 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
     if (!isRecord(shelf)) {
       error("supplies-shelf", "product", id, `The shelf life of the product ${id} is ${shown(shelf)}. It must be an amount with its reason, a FoodKeeper id or a no read.`);
       fields["shelf"] = undefined;
+    }
+    const notes: unknown = raw.notes;
+    if (notes !== undefined && !Array.isArray(notes)) {
+      error("supplies-fact", "product", id, `The field notes of the product ${id} is ${shown(notes)}. It must be a list of fact ids, or the product has no field notes.`);
+      fields["notes"] = undefined;
     }
     const gives: unknown = raw.gives;
     let dropped = false;
@@ -763,11 +780,28 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
       if (resource === undefined) error("supplies-resource", "product", product.id, `The product ${product.id} gives the resource ${gift.resource}, and the catalog has no such resource.`);
       else amount(product, `gift of ${gift.resource}`, gift.amount, resource.unit);
     }
-    if (product.gives.length === 0 && !dropped && product.basis === undefined) error("supplies-basis", "product", product.id, `The product ${product.id} gives no resource and has no basis. A product that gives no resource cites a fact in its basis.`);
+    if (product.gives.length === 0 && !dropped && product.basis === undefined && product.noBasis === undefined)
+      error("supplies-basis", "product", product.id, `The product ${product.id} gives no resource and has no basis. A product that gives no resource cites a fact in its basis, or gives a no read of the basis.`);
     if (product.basis !== undefined) {
       const fact = facts.get(product.basis);
       if (fact === undefined || fact.use !== "fact") error("supplies-fact", "product", product.id, `The basis of the product ${product.id} cites ${String(product.basis)}, and the catalog has no fact with that id.`);
       used.add(product.basis);
+    }
+    if (product.noBasis !== undefined) {
+      const noBasis: unknown = product.noBasis;
+      const why = isRecord(noBasis) ? noBasis["why"] : undefined;
+      if (product.basis !== undefined) error("supplies-basis", "product", product.id, `The product ${product.id} has a basis and a no read of the basis. It must have one of the two.`);
+      else if (!isRecord(noBasis) || noBasis["read"] !== false) error("supplies-basis", "product", product.id, `The no read of the basis of the product ${product.id} must have read: false and a reason.`);
+      else {
+        warning("supplies-no-read", "product", product.id, `The basis of the product ${product.id} is no read: ${String(why)}`);
+        if (typeof why !== "string" || why.trim() === "") warning("supplies-no-reason", "product", product.id, `The no read of the basis of the product ${product.id} has no reason.`);
+      }
+    }
+    const notes = new Set<unknown>();
+    for (const note of product.notes ?? []) {
+      if (notes.has(note)) error("supplies-twice", "product", product.id, `The product ${product.id} has the note ${String(note)} two times.`);
+      notes.add(note);
+      cite(product.id, "A note", note);
     }
     // An unknown kind has its own error above, so this rule examines only a known kind that is not food.
     if (product.energy !== undefined && product.kind !== "food" && (SUPPLY_KINDS as readonly string[]).includes(product.kind)) error("supplies-kind", "product", product.id, `The product ${product.id} has a food energy, and its kind is ${String(product.kind)}. Only a product of the kind food has a food energy.`);

@@ -1271,6 +1271,8 @@ interface SupplyProduct {
   readonly want?: PartWant | undefined;
   readonly gives: readonly SupplyGift[];
   readonly basis?: string | undefined;
+  readonly noBasis?: NoRead | undefined;
+  readonly notes?: readonly string[] | undefined;
   readonly perPerson?: CitedAmount | undefined;
   readonly forPersons?: number | undefined;
   readonly energy?: CitedAmount | NoRead | undefined;
