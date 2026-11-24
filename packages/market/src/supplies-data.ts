@@ -44,6 +44,14 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       checked: COOK_CHECKED,
       by: "USDA Food and Nutrition Service (USDA Foods)",
     },
+    {
+      id: "usda.refried-beans",
+      title: "Refried Beans: USDA Recipe for Schools (2019)",
+      url: "https://theicn.org/cnrb/pdfs/schools/Refried-Beans.pdf",
+      license: "us-public-domain",
+      checked: COOK_CHECKED,
+      by: "USDA Food and Nutrition Service, through the Institute of Child Nutrition",
+    },
     { id: "ronzoni.spaghetti", title: "Twirlin' Spaghetti", url: "https://www.ronzoni.com/products/spaghetti", license: "all-rights-reserved", checked: COOK_CHECKED, by: "Ronzoni" },
     {
       id: "nist.propane",
@@ -232,6 +240,20 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       locator: "Uses and Tips",
     },
     {
+      id: "usda.refried-beans-soak",
+      use: "fact",
+      text: "The recipe tells to add 1 3/4 qt of cold water to each 1 lb of dry beans, cover and refrigerate overnight. Then discard the water.",
+      source: "usda.refried-beans",
+      locator: "Page 4, Soaking Beans, overnight method",
+    },
+    {
+      id: "usda.refried-beans-cook",
+      use: "fact",
+      text: "The recipe tells to add 1 3/4 qt of water for each lb of dry beans after the soak. Boil gently with the lid tilted until tender, about 2 hours.",
+      source: "usda.refried-beans",
+      locator: "Page 4, after Soaking Beans",
+    },
+    {
       id: "ronzoni.spaghetti-cook",
       use: "fact",
       text: "The cooking directions of the page give 9 minutes for al dente and 11 minutes for tender. They give the water for each box, and no mass of a box.",
@@ -402,7 +424,11 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of dry pinto beans." },
       energy: { read: true, amount: 3470, unit: "kcal", scaled: { rate: { amount: 347, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.beans-pinto" }, of: { amount: 1, unit: "kg", size: true } } },
       shelf: { read: true, foodKeeper: 333 },
-      cook: { time: { low: 1, high: 1.5, unit: "h", fact: "usda.pinto-beans-cook" } },
+      cook: {
+        water: { amount: 1.75, unit: "qt", per: { amount: 1, unit: "lb" }, fact: "usda.refried-beans-cook" },
+        soak: { amount: 1.75, unit: "qt", per: { amount: 1, unit: "lb" }, fact: "usda.refried-beans-soak" },
+        time: { low: 1, high: 1.5, unit: "h", fact: "usda.pinto-beans-cook" },
+      },
       average: {
         read: true,
         source: "bls-ap",
