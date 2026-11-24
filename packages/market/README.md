@@ -143,6 +143,8 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - A product has a kind (`water`, `food`, `power`, `light`, `heat`, `first-aid` or `communication`), the resources that one unit gives, its shelf life and, as an option, a part for the offers.
 - A product can give no stored resource, for example a radio. Its `basis` is the id of a fact that tells why a kit has it, and the gate examines that fact. A product that gives no resource and has no basis is an error.
 - Each amount has a cited fact, the definition of the product, or a no read with its reason. A no read is not 0.
+- An amount can also be a rate of a cited fact times an amount of the product, in the field `scaled`. For example, the food energy of 1 kg of rice is 365 kcal in 100 g times 1 kg. The amount that the rate applies to has its own fact or definition. The gate calculates the product with `@mark1russell7/quantity`, and the error `supplies-amount` tells of an amount that is not equal to it.
+- A product with a food energy and a gift in a unit of energy, for example `food.no-cook` in kcal, gives the same energy two times. The error `supplies-energy` tells of two values that are not equal.
 - The facts and their sources are the records of [`@mark1russell7/guidebook`](https://www.npmjs.com/package/@mark1russell7/guidebook). Its gate examines each license and each address.
 - The shelf life of a food is the id of a product of the FoodKeeper data of USDA FSIS. The entry `/foodkeeper` of `@mark1russell7/stock` gives its due rule.
 - The resource codes are the codes of a store of `@mark1russell7/stack-endurance`, for example `water.stored` in `L`.

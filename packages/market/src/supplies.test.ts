@@ -149,6 +149,46 @@ describe("the gate of the catalog", () => {
     expect(codes(SUPPLY_CATALOG)).not.toContain("supplies-no-reason");
   });
 
+  it("accepts a scaled amount that is the rate times the amount, and refuses another amount", () => {
+    const energy = rice.energy as Extract<SupplyProduct["energy"], { scaled: unknown }>;
+    const scaled = (change: Partial<typeof energy>): SupplyCatalog => withProduct({ ...rice, energy: { ...energy, ...change } as SupplyProduct["energy"] });
+    // 365 kcal in 100 g times 1 kg is 3650 kcal, also in another unit of energy.
+    expect(errors(scaled({}))).toEqual([]);
+    expect(errors(scaled({ amount: 3650 * 4.184, unit: "kJ" }))).toEqual([]);
+    expect(errors(scaled({ amount: 3600 }))).toEqual(["supplies-amount"]);
+    expect(checkSupplies(scaled({ amount: 3600 })).find((finding) => finding.code === "supplies-amount")?.message).toContain("gives 3650 kcal");
+    // The amount of the reason has a fact: 41 kcal in 100 g times the 530 g of a can.
+    const soup = SUPPLY_CATALOG.products.find((product) => product.id === "food.soup-can")!;
+    expect(soup.energy).toMatchObject({ amount: 217.3, scaled: { of: { amount: 530, unit: "g", fact: "fdc.soup-chicken-noodle" } } });
+  });
+
+  it("refuses a scaled reason with an unknown fact, a bad factor or a unit that does not convert, and does not throw", () => {
+    const energy = rice.energy as Extract<SupplyProduct["energy"], { scaled: unknown }>;
+    const reason = (change: unknown): SupplyCatalog => withProduct({ ...rice, energy: { ...energy, scaled: change } as SupplyProduct["energy"] });
+    const { rate, of } = energy.scaled;
+    expect(errors(reason({ rate: { ...rate, fact: "unknown" }, of }))).toContain("supplies-fact");
+    expect(errors(reason({ rate, of: { amount: 1, unit: "kg", fact: "unknown" } }))).toContain("supplies-fact");
+    expect(errors(reason({ rate, of: { amount: 1, unit: "kg", fact: "fdc.rice-white", definition: "Also a definition." } }))).toEqual(["supplies-fact"]);
+    expect(errors(reason({ rate, of: { amount: 1, unit: "kg", definition: " " } }))).toEqual(["supplies-fact"]);
+    expect(errors(reason({ rate: { ...rate, per: { amount: 0, unit: "g" } }, of }))).toEqual(["supplies-amount"]);
+    expect(errors(reason({ rate, of: { ...of, unit: "foo" } }))).toEqual(["supplies-amount"]);
+    // kcal in 100 g times 1 L is not an energy.
+    expect(errors(reason({ rate, of: { ...of, unit: "L" } }))).toEqual(["supplies-unit"]);
+    expect(errors(reason({ rate }))).toEqual(["supplies-fact"]);
+    expect(errors(reason(undefined))).toEqual(["supplies-fact"]);
+    expect(errors(withProduct({ ...rice, energy: { ...energy, fact: "fdc.rice-white" } as unknown as SupplyProduct["energy"] }))).toEqual(["supplies-fact"]);
+  });
+
+  it("refuses a food energy that is not equal to a gift of the product in a unit of energy", () => {
+    const butter = SUPPLY_CATALOG.products.find((product) => product.id === "food.peanut-butter-1kg")!;
+    const withButter = (product: SupplyProduct): SupplyCatalog => ({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === butter.id ? product : each)) });
+    expect(errors(withButter(butter))).toEqual([]);
+    expect(errors(withButter({ ...butter, energy: { read: true, amount: 5000, unit: "kcal", definition: "A test." } }))).toEqual(["supplies-energy"]);
+    expect(errors(withButter({ ...butter, energy: { read: true, amount: 5980 * 4.184, unit: "kJ", definition: "A test." } }))).toEqual([]);
+    // A gift in another resource, for example the mass of a food, is not compared.
+    expect(errors(withProduct({ ...rice, energy: { read: true, amount: 100, unit: "kcal", definition: "A test." } }))).toEqual([]);
+  });
+
   it("refuses a unit from JSON that is not a known unit, in an amount and in a resource, and does not throw", () => {
     const foo = withProduct({ ...rice, energy: { read: true, amount: 3650, unit: "foo", fact: "fdc.rice-white" } });
     expect(errors(foo)).toEqual(["supplies-unit"]);

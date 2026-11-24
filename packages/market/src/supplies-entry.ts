@@ -15,6 +15,7 @@ export {
   supplyWants,
   type AverageJoin,
   type CitedAmount,
+  type ScaledReason,
   type GiftOf,
   type NoRead,
   type ShelfLife,
