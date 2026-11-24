@@ -609,7 +609,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
         fuel: "fuel.isobutane-mix",
         rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate" },
         // The maker test is in calm air from 21 °C, so the yield is the most: wind and cold water boil less water.
-        boil: { amount: 16, unit: "L", per: { amount: 227, unit: "g" }, fact: "msr.pocketrocket-2-rate", start: { celsius: 21, fact: "msr.test-conditions" }, bound: "most" },
+        boil: { amount: 16, unit: "L", per: { amount: 227, unit: "g" }, fact: "msr.pocketrocket-2-rate", start: { celsius: 21, fact: "msr.test-conditions" }, end: { celsius: 100, fact: "msr.test-conditions" }, bound: "most" },
         adverse: { factor: 4, fact: "msr.adverse-factor", bound: "most" },
       },
       shelf: { read: false, why: "The source gives no shelf life." },
