@@ -1,4 +1,4 @@
-import { quantity, valueIn } from "@mark1russell7/quantity";
+import { convertible, quantity, valueIn } from "@mark1russell7/quantity";
 import { FOODKEEPER_PRODUCTS } from "@mark1russell7/stock/foodkeeper";
 import { describe, expect, it } from "vitest";
 import { buyCandidates } from "./order.ts";
@@ -192,6 +192,32 @@ describe("the gate of the catalog", () => {
     expect(errors(withProduct({ ...rice, size: undefined }))).toEqual(["supplies-fact", "supplies-fact"]);
     expect(errors(withProduct({ ...rice, size: { read: false, why: "The label is not read yet." } }))).toEqual(["supplies-fact", "supplies-fact"]);
     expect(errors(withProduct({ ...rice, size: { read: true, amount: 1, unit: "kg", size: true } }))).toEqual(["supplies-fact", "supplies-fact", "supplies-fact"]);
+    // A size that cites itself through a scaled reason: a rate of 1 kg in 1 kg times the size.
+    const loop = { read: true, amount: 1, unit: "kg", scaled: { rate: { amount: 1, unit: "kg", per: { amount: 1, unit: "kg" }, fact: "fdc.rice-white" }, of: { amount: 1, unit: "kg", size: true } } } as const;
+    expect(errors(withProduct({ ...plainRice, size: loop }))).toEqual(["supplies-fact"]);
+    expect(errors(withProduct({ ...rice, size: loop }))).toEqual(["supplies-fact", "supplies-fact", "supplies-fact"]);
+    // JSON can give a text or null in place of the amount of a scaled size. The gate does not throw.
+    for (const of of ["1 kg", null]) expect(() => checkSupplies(withProduct({ ...rice, size: { ...loop, scaled: { ...loop.scaled, of } } as unknown as SupplyProduct["size"] }))).not.toThrow();
+  });
+
+  it("gives one error for an amount of 0 that cites the size, and one for a size of 0", () => {
+    const gift = rice.gives[0]!;
+    expect(errors(withProduct({ ...rice, gives: [{ ...gift, amount: { read: true, amount: 0, unit: "kg", size: true } }] }))).toEqual(["supplies-amount"]);
+    expect(errors(withProduct({ ...rice, size: { read: true, amount: 0, unit: "kg", definition: "A test." } }))).toEqual(["supplies-amount"]);
+  });
+
+  it("cites the size or a fact in each gift and each amount of a scaled reason in the unit of the size", () => {
+    // A definition in the unit of the size is a second copy of the size that the gate does not compare.
+    const copies = (catalog: SupplyCatalog): string[] =>
+      catalog.products.flatMap((product) => {
+        const size = product.size;
+        if (size === undefined || !size.read) return [];
+        const cited = [product.energy, ...product.gives.map((gift) => gift.amount)];
+        const amounts = [...product.gives.map((gift) => gift.amount), ...cited.flatMap((value) => (value?.read === true && value.scaled !== undefined ? [value.scaled.of] : []))];
+        return amounts.some((value) => "definition" in value && value.definition !== undefined && convertible(value.unit, size.unit)) ? [product.id] : [];
+      });
+    expect(copies(SUPPLY_CATALOG)).toEqual([]);
+    expect(copies(withProduct(plainRice))).toEqual([rice.id]);
   });
 
   it("refuses a scaled reason with an unknown fact, a bad factor or a unit that does not convert, and does not throw", () => {

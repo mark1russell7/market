@@ -176,6 +176,11 @@ function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+/** This function tells if a value from JSON is a finite number more than 0, the rule of each amount. */
+function positive(value: unknown): value is number {
+  return finite(value) && value > 0;
+}
+
 /** This function tells if two amounts are equal, to a relative error of 1e-9 for the rounding of a conversion. A value that is not finite, for example a conversion that overflows, is not equal to a value. */
 function same(a: number, b: number): boolean {
   return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= 1e-9 * Math.max(Math.abs(a), Math.abs(b));
@@ -276,12 +281,18 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
       return;
     }
     const size = record.size;
-    if (size === undefined || size.read !== true || size.size !== undefined) {
+    // A size cites itself with the reason size, or with a scaled reason whose amount cites the size. JSON can give
+    // any value in each field of a scaled reason, so the read is safe.
+    const sizeScaled = (size as { readonly scaled?: unknown } | undefined)?.scaled;
+    const scaledOf: unknown = typeof sizeScaled === "object" && sizeScaled !== null ? (sizeScaled as { readonly of?: unknown }).of : undefined;
+    const ofCitesSize = typeof scaledOf === "object" && scaledOf !== null && (scaledOf as { size?: unknown }).size !== undefined;
+    if (size === undefined || size.read !== true || size.size !== undefined || ofCitesSize) {
       error("supplies-fact", "product", product, `The ${what} of the product ${product} cites the size, and the product has no read size with its own reason.`);
       return;
     }
-    // The other checks give the error of a value or a unit that is not good.
-    if (!finite(value.amount) || !finite(size.amount) || !known(value.unit) || !known(size.unit)) return;
+    // The other checks give the error of a value that is not more than 0 or a unit that is not known, so this check
+    // does not give a second error for them.
+    if (!positive(value.amount) || !positive(size.amount) || !known(value.unit) || !known(size.unit)) return;
     const unit = value.unit as string;
     try {
       const why = whyNotConvertible(size.unit, unit);
