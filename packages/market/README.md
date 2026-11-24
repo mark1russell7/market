@@ -195,7 +195,9 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The two Coleman pages give an upper limit of the time ("up to"). Thus each of their rates is a lower limit of the fuel that the stove burns at full heat, and it has `bound: "least"`. A reader that takes a rate as the value takes only a rate with no bound. The butane page gives no burner setting for its time.
 - The MSR page gives a burn time of "approximately" 60 min. Thus its rate has no bound.
 - Each Coleman page also gives a rating in BTU. At the higher heating value of the catalog, the rating gives less fuel than the burn time. The propane stove gives 0.419 kg/h against 0.465 kg/h. The butane stove gives 0.163 kg/h against 0.200 kg/h. Thus the catalog takes the burn time, the side with more fuel. The rating is not an upper limit of the fuel.
-- Only the fuel rate of a stove has a bound (`RATE_BOUNDS`). The gate refuses an unknown bound, and a bound on a cook water, a bulk mass or a fuel energy.
+- Only the fuel rate and the boil yield of a stove have a bound (`RATE_BOUNDS`: `least` or `most`). The gate refuses an unknown bound, and a bound on a cook water, a bulk mass or a fuel energy.
+- Since 0.8.6, the canister stove has a boil yield: 16 L of water for each 227 g of fuel, from its maker page. The maker test is in calm air from a warm start, so the yield has `bound: "most"`. A reader takes no value from it until a cited field figure exists.
+- The start of 21 °C is the general test convention of the maker blog for most makers. The spec page of this stove gives no start of its own. A field figure with `bound: "least"` brings its own start.
 - The canister stove burns `fuel.isobutane-mix`. The mix of a canister differs between makers, and the read page gives no mix. Thus this fuel has no fuel energy, and a converter gives a no read for its energy.
 - The product ids of the stoves name no maker. The source records name the maker and the model.
 - A cup is 236.6 mL in `@mark1russell7/quantity` and in FoodData Central. A cup on a label can be 240 mL, a difference of 1.4%.

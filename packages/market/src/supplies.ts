@@ -124,8 +124,11 @@ export interface CookFacts {
   readonly time?: CitedSpan | undefined;
 }
 
-/** The bounds of a cited stove rate. `least`: the true rate is this value or more. */
-export const RATE_BOUNDS = ["least"] as const;
+/**
+ * The bounds of a cited stove rate. `least`: the true rate is this value or more. `most`: the true rate is this value
+ * or less.
+ */
+export const RATE_BOUNDS = ["least", "most"] as const;
 
 /** A bound of a cited stove rate. */
 export type RateBound = (typeof RATE_BOUNDS)[number];
@@ -137,6 +140,16 @@ export type RateBound = (typeof RATE_BOUNDS)[number];
  */
 export interface StoveRate extends CitedRate {
   readonly bound?: RateBound | undefined;
+}
+
+/**
+ * The boil yield of a stove: the volume of water that a mass of fuel boils, for example 16 L for each 227 g canister.
+ * `start` is the temperature of the water at the start, with its fact. The yield ends at 100 °C, when the water boils.
+ * A maker test is in calm air from a warm start, so it gives the most yield, and the yield has `bound: "most"`.
+ * A colder start of the test gives less fuel, so a yield with no cited start gives no read.
+ */
+export interface StoveYield extends StoveRate {
+  readonly start?: { readonly celsius: number; readonly fact: string } | undefined;
 }
 
 /**
@@ -158,12 +171,15 @@ export interface OpenedFacts {
  * - `rate`: the fuel that the stove burns in a time at its full heat. It is an energy in a time, for example 15000 BTU
  *   in 1 h. It can also be a mass in a time, for example 227 g in 90 min for one canister. A stove with no cited rate has no field `rate`.
  *   A burn time of "up to" a time gives the least rate, so the rate has `bound: "least"`. A burn time of "approximately" a time has no bound.
+ * - `boil`: the water that a mass of fuel boils, from a cited start temperature. A boil test of a maker gives the most
+ *   yield, so the yield has `bound: "most"`. A stove with no cited yield has no field `boil`.
  * - `heating`: the heating value of a rate in an energy. Ratings in BTU/h usually give the higher value. A rate in a mass
  *   has no heating value.
  */
 export interface StoveFacts {
   readonly fuel: string;
   readonly rate?: StoveRate | undefined;
+  readonly boil?: StoveYield | undefined;
   readonly heating?: HeatingValue | undefined;
 }
 
@@ -416,10 +432,10 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
    * This function examines a cited rate: its fact, its two amounts and their units. The amount converts to one of the
    * units `to`, and the amount of the rate converts to one of the units `per`. It gives true for a good rate.
    */
-  // Only a stove rate has a bound. A bound on another rate is an error, because its reader gives a bare value.
+  // Only a stove rate and a boil yield have a bound. A bound on another rate is an error, because its reader gives a bare value.
   const noBound = (record: "resource" | "product", id: string, what: string, value: unknown): void => {
     if (isRecord(value) && value["bound"] !== undefined)
-      error("supplies-amount", record, id, `The ${what} of the ${record} ${id} has the bound ${shown(value["bound"])}. Only the fuel rate of a stove has a bound.`);
+      error("supplies-amount", record, id, `The ${what} of the ${record} ${id} has the bound ${shown(value["bound"])}. Only the fuel rate and the boil yield of a stove have a bound.`);
   };
   const rate = (record: "resource" | "product", id: string, what: string, value: unknown, to: readonly string[], per: readonly string[]): boolean => {
     if (!isRecord(value)) {
@@ -712,7 +728,7 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
         error("supplies-fact", "product", product.id, `The cook water of the product ${product.id} is for a volume of dry food, and the product has no bulk mass. The bulk mass converts the volume to a mass.`);
     }
     if (product.stove !== undefined) {
-      const { fuel, rate: fuelRate, heating } = product.stove;
+      const { fuel, rate: fuelRate, boil, heating } = product.stove;
       const burned = typeof fuel === "string" ? resources.get(fuel) : undefined;
       if (burned === undefined) error("supplies-resource", "product", product.id, `The stove ${product.id} burns the resource ${String(fuel)}, and the catalog has no such resource.`);
       else if (burned.kind !== "heat") error("supplies-kind", "product", product.id, `The stove ${product.id} burns the resource ${burned.code}, and its kind is ${String(burned.kind)}. A fuel has the kind heat.`);
@@ -722,6 +738,21 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
         error("supplies-amount", "product", product.id, `The fuel rate of the stove ${product.id} has the bound ${shown(bound)}. It must be ${RATE_BOUNDS.join(" or ")}, or the rate has no bound.`);
       if (heating !== undefined && !(HEATING_VALUES as readonly unknown[]).includes(heating))
         error("supplies-amount", "product", product.id, `The fuel rate of the stove ${product.id} has the heating value ${String(heating)}. It must be ${HEATING_VALUES.join(" or ")}.`);
+      if (boil !== undefined) {
+        rate("product", product.id, "boil yield of the stove", boil, [VOLUME_UNIT], [MASS_UNIT]);
+        const boilBound: unknown = isRecord(boil) ? boil["bound"] : undefined;
+        if (boilBound !== undefined && !(RATE_BOUNDS as readonly unknown[]).includes(boilBound))
+          error("supplies-amount", "product", product.id, `The boil yield of the stove ${product.id} has the bound ${shown(boilBound)}. It must be ${RATE_BOUNDS.join(" or ")}, or the yield has no bound.`);
+        // The yield is for liquid water: it starts at 0 °C or more, and below the boil at 100 °C. A yield with no start is valid, and it gives no read.
+        const start: unknown = isRecord(boil) ? boil["start"] : undefined;
+        if (start !== undefined && !isRecord(start)) error("supplies-amount", "product", product.id, `The start temperature of the boil yield of the stove ${product.id} is ${shown(start)}. It must be a temperature with its fact.`);
+        else if (isRecord(start)) {
+          const celsius = start["celsius"];
+          if (typeof celsius !== "number" || !Number.isFinite(celsius) || celsius < 0 || !(celsius < 100))
+            error("supplies-amount", "product", product.id, `The start temperature of the boil yield of the stove ${product.id} is ${shown(celsius)}. It must be a number from 0 °C to less than 100 °C.`);
+          cite(product.id, "The start temperature of the boil yield", start["fact"]);
+        }
+      }
       // A rate in an energy needs its heating value: the higher and the lower value of a fuel differ by 5% to 10%.
       if (goodRate && convertible(fuelRate.unit, FUEL_ENERGY_UNIT) && heating === undefined)
         error("supplies-amount", "product", product.id, `The fuel rate of the stove ${product.id} is an energy, and it has no heating value. Give ${HEATING_VALUES.join(" or ")}.`);

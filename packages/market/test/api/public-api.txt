@@ -185,6 +185,7 @@ type ScaledReason: build/supplies-entry.d.ts#ScaledReason
 type ShelfLife: build/supplies-entry.d.ts#ShelfLife
 type StoveFacts: build/supplies-entry.d.ts#StoveFacts
 type StoveRate: build/supplies-entry.d.ts#StoveRate
+type StoveYield: build/supplies-entry.d.ts#StoveYield
 type SupplyCatalog: build/supplies-entry.d.ts#SupplyCatalog
 type SupplyCode: build/supplies-entry.d.ts#SupplyCode
 type SupplyFinding: build/supplies-entry.d.ts#SupplyFinding
@@ -1120,7 +1121,7 @@ interface OpenedFacts {
 }
 
 ### build/supplies-entry.d.ts#RATE_BOUNDS
-export declare const RATE_BOUNDS: readonly ["least"];
+export declare const RATE_BOUNDS: readonly ["least", "most"];
 
 ### build/supplies-entry.d.ts#RateBound
 type RateBound = (typeof RATE_BOUNDS)[number];
@@ -1179,12 +1180,21 @@ type ShelfLife = CitedAmount | {
 interface StoveFacts {
   readonly fuel: string;
   readonly rate?: StoveRate | undefined;
+  readonly boil?: StoveYield | undefined;
   readonly heating?: HeatingValue | undefined;
 }
 
 ### build/supplies-entry.d.ts#StoveRate
 interface StoveRate extends CitedRate {
   readonly bound?: RateBound | undefined;
+}
+
+### build/supplies-entry.d.ts#StoveYield
+interface StoveYield extends StoveRate {
+  readonly start?: {
+    readonly celsius: number;
+    readonly fact: string;
+  } | undefined;
 }
 
 ### build/supplies-entry.d.ts#SupplyCatalog

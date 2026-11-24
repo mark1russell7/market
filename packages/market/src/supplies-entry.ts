@@ -26,6 +26,7 @@ export {
   type HeatingValue,
   type OpenedFacts,
   type RateBound,
+  type StoveYield,
   type StoveRate,
   type StoveFacts,
   type ScaledReason,
