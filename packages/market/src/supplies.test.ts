@@ -36,6 +36,7 @@ describe("the reference catalog of supplies", () => {
       "supplies-no-read food.peanut-butter-1kg",
       "supplies-no-read food.infant-formula-ready-1kg",
       "supplies-no-read food.infant-formula-ready-1kg",
+      "supplies-no-read food.infant-formula-ready-1kg",
       "supplies-no-read food.soup-can",
       "supplies-no-read light.flashlight",
       "supplies-no-read heat.sleeping-bag",
