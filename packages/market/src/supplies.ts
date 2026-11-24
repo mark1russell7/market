@@ -926,7 +926,8 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
       amount(product, "container", container, "");
       const size = product.size;
       if (size === undefined) error("supplies-amount", "product", product.id, `The product ${product.id} has a container, and it has no size. The size gives the count of containers in a unit.`);
-      else if (isRecord(container) && container.read && size.read && known(container.unit) && known(size.unit)) {
+      // A bad amount has its own error from amount, so the count needs two positive amounts and adds no second error.
+      else if (isRecord(container) && container.read && size.read && positive(container.amount) && positive(size.amount) && known(container.unit) && known(size.unit)) {
         if (!convertible(container.unit, size.unit)) error("supplies-unit", "product", product.id, `The container of the product ${product.id} is in ${container.unit}, and ${container.unit} does not convert to ${size.unit}, the unit of its size.`);
         else {
           const count = valueIn(amountIn(size.amount, size.unit), canonicalUnit(container.unit)) / valueIn(amountIn(container.amount, container.unit), canonicalUnit(container.unit));
