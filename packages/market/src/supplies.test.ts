@@ -135,7 +135,16 @@ describe("the reference catalog of supplies", () => {
   });
 
   it("gives the water of a jug of 1 gal in litres, exactly as the definition of the gallon", () => {
-    expect(giftsOf(SUPPLY_CATALOG, "water.jug-1gal", 4)).toEqual([{ resource: "water.stored", read: true, amount: 4 * 3.785411784, unit: "L" }]);
+    expect(giftsOf(SUPPLY_CATALOG, "water.jug-1gal", 4)).toEqual([{ resource: "water.bottled", read: true, amount: 4 * 3.785411784, unit: "L" }]);
+  });
+
+  it("gives commercially bottled water its own resource, and tap water stays water.stored", () => {
+    const unit = (code: string): string | undefined => SUPPLY_CATALOG.resources.find((resource) => resource.code === code)?.unit;
+    expect(unit("water.bottled")).toBe("L");
+    expect(unit("water.bottled")).toBe(unit("water.stored"));
+    expect(giftsOf(SUPPLY_CATALOG, "water.container-1gal", 2)).toEqual([{ resource: "water.stored", read: true, amount: 2 * 3.785411784, unit: "L" }]);
+    const bottled = SUPPLY_CATALOG.products.filter((product) => product.gives.some((gift) => gift.resource === "water.bottled"));
+    expect(bottled.map((product) => [product.id, product.title])).toEqual([["water.jug-1gal", "Drinking water, commercially bottled, in a jug of 1 gal"]]);
   });
 
   it("keeps a gift with no read as no read, not as 0", () => {
@@ -191,7 +200,7 @@ describe("the reference catalog of supplies", () => {
   it("refuses an unknown product id, and a count of units that is not a finite number of 0 or more", () => {
     expect(() => giftsOf(SUPPLY_CATALOG, "unknown", 1)).toThrow(RangeError);
     for (const units of [Number.NaN, -1, Number.POSITIVE_INFINITY]) expect(() => giftsOf(SUPPLY_CATALOG, "water.jug-1gal", units), String(units)).toThrow(RangeError);
-    expect(giftsOf(SUPPLY_CATALOG, "water.jug-1gal", 0)).toEqual([{ resource: "water.stored", read: true, amount: 0, unit: "L" }]);
+    expect(giftsOf(SUPPLY_CATALOG, "water.jug-1gal", 0)).toEqual([{ resource: "water.bottled", read: true, amount: 0, unit: "L" }]);
   });
 });
 
@@ -403,7 +412,7 @@ describe("the gate of the catalog", () => {
   it("refuses a resource with a kind that is not a supply kind", () => {
     const resources = SUPPLY_CATALOG.resources.map((resource) => (resource.code === "food.no-cook" ? { ...resource, kind: "snacks" as never } : resource));
     expect(errors({ ...SUPPLY_CATALOG, resources })).toEqual(["supplies-kind"]);
-    expect(SUPPLY_CATALOG.resources.map((resource) => resource.kind)).toEqual(["water", "food", "food", "food", "food", "food", "food", "food", "power", "power", "heat", "heat", "heat"]);
+    expect(SUPPLY_CATALOG.resources.map((resource) => resource.kind)).toEqual(["water", "water", "food", "food", "food", "food", "food", "food", "food", "power", "power", "heat", "heat", "heat"]);
   });
 
   it("refuses a unit from JSON that is not a known unit, in an amount and in a resource, and does not throw", () => {

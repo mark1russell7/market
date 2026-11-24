@@ -200,6 +200,11 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The mesh text node has a no read of its basis. No kit list of a public agency that the catalog read names a mesh text node.
 - Neither product has the field `device`. No read source gives the cells or the run time of a generic radio or node.
 - The shelf life of commercially bottled water is no read. The source gives no time, so the date on the label applies.
+- Since 0.9.0, the jug of commercially bottled water gives the resource `water.bottled` in `L`. Before 0.9.0, it gave `water.stored`. The water container, filled from the tap, gives `water.stored`.
+- The reason is a rule of the WIC guide "Infant Nutrition and Feeding" of the USDA (`us-public-domain`). The rule comes from the CDC.
+- Page 107 of the guide has the box "Natural Disaster or Power Outage: Infant Formula Guidelines". It tells to use bottled water to prepare powdered or liquid concentrated infant formula.
+- Thus a rule that takes only bottled water needs its own code. Bottled water is also water to drink. `@mark1russell7/stack-needs` gives the converter from `water.bottled` to `water.stored`, so a draw of water to drink uses the two.
+- The box also tells to clean bottles and nipples with bottled, boiled or treated water before each use. It gives no amount, so the cleaning water is a no read.
 - The resources `fuel.propane` and `fuel.butane` are in `kg`. Their fuel energy is the higher heating value from the NIST Chemistry WebBook (SRD 69). It is the standard enthalpy of combustion of the gas for each mole, and the molecular weight. The page has a copyright of the U.S. Secretary of Commerce, so the catalog keeps only the cited values.
 - The cook water of the rice comes from USA Rice and of the oats from the label of Quaker. The bulk mass of 1 cup of each comes from FoodData Central. The cook times of the beans come from a USDA sheet, and of the pasta from the label of Ronzoni.
 - Since 0.8.8, the dry beans have a cook water and a soak water. A USDA recipe for schools gives 1 3/4 qt of water for each lb of dry beans for each of the two. The cook discards the soak water, so `soakWater` is a second draw on the stored water.

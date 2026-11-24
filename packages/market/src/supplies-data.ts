@@ -552,6 +552,8 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
   ],
   resources: [
     { code: "water.stored", unit: "L", title: "Stored drinking water", kind: "water" },
+    // Commercially bottled water is also stored drinking water. A separate code lets a rule that needs bottled water take only it.
+    { code: "water.bottled", unit: "L", title: "Drinking water, commercially bottled and sealed", kind: "water" },
     { code: "food.grain-dry", unit: "kg", title: "Dry grain, to cook with water and fuel", kind: "food" },
     { code: "food.legume-dry", unit: "kg", title: "Dry beans, to cook with water and fuel", kind: "food" },
     { code: "food.pasta-dry", unit: "kg", title: "Dry pasta, to boil in water that the cook drains", kind: "food" },
@@ -584,7 +586,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       id: "water.jug-1gal",
       title: "Drinking water, commercially bottled, in a jug of 1 gal",
       kind: "water",
-      gives: [{ resource: "water.stored", amount: { read: true, amount: 1, unit: "gal", size: true } }],
+      gives: [{ resource: "water.bottled", amount: { read: true, amount: 1, unit: "gal", size: true } }],
       size: { read: true, amount: 1, unit: "gal", definition: "The catalog item is defined as a jug of 1 gal." },
       shelf: { read: false, why: "The source tells to keep commercially bottled water sealed, and it gives no time. The date on the label applies." },
     },
