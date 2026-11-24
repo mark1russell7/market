@@ -27,29 +27,33 @@ export interface NoRead {
 }
 
 /**
- * An amount with its reason. The reason is one of three:
+ * An amount with its reason. The reason is one of four:
  *
  * - A cited fact: the `id` of a unit of the catalog with the use `fact`.
  * - The definition of the product, for example the 1 gal of a jug of 1 gal.
  * - A rate of a cited fact times an amount of the product, in the field `scaled`. An example is 365 kcal in 100 g times 1 kg.
+ * - The size of the product, with `size: true`. The size has its own reason, and the gate compares the two amounts. An
+ *   example is the gift of 1 kg of a package of 1 kg of rice.
  */
 export type CitedAmount =
-  | { readonly read: true; readonly amount: number; readonly unit: string; readonly fact: string; readonly definition?: never; readonly scaled?: never }
-  | { readonly read: true; readonly amount: number; readonly unit: string; readonly definition: string; readonly fact?: never; readonly scaled?: never }
-  | { readonly read: true; readonly amount: number; readonly unit: string; readonly scaled: ScaledReason; readonly fact?: never; readonly definition?: never };
+  | { readonly read: true; readonly amount: number; readonly unit: string; readonly fact: string; readonly definition?: never; readonly scaled?: never; readonly size?: never }
+  | { readonly read: true; readonly amount: number; readonly unit: string; readonly definition: string; readonly fact?: never; readonly scaled?: never; readonly size?: never }
+  | { readonly read: true; readonly amount: number; readonly unit: string; readonly scaled: ScaledReason; readonly fact?: never; readonly definition?: never; readonly size?: never }
+  | { readonly read: true; readonly amount: number; readonly unit: string; readonly size: true; readonly fact?: never; readonly definition?: never; readonly scaled?: never };
 
 /**
  * The reason of an amount that is a rate times an amount, for example the food energy of a package. The rate is a
- * cited fact. The amount that the rate applies to has its own reason: a fact or a definition of the product.
+ * cited fact. The amount that the rate applies to has its own reason: a fact, a definition of the product or its size.
  * The gate calculates the product, and the amount must be equal to it.
  */
 export interface ScaledReason {
   /** The rate: `amount` of `unit` in `per`, for example 365 kcal in 100 g. `fact` is the `id` of the fact that gives it. */
   readonly rate: { readonly amount: number; readonly unit: string; readonly per: { readonly amount: number; readonly unit: string }; readonly fact: string };
-  /** The amount that the rate applies to, for example 1 kg, with a fact or a definition. */
+  /** The amount that the rate applies to, for example 1 kg, with a fact, a definition or the size of the product. */
   readonly of:
-    | { readonly amount: number; readonly unit: string; readonly fact: string; readonly definition?: never }
-    | { readonly amount: number; readonly unit: string; readonly definition: string; readonly fact?: never };
+    | { readonly amount: number; readonly unit: string; readonly fact: string; readonly definition?: never; readonly size?: never }
+    | { readonly amount: number; readonly unit: string; readonly definition: string; readonly fact?: never; readonly size?: never }
+    | { readonly amount: number; readonly unit: string; readonly size: true; readonly fact?: never; readonly definition?: never };
 }
 
 /** A resource that a supply gives, with its unit, for example `water.stored` in `L`. The codes are the resource codes of a store. */
@@ -216,6 +220,7 @@ function countUnit(unit: string): boolean {
  *   product is also a fact.
  * - An error for an amount with no reason, with two reasons, or with a blank definition. A catalog from JSON can have them.
  * - An error for a scaled amount that is not the rate times the amount of its reason, or that has a bad factor.
+ * - An error for an amount that cites the size and is not equal to the size, and for a size that cites itself.
  * - An error for a food energy that is not equal to a gift of the product in a unit of energy.
  * - An error for a unit that is not a unit of `@mark1russell7/quantity`.
  * - An error for a unit that does not convert to the unit of its resource.
@@ -263,8 +268,37 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
   const definition = (product: string, what: string, text: unknown): void => {
     if (typeof text !== "string" || text.trim() === "") error("supplies-fact", "product", product, `The definition of the ${what} of the product ${product} is blank.`);
   };
+  /** This function examines an amount whose reason is the size of the product. The two amounts must be equal. */
+  const sized = (record: SupplyProduct, what: string, value: { readonly amount: unknown; readonly unit: unknown; readonly size?: unknown }): void => {
+    const product = record.id;
+    if (value.size !== true) {
+      error("supplies-fact", "product", product, `The field size of the ${what} of the product ${product} is ${String(value.size)}. A reason that cites the size has size: true.`);
+      return;
+    }
+    const size = record.size;
+    if (size === undefined || size.read !== true || size.size !== undefined) {
+      error("supplies-fact", "product", product, `The ${what} of the product ${product} cites the size, and the product has no read size with its own reason.`);
+      return;
+    }
+    // The other checks give the error of a value or a unit that is not good.
+    if (!finite(value.amount) || !finite(size.amount) || !known(value.unit) || !known(size.unit)) return;
+    const unit = value.unit as string;
+    try {
+      const why = whyNotConvertible(size.unit, unit);
+      if (why !== undefined) {
+        error("supplies-unit", "product", product, `The ${what} of the product ${product} is in ${unit}, and the size that it cites is in ${size.unit}: ${why}.`);
+        return;
+      }
+      const expected = valueIn(amountIn(size.amount, size.unit), canonicalUnit(unit));
+      if (!same(expected, value.amount)) error("supplies-amount", "product", product, `The ${what} of the product ${product} is ${String(value.amount)} ${unit}, and the size that it cites is ${String(expected)} ${unit}.`);
+    } catch (cause) {
+      const code = cause instanceof UnitError ? "supplies-unit" : "supplies-amount";
+      error(code, "product", product, `The size that the ${what} of the product ${product} cites has no value in ${unit}: ${cause instanceof Error ? cause.message : String(cause)}.`);
+    }
+  };
   /** This function examines a scaled reason: its factors, and the amount against the rate times the amount of the reason. */
-  const scaled = (product: string, what: string, reason: ScaledReason, value: number, unit: string): void => {
+  const scaled = (record: SupplyProduct, what: string, reason: ScaledReason, value: number, unit: string): void => {
+    const product = record.id;
     // A catalog from JSON can have a scaled reason with no rate, no amount of the rate or no amount.
     const { rate, of } = (typeof reason === "object" && reason !== null ? reason : {}) as Partial<ScaledReason>;
     if (typeof rate !== "object" || rate === null || typeof rate.per !== "object" || rate.per === null || typeof of !== "object" || of === null) {
@@ -272,9 +306,10 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
       return;
     }
     cite(product, `The rate of the ${what}`, rate.fact);
-    const ofReasons = (of.fact === undefined ? 0 : 1) + (of.definition === undefined ? 0 : 1);
-    if (ofReasons !== 1) error("supplies-fact", "product", product, `The amount of the scaled ${what} of the product ${product} has ${String(ofReasons)} reasons. It must have a fact or a definition, not the two.`);
+    const ofReasons = (of.fact === undefined ? 0 : 1) + (of.definition === undefined ? 0 : 1) + (of.size === undefined ? 0 : 1);
+    if (ofReasons !== 1) error("supplies-fact", "product", product, `The amount of the scaled ${what} of the product ${product} has ${String(ofReasons)} reasons. It must have one: a fact, a definition or the size.`);
     else if (of.fact !== undefined) cite(product, `The amount of the scaled ${what}`, of.fact);
+    else if (of.size !== undefined) sized(record, `amount of the scaled ${what}`, of);
     else definition(product, `amount of the scaled ${what}`, of.definition);
     const factors: [string, number, unknown][] = [
       ["rate", rate.amount, rate.unit],
@@ -311,18 +346,20 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
   };
 
   /** This function examines one cited amount, and gives the unit check to `units`. */
-  const amount = (product: string, what: string, value: CitedAmount | NoRead, unit: string): void => {
+  const amount = (record: SupplyProduct, what: string, value: CitedAmount | NoRead, unit: string): void => {
+    const product = record.id;
     if (!value.read) {
       warning("supplies-no-read", "product", product, `The ${what} of the product ${product} is no read: ${String(value.why)}`);
       if (typeof value.why !== "string" || value.why.trim() === "") warning("supplies-no-reason", "product", product, `The no read of the ${what} of the product ${product} has no reason.`);
       return;
     }
     // The type permits one reason only. A catalog from JSON can have no reason, two reasons or a blank definition.
-    const reasons = (value.fact === undefined ? 0 : 1) + (value.definition === undefined ? 0 : 1) + (value.scaled === undefined ? 0 : 1);
-    if (reasons !== 1) error("supplies-fact", "product", product, `The ${what} of the product ${product} has ${String(reasons)} reasons. It must have one: a fact, a definition or a scaled reason.`);
+    const reasons = (value.fact === undefined ? 0 : 1) + (value.definition === undefined ? 0 : 1) + (value.scaled === undefined ? 0 : 1) + (value.size === undefined ? 0 : 1);
+    if (reasons !== 1) error("supplies-fact", "product", product, `The ${what} of the product ${product} has ${String(reasons)} reasons. It must have one: a fact, a definition, a scaled reason or the size.`);
     else if (value.definition !== undefined) definition(product, what, value.definition);
     if (value.fact !== undefined) cite(product, `The ${what}`, value.fact);
-    if (value.scaled !== undefined && reasons === 1) scaled(product, what, value.scaled, value.amount, value.unit);
+    if (value.scaled !== undefined && reasons === 1) scaled(record, what, value.scaled, value.amount, value.unit);
+    if (value.size !== undefined && reasons === 1) sized(record, what, value);
     if (!(Number.isFinite(value.amount) && value.amount > 0)) error("supplies-amount", "product", product, `The ${what} of the product ${product} is ${String(value.amount)}. It must be a finite number more than 0.`);
     if (!known(value.unit)) error("supplies-unit", "product", product, `The unit ${String(value.unit)} of the ${what} of the product ${product} is not a known unit.`);
     else if (known(unit) && !convertible(value.unit, unit)) error("supplies-unit", "product", product, `The ${what} of the product ${product} is in ${value.unit}, and ${value.unit} does not convert to ${unit}.`);
@@ -339,7 +376,7 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
       gifts.add(gift.resource);
       const resource = resources.get(gift.resource);
       if (resource === undefined) error("supplies-resource", "product", product.id, `The product ${product.id} gives the resource ${gift.resource}, and the catalog has no such resource.`);
-      else amount(product.id, `gift of ${gift.resource}`, gift.amount, resource.unit);
+      else amount(product, `gift of ${gift.resource}`, gift.amount, resource.unit);
     }
     if (product.gives.length === 0 && product.basis === undefined) error("supplies-basis", "product", product.id, `The product ${product.id} gives no resource and has no basis. A product that gives no resource cites a fact in its basis.`);
     if (product.basis !== undefined) {
@@ -349,7 +386,7 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
     }
     // An unknown kind has its own error above, so this rule examines only a known kind that is not food.
     if (product.energy !== undefined && product.kind !== "food" && (SUPPLY_KINDS as readonly string[]).includes(product.kind)) error("supplies-kind", "product", product.id, `The product ${product.id} has a food energy, and its kind is ${String(product.kind)}. Only a product of the kind food has a food energy.`);
-    if (product.energy !== undefined) amount(product.id, "food energy", product.energy, ENERGY_UNIT);
+    if (product.energy !== undefined) amount(product, "food energy", product.energy, ENERGY_UNIT);
     // `amount` gave the error of an amount that is not a finite number, so this check skips it.
     if (product.energy?.read === true && finite(product.energy.amount) && known(product.energy.unit) && convertible(product.energy.unit, ENERGY_UNIT)) {
       // A gift in a unit of energy is the same food energy, so the two values must agree.
@@ -366,7 +403,7 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
     if (product.size !== undefined) {
       // The size has no single unit to convert to. Its unit must be a mass, a volume or one bare count. An unknown unit
       // has its own error.
-      amount(product.id, "size", product.size, "");
+      amount(product, "size", product.size, "");
       if (product.size.read && known(product.size.unit) && !sizeUnit(product.size.unit))
         error("supplies-unit", "product", product.id, `The size of the product ${product.id} is in ${product.size.unit}. It must be a mass, a volume or a count.`);
     }
@@ -374,16 +411,16 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
       // The count has no single unit to convert to. Its unit must be one bare count. An unknown unit has its own error.
       // A count that is not read gives no count of units, so the gate refuses it. A catalog from JSON can have one.
       if (product.perPerson.read !== true) error("supplies-amount", "product", product.id, `The count for each person of the product ${product.id} is not read. A product with no known count has no field perPerson.`);
-      else amount(product.id, "count for each person", product.perPerson, "");
+      else amount(product, "count for each person", product.perPerson, "");
       if (product.perPerson.read === true && known(product.perPerson.unit) && !countUnit(product.perPerson.unit))
         error("supplies-unit", "product", product.id, `The count for each person of the product ${product.id} is in ${product.perPerson.unit}. It must be one bare count, for example {each}.`);
     }
-    if (product.average !== undefined) amount(product.id, "average price", product.average.read ? product.average.per : product.average, product.average.read ? product.average.per.unit : "");
+    if (product.average !== undefined) amount(product, "average price", product.average.read ? product.average.per : product.average, product.average.read ? product.average.per.unit : "");
     if ("foodKeeper" in product.shelf) {
       if (!(Number.isSafeInteger(product.shelf.foodKeeper) && product.shelf.foodKeeper > 0)) error("supplies-shelf", "product", product.id, `The FoodKeeper id of the product ${product.id} is ${String(product.shelf.foodKeeper)}. It must be a whole number more than 0.`);
       else if (foodKeeper !== undefined && !foodKeeper.has(product.shelf.foodKeeper))
         error("supplies-shelf", "product", product.id, `The FoodKeeper id ${String(product.shelf.foodKeeper)} of the product ${product.id} is not in the known FoodKeeper ids.`);
-    } else amount(product.id, "shelf life", product.shelf, SHELF_UNIT);
+    } else amount(product, "shelf life", product.shelf, SHELF_UNIT);
   }
 
   for (const fact of catalog.facts) if (!used.has(fact.id)) warning("supplies-unused", "unit", fact.id, `No product uses the fact ${fact.id}.`);
