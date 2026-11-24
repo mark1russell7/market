@@ -804,16 +804,6 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
           error("supplies-amount", "product", product.id, `The adverse factor of the stove ${product.id} has the bound ${shown(factorBound)}. It must be ${RATE_BOUNDS.join(" or ")}, or the factor has no bound.`);
         cite(product.id, "The adverse factor of the stove", isRecord(factor) ? factor["fact"] : undefined);
       }
-      if (adverse !== undefined) {
-        const factor: unknown = adverse;
-        const value = isRecord(factor) ? factor["factor"] : undefined;
-        if (typeof value !== "number" || !Number.isFinite(value) || !(value >= 1))
-          error("supplies-amount", "product", product.id, `The adverse factor of the stove ${product.id} is ${shown(value)}. It must be a finite number of 1 or more.`);
-        const factorBound = isRecord(factor) ? factor["bound"] : undefined;
-        if (factorBound !== undefined && !(RATE_BOUNDS as readonly unknown[]).includes(factorBound))
-          error("supplies-amount", "product", product.id, `The adverse factor of the stove ${product.id} has the bound ${shown(factorBound)}. It must be ${RATE_BOUNDS.join(" or ")}, or the factor has no bound.`);
-        cite(product.id, "The adverse factor of the stove", isRecord(factor) ? factor["fact"] : undefined);
-      }
       // A rate in an energy needs its heating value: the higher and the lower value of a fuel differ by 5% to 10%.
       if (goodRate && convertible(fuelRate.unit, FUEL_ENERGY_UNIT) && heating === undefined)
         error("supplies-amount", "product", product.id, `The fuel rate of the stove ${product.id} is an energy, and it has no heating value. Give ${HEATING_VALUES.join(" or ")}.`);
