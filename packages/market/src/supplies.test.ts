@@ -25,7 +25,7 @@ const withProduct = (product: SupplyProduct): SupplyCatalog => ({ ...SUPPLY_CATA
 describe("the reference catalog of supplies", () => {
   it("passes the gate: each fact cites a source with a license, and each unit converts to the unit of its resource", () => {
     expect(errors(SUPPLY_CATALOG)).toEqual([]);
-    expect(checkSupplies(SUPPLY_CATALOG, { at: "2026-11-22" }).filter((finding) => finding.level === "error")).toEqual([]);
+    expect(checkSupplies(SUPPLY_CATALOG, { at: "2026-11-24" }).filter((finding) => finding.level === "error")).toEqual([]);
   });
 
   it("gives one warning for each value with no read, and no other warning", () => {
@@ -146,7 +146,7 @@ describe("the gate of the catalog", () => {
   });
 
   it("refuses a food energy on a product that is not food, also in a unit that converts to kcal", () => {
-    const battery = { ...rice, kind: "power" as const, energy: { read: true as const, amount: 100, unit: "W*h", definition: "A test battery." } };
+    const battery = { ...rice, kind: "power" as const, cook: undefined, energy: { read: true as const, amount: 100, unit: "W*h", definition: "A test battery." } };
     expect(errors(withProduct(battery))).toEqual(["supplies-kind"]);
   });
 
@@ -328,7 +328,7 @@ describe("the gate of the catalog", () => {
   it("refuses a resource with a kind that is not a supply kind", () => {
     const resources = SUPPLY_CATALOG.resources.map((resource) => (resource.code === "food.no-cook" ? { ...resource, kind: "snacks" as never } : resource));
     expect(errors({ ...SUPPLY_CATALOG, resources })).toEqual(["supplies-kind"]);
-    expect(SUPPLY_CATALOG.resources.map((resource) => resource.kind)).toEqual(["water", "food", "food", "food", "food", "food", "power"]);
+    expect(SUPPLY_CATALOG.resources.map((resource) => resource.kind)).toEqual(["water", "food", "food", "food", "food", "food", "power", "heat", "heat"]);
   });
 
   it("refuses a unit from JSON that is not a known unit, in an amount and in a resource, and does not throw", () => {
@@ -397,7 +397,7 @@ describe("the gate of the catalog", () => {
   it("finds each FoodKeeper id of the reference catalog in the FoodKeeper data of @mark1russell7/stock", () => {
     const foodKeeper = new Set(FOODKEEPER_PRODUCTS.map((product) => product.id));
     expect(checkSupplies(SUPPLY_CATALOG, { foodKeeper }).filter((finding) => finding.level === "error")).toEqual([]);
-    expect(checkSupplies(SUPPLY_CATALOG, { foodKeeper: [...foodKeeper], at: "2026-11-22" }).filter((finding) => finding.level === "error")).toEqual([]);
+    expect(checkSupplies(SUPPLY_CATALOG, { foodKeeper: [...foodKeeper], at: "2026-11-24" }).filter((finding) => finding.level === "error")).toEqual([]);
   });
 
   it("refuses a FoodKeeper id that is not in the known ids, and examines no id with no option", () => {

@@ -67,6 +67,75 @@ export interface SupplyResource {
   readonly unit: string;
   readonly title: string;
   readonly kind: SupplyKind;
+  /**
+   * The energy that the combustion of a fuel gives, for example the heat of combustion of `fuel.propane`. A resource
+   * with no cited value has no field `fuelEnergy`. `fuelEnergyPerMass` gives the value in `kJ/kg`.
+   */
+  readonly fuelEnergy?: FuelEnergy | undefined;
+}
+
+/**
+ * A rate with its fact: `amount` of `unit` in `per`, for example 2 cup of water in 1 cup of dry rice. The two amounts
+ * are the values that the source gives, so the record keeps them as they are.
+ */
+export interface CitedRate {
+  readonly amount: number;
+  readonly unit: string;
+  readonly per: { readonly amount: number; readonly unit: string };
+  /** The `id` of the fact that gives the rate. */
+  readonly fact: string;
+}
+
+/** A time from `low` to `high` with its fact, for example 15 to 18 min. A source with one value gives the same value two times. */
+export interface CitedSpan {
+  readonly low: number;
+  readonly high: number;
+  readonly unit: string;
+  /** The `id` of the fact that gives the time. */
+  readonly fact: string;
+}
+
+/** The two values of the heat of combustion. The higher value includes the heat of the water vapor that condenses. */
+export const HEATING_VALUES = ["higher", "lower"] as const;
+
+/** A value of the heat of combustion: `higher` or `lower`. */
+export type HeatingValue = (typeof HEATING_VALUES)[number];
+
+/**
+ * The energy of a fuel: an energy in a mass, for example 2219.2 kJ in 44.0956 g of propane (1 mol). The field `heating`
+ * tells if the value is the higher or the lower heat of combustion.
+ */
+export interface FuelEnergy extends CitedRate {
+  readonly heating: HeatingValue;
+}
+
+/**
+ * The cited facts to cook a dry food. Each field is optional. A product with no cited fact for a field has no such field.
+ *
+ * - `water`: the water to cook the food, in a volume, for each volume or mass of the dry food.
+ * - `bulk`: the mass of a volume of the dry food. It converts a water rate for each volume to a rate for each mass.
+ * - `time`: the time on the heat after the water boils. The heat to boil the water is not in this time.
+ *
+ * `cookWater` gives the water in `L/kg` of dry food.
+ */
+export interface CookFacts {
+  readonly water?: CitedRate | undefined;
+  readonly bulk?: CitedRate | undefined;
+  readonly time?: CitedSpan | undefined;
+}
+
+/**
+ * The cited facts of a stove. `fuel` is the code of the resource that the stove burns, for example `fuel.butane`.
+ *
+ * - `rate`: the fuel that the stove burns in a time at its full heat. It is an energy in a time, for example 15000 BTU
+ *   in 1 h. It can also be a mass in a time, for example 227 g in 90 min for one canister. A stove with no cited rate has no field `rate`.
+ * - `heating`: the heating value of a rate in an energy. Ratings in BTU/h usually give the higher value. A rate in a mass
+ *   has no heating value.
+ */
+export interface StoveFacts {
+  readonly fuel: string;
+  readonly rate?: CitedRate | undefined;
+  readonly heating?: HeatingValue | undefined;
 }
 
 /** The gift of one unit of a product: an amount of one resource, or no read. */
@@ -126,6 +195,10 @@ export interface SupplyProduct {
    * and no part has no price.
    */
   readonly average?: AverageJoin | NoRead | undefined;
+  /** The cited facts to cook a dry food: the water, the bulk mass and the time. Only a product of the kind food has them. */
+  readonly cook?: CookFacts | undefined;
+  /** The cited facts of a stove: its fuel and its fuel rate. */
+  readonly stove?: StoveFacts | undefined;
 }
 
 /** A catalog of supplies: the sources, the cited facts, the resources and the products. */
@@ -218,6 +291,20 @@ function known(unit: unknown): boolean {
 const ENERGY_UNIT = "kcal";
 /** The unit that each shelf life converts to. */
 const SHELF_UNIT = "d";
+/** The unit that the energy of a fuel converts to. */
+const FUEL_ENERGY_UNIT = "kJ";
+/** The unit of a mass, for the mass of a fuel and of a dry food. */
+const MASS_UNIT = "kg";
+/** The unit of a volume, for the cook water and the bulk of a dry food. */
+const VOLUME_UNIT = "L";
+/** The unit that a cook time converts to. */
+const COOK_TIME_UNIT = "min";
+/** The unit of the time of the fuel rate of a stove. */
+const STOVE_TIME_UNIT = "h";
+/** The unit of the cook water of a dry food. */
+const COOK_WATER_UNIT = "L/kg";
+/** The unit of the energy of a fuel for each mass. */
+const FUEL_ENERGY_RATE_UNIT = "kJ/kg";
 /**
  * This function gives true for the unit of a size. That is a mass or a volume that converts to `kg` or `L`, or one
  * bare count, for example `{each}`. The kind of a unit is not sufficient. For example, `g/{each}` has the kind
@@ -256,6 +343,14 @@ function countUnit(unit: string): boolean {
  * - An error for a count for each person in a unit that is not one bare count, for example `kg` or `{each}/{person}`.
  * - The amount of the item of an average price has the same checks as each other amount.
  * - With the option `foodKeeper`, an error for a FoodKeeper id of a shelf life that is not in the known ids.
+ * - An error for a cited rate or time with no fact of the catalog, or with an amount that is not more than 0.
+ * - An error for a cited rate or time with a unit that does not fit. The cook water is a volume for each volume or
+ *   mass. The bulk is a mass for each volume. The cook time converts to `min`. The fuel energy of a resource is an
+ *   energy for each mass, with a heating value.
+ * - An error for cook facts on a product that is not food, and for a cook water for each volume with no bulk mass.
+ * - An error for a stove that burns a resource that is not in the catalog, or a resource that is not of the kind heat.
+ * - An error for a fuel rate of a stove that is not an energy or a mass in a time. A rate in an energy with no
+ *   heating value is also an error.
  * - A warning for each value with no read, and for a no read with a blank reason.
  * - A warning for each fact and each source that no product uses.
  *
@@ -277,15 +372,80 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
   };
   if (catalog.format !== SUPPLY_FORMAT) error("supplies-format", "product", "", `The format is ${String(catalog.format)}. It must be ${SUPPLY_FORMAT}.`);
 
+  const facts = new Map(catalog.facts.map((fact) => [fact.id, fact]));
+  const used = new Set<string>();
+
+  /**
+   * This function examines a cited rate: its fact, its two amounts and their units. The amount converts to one of the
+   * units `to`, and the amount of the rate converts to one of the units `per`. It gives true for a good rate.
+   */
+  const rate = (record: "resource" | "product", id: string, what: string, value: unknown, to: readonly string[], per: readonly string[]): boolean => {
+    if (!isRecord(value)) {
+      error("supplies-amount", record, id, `The ${what} of the ${record} ${id} is ${shown(value)}. It must be a rate with its fact.`);
+      return false;
+    }
+    const fact = value["fact"];
+    const found = typeof fact === "string" ? facts.get(fact) : undefined;
+    if (found === undefined || found.use !== "fact") error("supplies-fact", record, id, `The ${what} of the ${record} ${id} cites ${String(fact)}, and the catalog has no fact with that id.`);
+    if (typeof fact === "string") used.add(fact);
+    let good = found !== undefined && found.use === "fact";
+    const parts: [string, unknown, unknown, readonly string[]][] = [[what, value["amount"], value["unit"], to]];
+    const of = value["per"];
+    if (isRecord(of)) parts.push([`amount of the ${what}`, of["amount"], of["unit"], per]);
+    else {
+      error("supplies-amount", record, id, `The ${what} of the ${record} ${id} has no amount that the rate is for (\`per\`).`);
+      good = false;
+    }
+    for (const [name, amount, unit, targets] of parts) {
+      if (!positive(amount)) {
+        error("supplies-amount", record, id, `The ${name} of the ${record} ${id} is ${String(amount)}. It must be a finite number more than 0.`);
+        good = false;
+      }
+      if (!known(unit)) {
+        error("supplies-unit", record, id, `The unit ${String(unit)} of the ${name} of the ${record} ${id} is not a known unit.`);
+        good = false;
+      } else if (!targets.some((target) => convertible(unit as string, target))) {
+        error("supplies-unit", record, id, `The ${name} of the ${record} ${id} is in ${String(unit)}. It must convert to ${targets.join(" or ")}.`);
+        good = false;
+      }
+    }
+    return good;
+  };
+
+  /** This function examines a cited time from low to high: its fact, its two values and its unit. */
+  const span = (id: string, what: string, value: unknown, to: string): void => {
+    if (!isRecord(value)) {
+      error("supplies-amount", "product", id, `The ${what} of the product ${id} is ${shown(value)}. It must be a time from low to high with its fact.`);
+      return;
+    }
+    const fact = value["fact"];
+    const found = typeof fact === "string" ? facts.get(fact) : undefined;
+    if (found === undefined || found.use !== "fact") error("supplies-fact", "product", id, `The ${what} of the product ${id} cites ${String(fact)}, and the catalog has no fact with that id.`);
+    if (typeof fact === "string") used.add(fact);
+    const { low, high, unit } = value;
+    for (const [name, amount] of [
+      ["low", low],
+      ["high", high],
+    ] as const)
+      if (!positive(amount)) error("supplies-amount", "product", id, `The ${name} value of the ${what} of the product ${id} is ${String(amount)}. It must be a finite number more than 0.`);
+    if (positive(low) && positive(high) && low > high) error("supplies-amount", "product", id, `The ${what} of the product ${id} is from ${String(low)} to ${String(high)}. The low value must not be more than the high value.`);
+    if (!known(unit)) error("supplies-unit", "product", id, `The unit ${String(unit)} of the ${what} of the product ${id} is not a known unit.`);
+    else if (!convertible(unit as string, to)) error("supplies-unit", "product", id, `The ${what} of the product ${id} is in ${String(unit)}, and ${String(unit)} does not convert to ${to}.`);
+  };
+
   const resources = new Map<string, SupplyResource>();
   for (const resource of catalog.resources) {
     if (resources.has(resource.code)) error("supplies-twice", "resource", resource.code, `The resource ${resource.code} is two times in the catalog.`);
     if (!known(resource.unit)) error("supplies-unit", "resource", resource.code, `The unit ${String(resource.unit)} of the resource ${resource.code} is not a known unit.`);
     if (!(SUPPLY_KINDS as readonly string[]).includes(resource.kind)) error("supplies-kind", "resource", resource.code, `The kind ${String(resource.kind)} of the resource ${resource.code} is not a supply kind.`);
+    if (resource.fuelEnergy !== undefined) {
+      rate("resource", resource.code, "fuel energy", resource.fuelEnergy, [FUEL_ENERGY_UNIT], [MASS_UNIT]);
+      const heating: unknown = isRecord(resource.fuelEnergy) ? resource.fuelEnergy.heating : undefined;
+      if (isRecord(resource.fuelEnergy) && !(HEATING_VALUES as readonly unknown[]).includes(heating))
+        error("supplies-amount", "resource", resource.code, `The fuel energy of the resource ${resource.code} has the heating value ${String(heating)}. It must be ${HEATING_VALUES.join(" or ")}.`);
+    }
     resources.set(resource.code, resource);
   }
-  const facts = new Map(catalog.facts.map((fact) => [fact.id, fact]));
-  const used = new Set<string>();
 
   /** This function examines the id of a fact that a reason cites. */
   const cite = (product: string, what: string, id: unknown): void => {
@@ -414,10 +574,11 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
   const fieldsOf = (raw: SupplyProduct): { readonly product: CheckedProduct; readonly dropped: boolean } => {
     const id = raw.id;
     const fields: Record<string, unknown> = { ...raw };
-    for (const field of ["size", "energy", "perPerson", "average"] as const) {
+    for (const field of ["size", "energy", "perPerson", "average", "cook", "stove"] as const) {
       const value: unknown = raw[field];
       if (value === undefined || isRecord(value)) continue;
-      error("supplies-amount", "product", id, `The field ${field} of the product ${id} is ${shown(value)}. It must be an amount with its reason or a no read, or the product has no field ${field}.`);
+      const must = field === "cook" || field === "stove" ? "a record of facts" : "an amount with its reason or a no read";
+      error("supplies-amount", "product", id, `The field ${field} of the product ${id} is ${shown(value)}. It must be ${must}, or the product has no field ${field}.`);
       fields[field] = undefined;
     }
     const shelf: unknown = raw.shelf;
@@ -493,6 +654,29 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
         else if (!lower && !same(sum, energy))
           error("supplies-energy", "product", product.id, `The product ${product.id} gives ${given} of food energy in its gifts (${names}), and its food energy is ${String(energy)} kcal. The two must be equal.`);
       }
+    }
+    if (product.cook !== undefined) {
+      // An unknown kind has its own error above, so this rule examines only a known kind that is not food.
+      if (product.kind !== "food" && (SUPPLY_KINDS as readonly string[]).includes(product.kind)) error("supplies-kind", "product", product.id, `The product ${product.id} has cook facts, and its kind is ${String(product.kind)}. Only a product of the kind food has cook facts.`);
+      const { water, bulk, time } = product.cook;
+      const goodWater = water !== undefined && rate("product", product.id, "cook water", water, [VOLUME_UNIT], [VOLUME_UNIT, MASS_UNIT]);
+      if (bulk !== undefined) rate("product", product.id, "bulk mass", bulk, [MASS_UNIT], [VOLUME_UNIT]);
+      if (time !== undefined) span(product.id, "cook time", time, COOK_TIME_UNIT);
+      // A water rate for each volume of dry food needs the mass of that volume.
+      if (goodWater && convertible(water.per.unit, VOLUME_UNIT) && bulk === undefined)
+        error("supplies-fact", "product", product.id, `The cook water of the product ${product.id} is for a volume of dry food, and the product has no bulk mass. The bulk mass converts the volume to a mass.`);
+    }
+    if (product.stove !== undefined) {
+      const { fuel, rate: fuelRate, heating } = product.stove;
+      const burned = typeof fuel === "string" ? resources.get(fuel) : undefined;
+      if (burned === undefined) error("supplies-resource", "product", product.id, `The stove ${product.id} burns the resource ${String(fuel)}, and the catalog has no such resource.`);
+      else if (burned.kind !== "heat") error("supplies-kind", "product", product.id, `The stove ${product.id} burns the resource ${burned.code}, and its kind is ${String(burned.kind)}. A fuel has the kind heat.`);
+      const goodRate = fuelRate !== undefined && rate("product", product.id, "fuel rate of the stove", fuelRate, [FUEL_ENERGY_UNIT, MASS_UNIT], [STOVE_TIME_UNIT]);
+      if (heating !== undefined && !(HEATING_VALUES as readonly unknown[]).includes(heating))
+        error("supplies-amount", "product", product.id, `The fuel rate of the stove ${product.id} has the heating value ${String(heating)}. It must be ${HEATING_VALUES.join(" or ")}.`);
+      // A rate in an energy needs its heating value: the higher and the lower value of a fuel differ by 5% to 10%.
+      if (goodRate && convertible(fuelRate.unit, FUEL_ENERGY_UNIT) && heating === undefined)
+        error("supplies-amount", "product", product.id, `The fuel rate of the stove ${product.id} is an energy, and it has no heating value. Give ${HEATING_VALUES.join(" or ")}.`);
     }
     if (product.size !== undefined) {
       // The size has no single unit to convert to. Its unit must be a mass, a volume or one bare count. An unknown unit
@@ -574,6 +758,42 @@ export function giftsOf(catalog: SupplyCatalog, id: string, units: number): Gift
     if (!gift.amount.read) return { resource: gift.resource, read: false, why: gift.amount.why };
     return { resource: gift.resource, read: true, amount: units * valueIn(quantity(gift.amount.amount, gift.amount.unit), resource.unit), unit: resource.unit };
   });
+}
+
+/**
+ * This function gives the cook water of a dry food in `L/kg`, from its cited facts. A water rate for each mass converts
+ * directly. A water rate for each volume divides by the bulk mass of the food. A product with no water rate, or with a
+ * water rate for each volume and no bulk mass, gives `undefined`. It is not 0.
+ *
+ * @param product - The product
+ * @returns The litres of water for each kilogram of the dry food, or `undefined`
+ * @throws The error of `@mark1russell7/quantity` when a unit is not known or does not convert
+ */
+export function cookWater(product: SupplyProduct): Quantity | undefined {
+  const water = product.cook?.water;
+  if (water === undefined) return undefined;
+  const ratio = divide(amountIn(water.amount, water.unit), amountIn(water.per.amount, water.per.unit));
+  if (convertible(water.per.unit, MASS_UNIT)) return quantity(valueIn(ratio, COOK_WATER_UNIT), COOK_WATER_UNIT);
+  const bulk = product.cook?.bulk;
+  if (bulk === undefined) return undefined;
+  const density = divide(amountIn(bulk.amount, bulk.unit), amountIn(bulk.per.amount, bulk.per.unit));
+  return quantity(valueIn(divide(ratio, density), COOK_WATER_UNIT), COOK_WATER_UNIT);
+}
+
+/**
+ * This function gives the energy of a fuel in `kJ/kg`, from its cited rate. For example, 2219.2 kJ in 44.0956 g gives
+ * 50327 kJ/kg. A resource with no field `fuelEnergy` gives `undefined`. The field `heating` of the rate tells which
+ * value it is.
+ *
+ * @param resource - The resource of the fuel
+ * @returns The energy for each kilogram of the fuel, or `undefined`
+ * @throws The error of `@mark1russell7/quantity` when a unit is not known or does not convert
+ */
+export function fuelEnergyPerMass(resource: SupplyResource): Quantity | undefined {
+  const energy = resource.fuelEnergy;
+  if (energy === undefined) return undefined;
+  const value = divide(amountIn(energy.amount, energy.unit), amountIn(energy.per.amount, energy.per.unit));
+  return quantity(valueIn(value, FUEL_ENERGY_RATE_UNIT), FUEL_ENERGY_RATE_UNIT);
 }
 
 /** The price of one unit of a product from an average price, or no read with the reason. */
