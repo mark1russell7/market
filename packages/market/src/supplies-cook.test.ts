@@ -1,3 +1,4 @@
+import { canonicalUnit, divide, quantity, valueIn } from "@mark1russell7/quantity";
 import { describe, expect, it } from "vitest";
 import { checkSupplies, cookWater, fuelEnergyPerMass, type CitedRate, type CitedSpan, type SupplyCatalog, type SupplyProduct, type SupplyResource } from "./supplies.ts";
 import { SUPPLY_CATALOG } from "./supplies-data.ts";
@@ -35,7 +36,7 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
 
   it("gives each cook and fuel field a fact with a source and a license", () => {
     const cited = citedFacts(SUPPLY_CATALOG);
-    expect(cited.length).toBe(10);
+    expect(cited.length).toBe(13);
     for (const { where, fact } of cited) {
       const unit = SUPPLY_CATALOG.facts.find((each) => each.id === fact);
       expect(unit?.use, where).toBe("fact");
@@ -80,7 +81,6 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
     expect(product("food.pasta-dry-1kg").cook?.water).toBeUndefined();
     expect("cook" in product("food.flour-white-1kg")).toBe(false);
     for (const each of SUPPLY_CATALOG.products.filter((item) => item.kind !== "food")) expect("cook" in each, each.id).toBe(false);
-    expect(SUPPLY_CATALOG.products.filter((item) => item.stove !== undefined)).toEqual([]);
   });
 
   it("gives the cook water in L/kg from the water for each volume and the bulk mass", () => {
@@ -91,6 +91,78 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
     expect(cookWater(product("food.beans-dry-1kg"))).toBeUndefined();
     expect(cookWater({ ...rice, cook: { water: { amount: 4, unit: "qt", per: { amount: 1, unit: "lb" }, fact: "usarice.long-grain-white" } } })!.value).toBeCloseTo((4 * 0.946352946) / 0.45359237, 9);
     expect(cookWater({ ...rice, cook: { water: rice.cook!.water } })).toBeUndefined();
+  });
+});
+
+/** This function gives the fuel rate of a stove of the catalog in `kg/h`. */
+function kgPerHour(id: string): number {
+  const rate = product(id).stove!.rate!;
+  return valueIn(divide(quantity(rate.amount, canonicalUnit(rate.unit)), quantity(rate.per.amount, canonicalUnit(rate.per.unit))), "kg/h");
+}
+
+describe("the stoves of the reference catalog", () => {
+  const stoves = SUPPLY_CATALOG.products.filter((item) => item.stove !== undefined);
+
+  it("has three stoves, each with a cited basis and a fuel rate in a mass for each time", () => {
+    expect(stoves.map((item) => item.id)).toEqual(["heat.stove-canister-1-burner", "heat.stove-propane-2-burner", "heat.stove-butane-1-burner"]);
+    for (const stove of stoves) {
+      expect(stove.kind, stove.id).toBe("heat");
+      expect(stove.basis, stove.id).toBe("ready.food-camp-stove");
+      expect(stove.gives, stove.id).toEqual([]);
+      // A rate in a mass needs no heating value, so no stove has the field heating.
+      expect(stove.stove?.heating, stove.id).toBeUndefined();
+      expect(resource(stove.stove!.fuel).kind, stove.id).toBe("heat");
+    }
+  });
+
+  it("keeps each fuel rate as the cited numbers", () => {
+    expect(product("heat.stove-canister-1-burner").stove).toEqual({ fuel: "fuel.isobutane-mix", rate: { amount: 227, unit: "g", per: { amount: 60, unit: "min" }, fact: "msr.pocketrocket-2-rate" } });
+    expect(product("heat.stove-propane-2-burner").stove).toEqual({ fuel: "fuel.propane", rate: { amount: 16.4, unit: "oz", per: { amount: 1, unit: "h" }, fact: "coleman.propane-2-burner-rate" } });
+    expect(product("heat.stove-butane-1-burner").stove).toEqual({ fuel: "fuel.butane", rate: { amount: 8.8, unit: "oz", per: { amount: 1.25, unit: "h" }, fact: "coleman.butane-1-burner-rate" } });
+  });
+
+  it("gives each fuel rate in kg/h: 0.227, 16.4 oz and 8.8 oz / 1.25 in kg", () => {
+    expect(kgPerHour("heat.stove-canister-1-burner")).toBeCloseTo(0.227, 12);
+    expect(kgPerHour("heat.stove-propane-2-burner")).toBeCloseTo(16.4 * 0.028349523125, 12);
+    expect(kgPerHour("heat.stove-butane-1-burner")).toBeCloseTo((8.8 * 0.028349523125) / 1.25, 12);
+  });
+
+  it("cites the page of the maker for each rate, and the source has a license and a check date", () => {
+    const sources = { "msr.pocketrocket-2-rate": "msr.pocketrocket-2", "coleman.propane-2-burner-rate": "coleman.propane-2-burner", "coleman.butane-1-burner-rate": "coleman.butane-1-burner" };
+    for (const [fact, source] of Object.entries(sources)) {
+      const unit = SUPPLY_CATALOG.facts.find((each) => each.id === fact);
+      expect(unit?.source, fact).toBe(source);
+      const record = SUPPLY_CATALOG.sources.find((each) => each.id === source);
+      expect(record?.license, fact).toBe("all-rights-reserved");
+      expect(record?.checked, fact).toBe("2026-11-24");
+    }
+    expect(SUPPLY_CATALOG.sources.find((each) => each.id === "ready.food")?.license).toBe("us-public-domain");
+  });
+
+  it("gives a fuel energy to propane and butane, and none to the canister mix, so its energy is a no read", () => {
+    expect(fuelEnergyPerMass(resource("fuel.propane"))).toBeDefined();
+    expect(fuelEnergyPerMass(resource("fuel.butane"))).toBeDefined();
+    expect("fuelEnergy" in resource("fuel.isobutane-mix")).toBe(false);
+    expect(fuelEnergyPerMass(resource("fuel.isobutane-mix"))).toBeUndefined();
+  });
+});
+
+describe("the dry beans of the reference catalog", () => {
+  const beans = product("food.beans-dry-1kg");
+
+  it("cites the energy and the cook time of the same bean: pinto", () => {
+    const energy = beans.energy;
+    expect(energy?.read === true && energy.scaled?.rate.fact).toBe("fdc.beans-pinto");
+    expect(energy).toMatchObject({ read: true, amount: 3470, unit: "kcal" });
+    const fact = SUPPLY_CATALOG.facts.find((each) => each.id === "fdc.beans-pinto");
+    expect(fact?.text).toContain("175199 (pinto beans, mature seeds, raw) gives 347 kcal in 100 g");
+    expect(beans.cook?.time?.fact).toBe("usda.pinto-beans-cook");
+    expect(SUPPLY_CATALOG.facts.some((each) => each.id === "fdc.beans-black")).toBe(false);
+  });
+
+  it("gives the USDA sheet at its fns.usda.gov address, not at a CDN host", () => {
+    expect(SUPPLY_CATALOG.sources.find((each) => each.id === "usda.pinto-beans")?.url).toBe("https://www.fns.usda.gov/sites/default/files/resource-files/PintoBeansDry.pdf");
+    for (const source of SUPPLY_CATALOG.sources) expect(source.url, source.id).not.toMatch(/azureedge/);
   });
 });
 
