@@ -189,8 +189,8 @@ export interface StoveFacts {
   readonly heating?: HeatingValue | undefined;
 }
 
+/**
  * The factor of more fuel than a calm test, from a cited source. For example, a canister stove in cold and wind needs as much as 4 times the fuel.
- * The factor of more fuel than a calm test, from a cited source, for example as much as 4 for a canister stove in cold and wind.
  * `factor` is a finite number of 1 or more. `bound` is optional, as on a stove rate.
  */
 export interface StoveFactor {
