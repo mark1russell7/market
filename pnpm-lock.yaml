@@ -263,6 +263,9 @@ importers:
       '@mark1russell7/guidebook':
         specifier: ^0.1.1
         version: 0.1.1
+      '@mark1russell7/optional':
+        specifier: ^1.5.0
+        version: 1.5.0
       '@mark1russell7/quantity':
         specifier: ^0.4.5
         version: 0.4.5(zod@4.6.7)
@@ -648,8 +651,8 @@ packages:
     resolution: {integrity: sha512-DTENTIjb1CiMoONeBqmvbWO9MeFxGAF8bPjfSFg7AMf8dcdTiIMAKtFcr4aPMf8DS/bml+3UzwtmPQqbDVSRpQ==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/optional@1.2.0':
-    resolution: {integrity: sha512-vS5jF21WC/VApRv4p8afRZahcMl9cuNp03LxbVngY9nYkzq+S7Oit6ksySt2baML+tp46UF60sxnHxn1jlwtTg==}
+  '@mark1russell7/optional@1.5.0':
+    resolution: {integrity: sha512-QpVjyHD/1JYriLVVJr4P6QpDJJN9q2BiM6CFu0q1hnyEEaH5RlrIMQSsrsKKzyED29VnT08xmliR65WbTkNTFw==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/quantity@0.4.5':
@@ -2204,7 +2207,7 @@ snapshots:
   '@mark1russell7/collections@0.10.0(zod@4.6.7)':
     dependencies:
       '@mark1russell7/algebra': 0.8.10(zod@4.6.7)
-      '@mark1russell7/optional': 1.2.0
+      '@mark1russell7/optional': 1.5.0
       '@mark1russell7/rigor-statistics': 0.1.27
     transitivePeerDependencies:
       - zod
@@ -2212,7 +2215,7 @@ snapshots:
   '@mark1russell7/collections@0.11.0(zod@4.6.7)':
     dependencies:
       '@mark1russell7/algebra': 0.8.10(zod@4.6.7)
-      '@mark1russell7/optional': 1.2.0
+      '@mark1russell7/optional': 1.5.0
       '@mark1russell7/rigor-statistics': 0.2.2
     transitivePeerDependencies:
       - zod
@@ -2228,7 +2231,7 @@ snapshots:
 
   '@mark1russell7/guidebook@0.1.1': {}
 
-  '@mark1russell7/optional@1.2.0': {}
+  '@mark1russell7/optional@1.5.0': {}
 
   '@mark1russell7/quantity@0.4.5(zod@4.6.7)':
     dependencies:
