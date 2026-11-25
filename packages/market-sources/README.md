@@ -173,14 +173,23 @@ The terms make two things necessary for each user of the data: the date of the r
 
 | Client | Methods | Pace | Access |
 | --- | --- | --- | --- |
-| `createDigiKeyClient` | `productDetails(productNumber)`, `keywordSearch(keywords, limit)` | 500 ms | OAuth 2.0 client credentials, the client id in a header |
+| `createDigiKeyClient` | `productDetails(productNumber)`, `keywordSearch(keywords, limit)` | 500 ms, and the quota `DIGIKEY_QUOTA`: 900 requests in a rolling 24 hours, under the limit of 1000 | OAuth 2.0 client credentials, the client id in a header |
 | `createEbayClient` | `item(itemId)`, `search(words, limit)` | 1 s | OAuth 2.0 client credentials with Basic, the scope `api_scope` |
-| `createBestBuyClient` | `product(sku)`, `search(words, pageSize)`, `openBox(sku)` | 1 s | the API key in the query |
+| `createBestBuyClient` | `product(sku)`, `search(words, pageSize)`, `openBox(sku)` | 1 s, and the quota `BEST_BUY_QUOTA`: 45,000 calls in a rolling 24 hours, under the limit of 50,000 | the API key in the query |
 | `createAzureClient` | `prices(filter, { pages, currency })`, `more(next, pages)` | 6 s | no key |
 | `createPlanClient` | `plans(provider, { pages })` | the pace of the record, 2 s for each record of the package | no key |
 | `createBlsClient` | `averages(series, years)` | 10 s, and the quota `BLS_QUOTA`: 20 queries in a rolling 24 hours, under the limit of 25 | no key (version 1) |
 
 The BLS client counts its queries with a gate of `BLS_QUOTA` from `polite-crawler/api`. The gate refuses a query over the quota with a `QuotaError`, and it sends nothing. An answer that tells that the daily threshold is reached sets the count to the limit. The default gate is in memory, one for each pace: the clients of one pace count in one gate. Each process of one address can count in one record. For that, give the option `quota`: a `quotaGate` with a shared store, for example `SqliteHostStateStore` of `polite-crawler`.
+
+The Digi-Key client and the Best Buy client count their requests in the same way, with the option `quota` and a default gate for each pace:
+
+| Client | Quota | Key name | Answer that sets the count to the limit | Source of the limit |
+| --- | --- | --- | --- | --- |
+| `createDigiKeyClient` | `DIGIKEY_QUOTA`: 1000 requests of products each day, 100 in reserve | `DIGIKEY_QUOTA_KEY` | a 429 with the message `Daily Ratelimit exceeded` or `X-RateLimit-Remaining: 0`. The header `X-RateLimit-Reset` gives the reset. | the table "Rate Limits" of the [Digi-Key API documentation](https://developer.digikey.com/documentation), standard products |
+| `createBestBuyClient` | `BEST_BUY_QUOTA`: 50,000 calls each day, 5,000 in reserve | `BEST_BUY_QUOTA_KEY` | a 403. Best Buy gives it for a key over its limit and for a key that is not valid. | the section "Rate Limit" of the [Best Buy API Operational Policy](https://developer.bestbuy.com/legal) |
+
+A request of a Digi-Key token does not count. The burst limit of Digi-Key and the limit of 5 calls each second of Best Buy are under the pace. The provider counts the calls of each application or key. Thus give a gate with its own key name to each client of a different application or key on one pace.
 
 ```ts
 import { HostScheduler, realClock } from "polite-crawler/politeness";
