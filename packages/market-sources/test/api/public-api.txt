@@ -15,6 +15,8 @@ AZURE_PRICES_URL: build/index.d.ts#AZURE_PRICES_URL
 AZURE_PROVIDER: build/index.d.ts#AZURE_PROVIDER
 AZURE_SOURCE: build/index.d.ts#AZURE_SOURCE
 AZURE_TERMS: build/index.d.ts#AZURE_TERMS
+AZURE_VM_SIZES_SOURCE: build/index.d.ts#AZURE_VM_SIZES_SOURCE
+AZURE_VM_SIZE_TABLE: build/index.d.ts#AZURE_VM_SIZE_TABLE
 ApiError: polite-crawler/api#ApiError (external)
 type ApiScheduler: polite-crawler/api#ApiScheduler (external)
 type AverageParseResult: build/index.d.ts#AverageParseResult
@@ -23,7 +25,10 @@ type AzureClientOptions: build/index.d.ts#AzureClientOptions
 type AzureFilter: build/index.d.ts#AzureFilter
 type AzureFilterField: build/index.d.ts#AzureFilterField
 type AzureReadOptions: build/index.d.ts#AzureReadOptions
+type AzureSizeTablesResult: build/index.d.ts#AzureSizeTablesResult
 type AzureUnit: build/index.d.ts#AzureUnit
+type AzureVmSize: build/index.d.ts#AzureVmSize
+type AzureVmSizesSource: build/index.d.ts#AzureVmSizesSource
 BEST_BUY_HOST: build/index.d.ts#BEST_BUY_HOST
 BEST_BUY_PACE_MS: build/index.d.ts#BEST_BUY_PACE_MS
 BEST_BUY_PAGE_LIMIT: build/index.d.ts#BEST_BUY_PAGE_LIMIT
@@ -107,6 +112,7 @@ VULTR_TERMS: build/index.d.ts#VULTR_TERMS
 azureNextPage: build/index.d.ts#azureNextPage
 azurePricesUrl: build/index.d.ts#azurePricesUrl
 azureUnit: build/index.d.ts#azureUnit
+azureVmSize: build/index.d.ts#azureVmSize
 bestBuyCondition: build/index.d.ts#bestBuyCondition
 blsRequest: build/index.d.ts#blsRequest
 createAzureClient: build/index.d.ts#createAzureClient
@@ -119,6 +125,7 @@ ebayCondition: build/index.d.ts#ebayCondition
 isAzurePricesUrl: build/index.d.ts#isAzurePricesUrl
 parseAzureRetailPricePages: build/index.d.ts#parseAzureRetailPricePages
 parseAzureRetailPrices: build/index.d.ts#parseAzureRetailPrices
+parseAzureSizeTables: build/index.d.ts#parseAzureSizeTables
 parseBestBuyOpenBox: build/index.d.ts#parseBestBuyOpenBox
 parseBestBuyProduct: build/index.d.ts#parseBestBuyProduct
 parseBestBuyProducts: build/index.d.ts#parseBestBuyProducts
@@ -163,6 +170,12 @@ export declare const AZURE_SOURCE = "azure";
 ### build/index.d.ts#AZURE_TERMS
 export declare const AZURE_TERMS: SourceTerms;
 
+### build/index.d.ts#AZURE_VM_SIZES_SOURCE
+export declare const AZURE_VM_SIZES_SOURCE: AzureVmSizesSource;
+
+### build/index.d.ts#AZURE_VM_SIZE_TABLE
+export declare const AZURE_VM_SIZE_TABLE: Readonly<Record<string, readonly [vcpu: number, memoryGiB: number]>>;
+
 ### build/index.d.ts#AverageParseResult
 type AverageParseResult = {
   readonly ok: true;
@@ -196,10 +209,35 @@ interface AzureReadOptions {
   readonly currency?: string | undefined;
 }
 
+### build/index.d.ts#AzureSizeTablesResult
+interface AzureSizeTablesResult {
+  readonly sizes: readonly AzureVmSize[];
+  readonly includes: readonly string[];
+  readonly notes: readonly string[];
+}
+
 ### build/index.d.ts#AzureUnit
 interface AzureUnit {
   readonly count: number;
   readonly unit: string;
+}
+
+### build/index.d.ts#AzureVmSize
+interface AzureVmSize {
+  readonly sku: string;
+  readonly vcpu: number;
+  readonly memoryGiB: number;
+}
+
+### build/index.d.ts#AzureVmSizesSource
+interface AzureVmSizesSource {
+  readonly repository: string;
+  readonly commit: string;
+  readonly path: string;
+  readonly license: string;
+  readonly licenseUrl: string;
+  readonly read: string;
+  readonly attribution: string;
 }
 
 ### build/index.d.ts#BEST_BUY_HOST
@@ -575,6 +613,9 @@ export declare function azurePricesUrl(filter: AzureFilter, currency?: string): 
 ### build/index.d.ts#azureUnit
 export declare function azureUnit(unitOfMeasure: string): AzureUnit | undefined;
 
+### build/index.d.ts#azureVmSize
+export declare function azureVmSize(armSkuName: string | undefined): AzureVmSize | undefined;
+
 ### build/index.d.ts#bestBuyCondition
 export declare function bestBuyCondition(condition: unknown, preowned: unknown): Condition;
 
@@ -618,6 +659,9 @@ export declare function parseAzureRetailPricePages(answers: readonly unknown[], 
 
 ### build/index.d.ts#parseAzureRetailPrices
 export declare function parseAzureRetailPrices(answer: unknown, at: string): MeteredParseResult;
+
+### build/index.d.ts#parseAzureSizeTables
+export declare function parseAzureSizeTables(markdown: string): AzureSizeTablesResult;
 
 ### build/index.d.ts#parseBestBuyOpenBox
 export declare function parseBestBuyOpenBox(answer: unknown, at: string): ParseResult;

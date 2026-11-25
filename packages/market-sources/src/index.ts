@@ -10,6 +10,15 @@
  */
 import type { SourceTerms } from "@mark1russell7/market";
 import { AZURE_TERMS } from "./azure.ts";
+export {
+  AZURE_VM_SIZE_TABLE,
+  AZURE_VM_SIZES_SOURCE,
+  azureVmSize,
+  parseAzureSizeTables,
+  type AzureSizeTablesResult,
+  type AzureVmSize,
+  type AzureVmSizesSource,
+} from "./azure-sizes.ts";
 import { BEST_BUY_TERMS } from "./bestbuy.ts";
 import { BLS_TERMS } from "./bls.ts";
 import { DIGIKEY_TERMS } from "./digikey.ts";

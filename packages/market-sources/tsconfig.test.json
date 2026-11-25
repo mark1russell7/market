@@ -15,6 +15,7 @@
   "include": [
     "src/**/*",
     "test/**/*",
+    "scripts/**/*",
     "*.config.ts"
   ],
   "exclude": []
