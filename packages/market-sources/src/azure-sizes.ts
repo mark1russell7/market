@@ -55,12 +55,29 @@ function cellsOf(line: string): string[] | undefined {
   return cells.slice(1, trimmed.endsWith("|") ? -1 : undefined);
 }
 
+/**
+ * This function gives the text of a cell with no tags, no footnote marks and no emphasis. A scan of the characters
+ * removes each tag and the text of each `sup` element. It also removes each angle bracket that is left.
+ */
 function plain(cell: string | undefined): string {
-  return (cell ?? "")
-    .replace(/<sup>.*?<\/sup>/gi, "")
-    .replace(/<[^>]*>/g, "")
-    .replace(/[<>*`]/g, "")
-    .trim();
+  const text = cell ?? "";
+  let out = "";
+  let depth = 0;
+  for (let at = 0; at < text.length; ) {
+    const char = text[at] ?? "";
+    if (char !== "<") {
+      if (depth === 0 && char !== ">" && char !== "*" && char !== "`") out += char;
+      at += 1;
+      continue;
+    }
+    const end = text.indexOf(">", at);
+    if (end < 0) break;
+    const tag = text.slice(at + 1, end).trim().toLowerCase();
+    if (tag === "sup" || tag.startsWith("sup ")) depth += 1;
+    else if (tag === "/sup" && depth > 0) depth -= 1;
+    at = end + 1;
+  }
+  return out.trim();
 }
 
 /** A count from a cell: a decimal of 0 or more, with the commas of thousands. */

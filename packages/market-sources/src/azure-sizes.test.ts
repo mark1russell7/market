@@ -39,6 +39,11 @@ describe("the size tables of the Azure documentation", () => {
     expect(parseAzureSizeTables(INCLUDED)).toEqual({ sizes: [{ sku: "Standard_Y2_v9", vcpu: 2, memoryGiB: 16 }], includes: [], notes: [] });
   });
 
+  it("removes the tags, the text of each sup element and each angle bracket that is left in a cell", () => {
+    const table = ["| Size Name | vCPUs | Memory (GiB) |", "| --- | --- | --- |", "| <b>Standard_Z2_v9</b><SUP class=n>2, 3</SUP> | 2<br> | 8> |"].join("\n");
+    expect(parseAzureSizeTables(table).sizes).toEqual([{ sku: "Standard_Z2_v9", vcpu: 2, memoryGiB: 8 }]);
+  });
+
   it("gives no size for a page with no size table", () => {
     expect(parseAzureSizeTables("# A page\n\nNo table.")).toEqual({ sizes: [], includes: [], notes: [] });
   });
