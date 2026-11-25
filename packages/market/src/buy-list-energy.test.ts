@@ -14,7 +14,7 @@ describe("the food energy of a buy list", () => {
   it("gives the energy of each line with its resources, and their sum", () => {
     const energy = buyListEnergy(SUPPLY_CATALOG, { "food.rice-white-1kg": 14, "food.peanut-butter-1kg": 2, "food.soup-can": 4, "water.jug-1gal": 20 });
     expect(energy.lines).toEqual([
-      { product: "food.rice-white-1kg", units: 14, resources: ["food.grain-dry"], read: true, energy: { value: 51100, unit: "kcal" } },
+      { product: "food.rice-white-1kg", units: 14, resources: ["food.rice-white-dry"], read: true, energy: { value: 51100, unit: "kcal" } },
       { product: "food.peanut-butter-1kg", units: 2, resources: ["food.no-cook"], read: true, energy: { value: 11960, unit: "kcal" } },
       { product: "food.soup-can", units: 4, resources: ["food.no-cook"], read: true, energy: { value: expect.closeTo(869.2, 6) as number, unit: "kcal" } },
     ]);
