@@ -122,7 +122,7 @@ export interface FuelEnergy extends CitedRate {
  * - `time`: the time on the heat after the water boils, for a cook after a soak. The heat to boil the water is not in
  *   this time.
  * - `unsoakedTime`: the time on the heat after the water boils, for a cook with no soak, since 0.10.1.
- * - `unsoakedWater`: the water to cook the food with no soak, in a volume, for each volume or mass of the dry food, since 0.10.2.
+ * - `unsoakedWater`: the water to cook the food with no soak, in a volume, for each volume or mass of the dry food, since 0.10.3.
  *   The field `water` stays the cook water after a soak. An unsoaked food takes up more water in the pot, so the two are different facts.
  *
  * `cookWater`, `unsoakedCookWater`, `soakWater` and `quickSoakWater` give the water in `L/kg` of dry food.
