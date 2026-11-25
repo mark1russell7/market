@@ -84,6 +84,14 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
     expect(product("food.beans-dry-1kg").cook).toEqual({
       water: { amount: 1.75, unit: "qt", per: { amount: 1, unit: "lb" }, fact: "usda.refried-beans-cook" },
       soak: { amount: 1.75, unit: "qt", per: { amount: 1, unit: "lb" }, fact: "usda.refried-beans-soak" },
+      quickSoak: {
+        amount: 1.75,
+        unit: "qt",
+        per: { amount: 1, unit: "lb" },
+        fact: "usda.refried-beans-quick-soak",
+        boil: { low: 2, high: 2, unit: "min", fact: "usda.refried-beans-quick-soak" },
+        stand: { low: 1, high: 1, unit: "h", fact: "usda.refried-beans-quick-soak" },
+      },
       time: { low: 1, high: 1.5, unit: "h", fact: "usda.pinto-beans-cook" },
     });
     expect(product("food.pasta-dry-1kg").cook).toEqual({
