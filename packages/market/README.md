@@ -167,7 +167,9 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - Since 0.10.1, the field `quickSoak` is the quick soak (type `QuickSoak`). It is a water rate, as `soak`, with the boil time `boil` and an optional stand time `stand`.
 - The water of a quick soak boils for the time `boil`. The food then stands in it off the heat for the time `stand`. This soak needs heat and fuel, and the cook discards its water.
 - The gate gives a quick soak the checks of a soak water. A quick soak that is not a record, or with no boil time, gives the error `supplies-amount`.
+- Since 0.10.2, the dry beans have a quick soak from page 4 of the USDA recipe. It boils 1 3/4 qt of water for each 1 lb for 2 min. Then the beans stand in it for 1 h.
 - Since 0.10.1, the field `unsoakedTime` is the time on the heat for a cook with no soak. The field `time` stays the cook time after a soak.
+- The dry beans have no `unsoakedTime`. The USDA sources tell to soak the beans first, and no cited source gives a time with no soak on a stove.
 - The gate examines `boil`, `stand` and `unsoakedTime` as the cook time: each converts to `min` and cites a fact.
 - Since 0.10.3, the field `unsoakedWater` is the cook water for a cook with no soak. The field `water` stays the cook water after a soak.
 - The gate gives `unsoakedWater` the checks of a cook water. It is a cited fact, not a value from the soak water or from `water`.

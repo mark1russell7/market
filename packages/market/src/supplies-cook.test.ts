@@ -45,7 +45,7 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
 
   it("gives each cook and fuel field a fact with a source and a license", () => {
     const cited = citedFacts(SUPPLY_CATALOG);
-    expect(cited.length).toBe(20);
+    expect(cited.length).toBe(23);
     for (const { where, fact } of cited) {
       const unit = SUPPLY_CATALOG.facts.find((each) => each.id === fact);
       expect(unit?.use, where).toBe("fact");
@@ -84,6 +84,14 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
     expect(product("food.beans-dry-1kg").cook).toEqual({
       water: { amount: 1.75, unit: "qt", per: { amount: 1, unit: "lb" }, fact: "usda.refried-beans-cook" },
       soak: { amount: 1.75, unit: "qt", per: { amount: 1, unit: "lb" }, fact: "usda.refried-beans-soak" },
+      quickSoak: {
+        amount: 1.75,
+        unit: "qt",
+        per: { amount: 1, unit: "lb" },
+        fact: "usda.refried-beans-quick-soak",
+        boil: { low: 2, high: 2, unit: "min", fact: "usda.refried-beans-quick-soak" },
+        stand: { low: 1, high: 1, unit: "h", fact: "usda.refried-beans-quick-soak" },
+      },
       time: { low: 1, high: 1.5, unit: "h", fact: "usda.pinto-beans-cook" },
     });
     expect(product("food.pasta-dry-1kg").cook).toEqual({
@@ -109,7 +117,11 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
     expect(cookWater(beans)!.value).toBeCloseTo((1.75 * 0.946352946) / 0.45359237, 9);
     expect(soakWater(beans)!.value).toBeCloseTo((1.75 * 0.946352946) / 0.45359237, 9);
     expect(soakWater(rice)).toBeUndefined();
-    expect(quickSoakWater(beans)).toBeUndefined();
+    // The quick soak of the same recipe boils the same 1 3/4 qt for each lb for 2 min, and the beans stand in it for 1 h.
+    expect(quickSoakWater(beans)!.value).toBeCloseTo((1.75 * 0.946352946) / 0.45359237, 9);
+    expect(beans.cook?.quickSoak?.boil).toEqual({ low: 2, high: 2, unit: "min", fact: "usda.refried-beans-quick-soak" });
+    expect(beans.cook?.quickSoak?.stand).toEqual({ low: 1, high: 1, unit: "h", fact: "usda.refried-beans-quick-soak" });
+    expect(beans.cook?.unsoakedTime).toBeUndefined();
     // No cited source gives the water of a cook of the beans with no soak, so the reference beans have none.
     expect(beans.cook?.unsoakedWater).toBeUndefined();
     expect(unsoakedCookWater(beans)).toBeUndefined();
