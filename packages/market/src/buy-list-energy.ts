@@ -12,7 +12,7 @@ const ENERGY_UNIT = "kcal";
 
 /**
  * The food energy of the units of one product of a buy list, or no read with the reason. A no read is not 0.
- * The resources are the codes of the gifts of the product, for example `food.no-cook` or `food.grain-dry`.
+ * The resources are the codes of the gifts of the product, for example `food.no-cook` or `food.rice-white-dry`.
  */
 export type BuyListEnergyLine =
   | { readonly product: string; readonly units: number; readonly resources: readonly string[]; readonly read: true; readonly energy: Quantity }

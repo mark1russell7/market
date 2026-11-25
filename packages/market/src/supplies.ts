@@ -364,6 +364,7 @@ export const SUPPLY_CODES = [
   "supplies-no-read",
   "supplies-no-reason",
   "supplies-energy",
+  "supplies-cook-profile",
 ] as const;
 
 /** A code of a finding of the catalog gate. */
@@ -1029,6 +1030,28 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
     } else amount(product, "shelf life", product.shelf, SHELF_UNIT);
   }
 
+  // A store of a resource does not tell its products apart. So the products of one dry food must give one cook converter.
+  const profiles = new Map<string, { readonly id: string; readonly profile: CookProfile }>();
+  for (const product of catalog.products) {
+    if (!Array.isArray(product.gives)) continue;
+    // A gift of a bad shape has an error of its own above. It is not a food here.
+    const resourceOf = (gift: unknown): SupplyResource | undefined => (isRecord(gift) && typeof gift["resource"] === "string" ? resources.get(gift["resource"]) : undefined);
+    const foods = product.gives.filter((gift) => resourceOf(gift)?.kind === "food").length;
+    for (const gift of product.gives) {
+      const resource = resourceOf(gift);
+      if (resource === undefined || !dryFood(resource)) continue;
+      const profile = cookProfile(product, gift, resource.unit, foods);
+      const first = profiles.get(resource.code);
+      if (first === undefined) {
+        profiles.set(resource.code, { id: product.id, profile });
+        continue;
+      }
+      const differ = profileDifference(first.profile, profile);
+      if (differ.length > 0)
+        error("supplies-cook-profile", "product", product.id, `The product ${product.id} gives the dry food ${resource.code}, as ${first.id} does, with a different ${differ.join(", ")}. Give each cook profile its own resource.`);
+    }
+  }
+
   for (const fact of catalog.facts) if (!used.has(fact.id)) warning("supplies-unused", "unit", fact.id, `No product uses the fact ${fact.id}.`);
   const cited = new Set(catalog.facts.map((fact) => fact.source));
   for (const source of catalog.sources) if (!cited.has(source.id)) warning("supplies-unused", "source", source.id, `No fact cites the source ${source.id}.`);
@@ -1140,6 +1163,70 @@ export function soakWater(product: SupplyProduct): Quantity | undefined {
  */
 export function quickSoakWater(product: SupplyProduct): Quantity | undefined {
   return waterPerMass(product, product.cook?.quickSoak);
+}
+
+/** The values of the cook converter of a dry food for each unit of its resource, by name. A value with no read is `undefined`. */
+type CookProfile = readonly (readonly [string, number | undefined])[];
+
+/** This function tells if a resource is a dry food to cook: a food in a unit of mass. */
+function dryFood(resource: SupplyResource): boolean {
+  return resource.kind === "food" && known(resource.unit) && convertible(resource.unit, MASS_UNIT);
+}
+
+/**
+ * This function gives the cook profile of the gift of a product. It has the waters in `L/kg` and the times in minutes.
+ * It also has the food energy for each unit of the resource. These values decide the water, the fuel and the energy of a cook converter.
+ * A value that does not convert is `undefined`, because the gate gives its own error for it.
+ */
+function cookProfile(product: SupplyProduct, gift: SupplyGift, unit: string, foods: number): CookProfile {
+  const tried = (value: () => number | undefined): number | undefined => {
+    try {
+      const got = value();
+      return got === undefined || !Number.isFinite(got) ? undefined : got;
+    } catch {
+      return undefined;
+    }
+  };
+  const water = (name: string, rate: (product: SupplyProduct) => Quantity | undefined): readonly [string, number | undefined] => [
+    name,
+    tried(() => {
+      const got = rate(product);
+      return got === undefined ? undefined : valueIn(got, COOK_WATER_UNIT);
+    }),
+  ];
+  const span = (name: string, value: CitedSpan | undefined): (readonly [string, number | undefined])[] => [
+    [`${name} (low)`, tried(() => (value === undefined ? undefined : valueIn(amountIn(value.low, value.unit), COOK_TIME_UNIT)))],
+    [`${name} (high)`, tried(() => (value === undefined ? undefined : valueIn(amountIn(value.high, value.unit), COOK_TIME_UNIT)))],
+  ];
+  const cook = product.cook;
+  const energy = tried(() => {
+    const food = product.energy;
+    const amount = gift.amount;
+    // The catalog gives one energy for the whole product, so a product of more than one food has no energy for each food.
+    if (foods !== 1 || food === undefined || !food.read || !isRecord(amount) || !amount.read) return undefined;
+    return valueIn(amountIn(food.amount, food.unit), ENERGY_UNIT) / valueIn(amountIn(amount.amount, amount.unit), canonicalUnit(unit));
+  });
+  return [
+    water("cook water", cookWater),
+    water("cook water with no soak", unsoakedCookWater),
+    water("soak water", soakWater),
+    water("quick soak water", quickSoakWater),
+    ...span("cook time", cook?.time),
+    ...span("cook time with no soak", cook?.unsoakedTime),
+    ...span("boil time of the quick soak", cook?.quickSoak?.boil),
+    ...span("stand time of the quick soak", cook?.quickSoak?.stand),
+    ["food energy", energy],
+  ];
+}
+
+/** This function gives the names of the values that differ between two cook profiles. A value with a read and a value with no read differ. */
+function profileDifference(a: CookProfile, b: CookProfile): string[] {
+  return a
+    .filter(([, value], index) => {
+      const other = b[index]?.[1];
+      return value === undefined || other === undefined ? value !== other : !same(value, other);
+    })
+    .map(([name]) => name);
 }
 
 /** This function gives a water rate of a dry food in `L/kg`. A rate for each volume divides by the bulk mass of the food. */

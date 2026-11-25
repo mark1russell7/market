@@ -16,7 +16,7 @@ const rice = SUPPLY_CATALOG.products.find((product) => product.id === "food.rice
 /** The rice with a gift and a food energy that do not cite its size, for the cases that change the size. */
 const plainRice: SupplyProduct = {
   ...rice,
-  gives: [{ resource: "food.grain-dry", amount: { read: true, amount: 1, unit: "kg", definition: "The product is 1 kg of dry rice." } }],
+  gives: [{ resource: "food.rice-white-dry", amount: { read: true, amount: 1, unit: "kg", definition: "The product is 1 kg of dry rice." } }],
   energy: { read: true, amount: 3650, unit: "kcal", fact: "fdc.rice-white" },
 };
 /** This function gives the reference catalog with one product in place of the rice. */
@@ -75,7 +75,7 @@ describe("the reference catalog of supplies", () => {
     const products = (basis: string | undefined): SupplyCatalog => ({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === radio.id ? { ...radio, basis } : each)) });
     expect(errors(products("unknown"))).toEqual(["supplies-fact"]);
     expect(errors(products(undefined))).toEqual(["supplies-basis"]);
-    expect(errors({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === radio.id ? { ...radio, basis: undefined, gives: plainRice.gives } : each)) })).toEqual([]);
+    expect(errors({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === radio.id ? { ...radio, basis: undefined, gives: SUPPLY_CATALOG.products.find((each) => each.id === "water.container-1gal")!.gives } : each)) })).toEqual([]);
     const unused = checkSupplies(products(undefined)).filter((finding) => finding.code === "supplies-unused");
     expect(unused.map((finding) => finding.id)).toEqual(["ready.kit-radio"]);
   });
@@ -239,7 +239,7 @@ describe("the gate of the catalog", () => {
     expect(unknownFact.filter((code) => code !== "supplies-no-read")).toEqual(["supplies-fact", "supplies-unused"]);
     expect(errors(withProduct({ ...rice, energy: { read: true, amount: 0, unit: "kcal", fact: "fdc.rice-white" } }))).toEqual(["supplies-amount"]);
     expect(errors(withProduct({ ...rice, energy: { read: true, amount: 3650, unit: "kg", fact: "fdc.rice-white" } }))).toEqual(["supplies-unit"]);
-    expect(errors(withProduct({ ...rice, gives: [{ resource: "food.grain-dry", amount: { read: true, amount: 1, unit: "L", definition: "A litre." } }] }))).toEqual(["supplies-unit"]);
+    expect(errors(withProduct({ ...rice, gives: [{ resource: "food.rice-white-dry", amount: { read: true, amount: 1, unit: "L", definition: "A litre." } }] }))).toEqual(["supplies-unit"]);
   });
 
   it("refuses an amount from JSON with no reason, with two reasons or with a blank definition, and warns of a blank no read", () => {
@@ -412,7 +412,7 @@ describe("the gate of the catalog", () => {
   it("refuses a resource with a kind that is not a supply kind", () => {
     const resources = SUPPLY_CATALOG.resources.map((resource) => (resource.code === "food.no-cook" ? { ...resource, kind: "snacks" as never } : resource));
     expect(errors({ ...SUPPLY_CATALOG, resources })).toEqual(["supplies-kind"]);
-    expect(SUPPLY_CATALOG.resources.map((resource) => resource.kind)).toEqual(["water", "water", "food", "food", "food", "food", "food", "food", "food", "power", "power", "heat", "heat", "heat"]);
+    expect(SUPPLY_CATALOG.resources.map((resource) => resource.kind)).toEqual(["water", "water", "food", "food", "food", "food", "food", "food", "food", "food", "power", "power", "heat", "heat", "heat"]);
   });
 
   it("refuses a unit from JSON that is not a known unit, in an amount and in a resource, and does not throw", () => {
@@ -420,7 +420,7 @@ describe("the gate of the catalog", () => {
     expect(errors(foo)).toEqual(["supplies-unit"]);
     expect(checkSupplies(foo).find((finding) => finding.code === "supplies-unit")?.message).toContain("not a known unit");
     expect(errors(withProduct({ ...rice, energy: { read: true, amount: 3650, unit: 5 as unknown as string, fact: "fdc.rice-white" } }))).toEqual(["supplies-unit"]);
-    const resources = SUPPLY_CATALOG.resources.map((each) => (each.code === "food.grain-dry" ? { ...each, unit: "foo" } : each));
+    const resources = SUPPLY_CATALOG.resources.map((each) => (each.code === "food.rice-white-dry" ? { ...each, unit: "foo" } : each));
     expect(errors({ ...SUPPLY_CATALOG, resources })).toEqual(["supplies-unit"]);
   });
 
@@ -613,7 +613,7 @@ describe("the prices of the supplies from average prices", () => {
     // A list of gifts that is not a list, or a gift that is not a record, gives one error and no error of the basis.
     expect(errors(raw({ gives: null }))).toEqual(["supplies-resource"]);
     expect(errors(raw({ gives: [null] }))).toEqual(["supplies-amount"]);
-    expect(errors(raw({ gives: [{ resource: "food.grain-dry", amount: null }] }))).toEqual(["supplies-amount"]);
+    expect(errors(raw({ gives: [{ resource: "food.rice-white-dry", amount: null }] }))).toEqual(["supplies-amount"]);
     // A removed food gift makes the sum of food energy unknown, so it gives no error of the energy.
     const butter = SUPPLY_CATALOG.products.find((product) => product.id === "food.peanut-butter-1kg")!;
     const half = { ...butter.gives[0]!, amount: { read: true, amount: 2990, unit: "kcal", definition: "A test." } };
@@ -624,5 +624,50 @@ describe("the prices of the supplies from average prices", () => {
     expect(checkSupplies(raw({ gives: {} })).find((finding) => finding.code === "supplies-resource")?.message).toContain("is a record.");
     expect(checkSupplies(raw({ gives: [{ amount: null }] })).find((finding) => finding.code === "supplies-amount")?.message).toContain("A gift of an unknown resource");
     expect(checkSupplies(raw({ size: null })).find((finding) => finding.code === "supplies-amount")?.message).toContain("The field size of the product food.rice-white-1kg is null.");
+  });
+});
+
+describe("the cook profile of a dry food", () => {
+  const oats = SUPPLY_CATALOG.products.find((product) => product.id === "food.oats-1kg")!;
+  /** The reference catalog with the oats on the resource of the rice. */
+  const shared = { ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === oats.id ? { ...oats, gives: rice.gives } : each)) };
+
+  it("gives each dry food of the reference catalog its own resource", () => {
+    const resources = new Map(SUPPLY_CATALOG.resources.map((resource) => [resource.code, resource]));
+    const dry = SUPPLY_CATALOG.products.flatMap((product) =>
+      product.gives.filter((gift) => resources.get(gift.resource)?.kind === "food" && convertible(resources.get(gift.resource)!.unit, "kg")).map((gift) => gift.resource),
+    );
+    expect(new Set(dry).size).toBe(dry.length);
+    expect(errors(SUPPLY_CATALOG)).not.toContain("supplies-cook-profile");
+  });
+
+  it("refuses two dry foods of one resource with a different cook water, cook time or food energy", () => {
+    expect(errors(shared)).toEqual(["supplies-cook-profile"]);
+    const finding = checkSupplies(shared).find((each) => each.code === "supplies-cook-profile")!;
+    expect(finding.id).toBe(oats.id);
+    expect(finding.message).toContain(`gives the dry food food.rice-white-dry, as ${rice.id} does`);
+    expect(finding.message).toContain("cook water, cook time (low), cook time (high), food energy");
+  });
+
+  it("accepts a second product of one dry food with the same profile for each kg, also in a different size", () => {
+    const twoKg: SupplyProduct = {
+      ...plainRice,
+      id: "food.rice-white-2kg",
+      gives: [{ resource: "food.rice-white-dry", amount: { read: true, amount: 2, unit: "kg", definition: "The product is 2 kg of dry rice." } }],
+      energy: { read: true, amount: 7300, unit: "kcal", fact: "fdc.rice-white" },
+    };
+    const catalog = { ...SUPPLY_CATALOG, products: [...SUPPLY_CATALOG.products, twoKg] };
+    expect(errors(catalog)).not.toContain("supplies-cook-profile");
+  });
+
+  it("refuses a product of the same dry food with no cook facts: a value with a read and a value with no read differ", () => {
+    const catalog = { ...SUPPLY_CATALOG, products: [...SUPPLY_CATALOG.products, { ...plainRice, id: "food.rice-white-bare", cook: undefined }] };
+    expect(checkSupplies(catalog).find((each) => each.code === "supplies-cook-profile")?.message).toContain("a different cook water, cook time (low), cook time (high).");
+  });
+
+  it("does not compare a food in a unit of energy, which has no cook", () => {
+    const foods = SUPPLY_CATALOG.products.filter((product) => product.gives.some((gift) => gift.resource === "food.no-cook"));
+    expect(foods.length).toBeGreaterThan(1);
+    expect(errors(SUPPLY_CATALOG)).toEqual([]);
   });
 });

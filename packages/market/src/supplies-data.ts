@@ -561,7 +561,9 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
     { code: "water.stored", unit: "L", title: "Stored drinking water", kind: "water" },
     // Commercially bottled water is also stored drinking water. A separate code lets a rule that needs bottled water take only it.
     { code: "water.bottled", unit: "L", title: "Drinking water, commercially bottled and sealed", kind: "water" },
-    { code: "food.grain-dry", unit: "kg", title: "Dry grain, to cook with water and fuel", kind: "food" },
+    // Each dry food has one resource for each cook profile: the water, the time and the food energy of its cook. A store of a resource does not tell its products apart.
+    { code: "food.rice-white-dry", unit: "kg", title: "Dry white long-grain rice, to cook with water and fuel", kind: "food" },
+    { code: "food.oats-rolled-dry", unit: "kg", title: "Dry rolled oats, to cook with water and fuel", kind: "food" },
     { code: "food.legume-dry", unit: "kg", title: "Dry beans, to cook with water and fuel", kind: "food" },
     { code: "food.pasta-dry", unit: "kg", title: "Dry pasta, to boil in water that the cook drains", kind: "food" },
     { code: "food.flour", unit: "kg", title: "Flour, to bake or cook with water and fuel", kind: "food" },
@@ -608,7 +610,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       id: "food.rice-white-1kg",
       title: "White long-grain rice, dry, 1 kg",
       kind: "food",
-      gives: [{ resource: "food.grain-dry", amount: { read: true, amount: 1, unit: "kg", size: true } }],
+      gives: [{ resource: "food.rice-white-dry", amount: { read: true, amount: 1, unit: "kg", size: true } }],
       size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of dry rice." },
       energy: { read: true, amount: 3650, unit: "kcal", scaled: { rate: { amount: 365, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.rice-white" }, of: { amount: 1, unit: "kg", size: true } } },
       shelf: { read: true, foodKeeper: 338 },
@@ -628,7 +630,7 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       id: "food.oats-1kg",
       title: "Rolled oats, dry, 1 kg",
       kind: "food",
-      gives: [{ resource: "food.grain-dry", amount: { read: true, amount: 1, unit: "kg", size: true } }],
+      gives: [{ resource: "food.oats-rolled-dry", amount: { read: true, amount: 1, unit: "kg", size: true } }],
       size: { read: true, amount: 1, unit: "kg", definition: "The catalog item is defined as a package of 1 kg of dry oats." },
       energy: { read: true, amount: 3790, unit: "kcal", scaled: { rate: { amount: 379, unit: "kcal", per: { amount: 100, unit: "g" }, fact: "fdc.oats" }, of: { amount: 1, unit: "kg", size: true } } },
       shelf: { read: true, foodKeeper: 375 },

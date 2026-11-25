@@ -1167,7 +1167,7 @@ type RateBound = (typeof RATE_BOUNDS)[number];
 export declare const SUPPLY_CATALOG: SupplyCatalog;
 
 ### build/supplies-entry.d.ts#SUPPLY_CODES
-export declare const SUPPLY_CODES: readonly ["supplies-format", "supplies-twice", "supplies-kind", "supplies-resource", "supplies-fact", "supplies-basis", "supplies-amount", "supplies-unit", "supplies-shelf", "supplies-unused", "supplies-no-read", "supplies-no-reason", "supplies-energy"];
+export declare const SUPPLY_CODES: readonly ["supplies-format", "supplies-twice", "supplies-kind", "supplies-resource", "supplies-fact", "supplies-basis", "supplies-amount", "supplies-unit", "supplies-shelf", "supplies-unused", "supplies-no-read", "supplies-no-reason", "supplies-energy", "supplies-cook-profile"];
 
 ### build/supplies-entry.d.ts#SUPPLY_FORMAT
 export declare const SUPPLY_FORMAT = "supply-catalog/1";
