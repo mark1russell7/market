@@ -88,14 +88,53 @@ function own<T>(record: Readonly<Record<string, T>>, key: string): T | undefined
 const NAME = /^[a-z][a-z0-9]*$/u;
 const HEADS = { place: "Physical location", geography: "Geography", region: "Programmatic name" } as const;
 
+// The content of each element of a tag, in order. The scan reads the text from left to right with no regular
+// expression, thus a page of the web cannot make it slow. An element with no end tag ends the scan.
+function elements(html: string, tag: string): string[] {
+  const out: string[] = [];
+  const open = `<${tag}`;
+  const close = `</${tag}>`;
+  let at = 0;
+  for (;;) {
+    const start = html.indexOf(open, at);
+    if (start < 0) return out;
+    const next = html.charAt(start + open.length);
+    if (next !== ">" && next !== " " && next !== "\n" && next !== "\t" && next !== "\r") {
+      at = start + open.length;
+      continue;
+    }
+    const body = html.indexOf(">", start);
+    const end = body < 0 ? -1 : html.indexOf(close, body + 1);
+    if (end < 0) return out;
+    out.push(html.slice(body + 1, end));
+    at = end + close.length;
+  }
+}
+
 // The text of a cell: no tags, no line breaks and one space between words. A cell with an entity gives undefined.
 function cellText(html: string): string | undefined {
-  const text = html.replace(/<[^>]*>/gu, " ").replace(/\s+/gu, " ").trim();
-  return text.includes("&") ? undefined : text;
+  let text = "";
+  let at = 0;
+  for (;;) {
+    const open = html.indexOf("<", at);
+    if (open < 0) {
+      text += html.slice(at);
+      break;
+    }
+    text += `${html.slice(at, open)} `;
+    const close = html.indexOf(">", open);
+    if (close < 0) break;
+    at = close + 1;
+  }
+  const joined = text
+    .split(/\s/u)
+    .filter((word) => word !== "")
+    .join(" ");
+  return joined.includes("&") ? undefined : joined;
 }
 
 function cells(row: string, tag: "td" | "th"): (string | undefined)[] {
-  return [...row.matchAll(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "gu"))].map((match) => cellText(match[1] ?? ""));
+  return elements(row, tag).map(cellText);
 }
 
 /**
@@ -107,8 +146,8 @@ function cells(row: string, tag: "td" | "th"): (string | undefined)[] {
 export function parseAzureRegionsPage(html: string): AzureRegionsResult {
   const regions = new Map<string, AzureRegion>();
   const notes: string[] = [];
-  for (const [index, table] of [...html.matchAll(/<table[^>]*>([\s\S]*?)<\/table>/gu)].entries()) {
-    const rows = [...(table[1] ?? "").matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gu)].map((match) => match[1] ?? "");
+  for (const [index, table] of elements(html, "table").entries()) {
+    const rows = elements(table, "tr");
     const heads = cells(rows[0] ?? "", "th");
     const column = { place: heads.indexOf(HEADS.place), geography: heads.indexOf(HEADS.geography), region: heads.indexOf(HEADS.region) };
     if (column.place < 0 || column.geography < 0 || column.region < 0) continue;
