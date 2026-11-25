@@ -11,8 +11,11 @@ AZURE_FILTER_FIELDS: build/index.d.ts#AZURE_FILTER_FIELDS
 AZURE_HOST: build/index.d.ts#AZURE_HOST
 AZURE_PACE_MS: build/index.d.ts#AZURE_PACE_MS
 AZURE_PAGE_LIMIT: build/index.d.ts#AZURE_PAGE_LIMIT
+AZURE_PLACE_COUNTRIES: build/index.d.ts#AZURE_PLACE_COUNTRIES
 AZURE_PRICES_URL: build/index.d.ts#AZURE_PRICES_URL
 AZURE_PROVIDER: build/index.d.ts#AZURE_PROVIDER
+AZURE_REGIONS_SOURCE: build/index.d.ts#AZURE_REGIONS_SOURCE
+AZURE_REGION_TABLE: build/index.d.ts#AZURE_REGION_TABLE
 AZURE_SOURCE: build/index.d.ts#AZURE_SOURCE
 AZURE_TERMS: build/index.d.ts#AZURE_TERMS
 AZURE_VM_SIZES_SOURCE: build/index.d.ts#AZURE_VM_SIZES_SOURCE
@@ -25,6 +28,9 @@ type AzureClientOptions: build/index.d.ts#AzureClientOptions
 type AzureFilter: build/index.d.ts#AzureFilter
 type AzureFilterField: build/index.d.ts#AzureFilterField
 type AzureReadOptions: build/index.d.ts#AzureReadOptions
+type AzureRegion: build/index.d.ts#AzureRegion
+type AzureRegionsResult: build/index.d.ts#AzureRegionsResult
+type AzureRegionsSource: build/index.d.ts#AzureRegionsSource
 type AzureSizeTablesResult: build/index.d.ts#AzureSizeTablesResult
 type AzureUnit: build/index.d.ts#AzureUnit
 type AzureVmSize: build/index.d.ts#AzureVmSize
@@ -112,6 +118,8 @@ VULTR_SOURCE: build/index.d.ts#VULTR_SOURCE
 VULTR_TERMS: build/index.d.ts#VULTR_TERMS
 azureNextPage: build/index.d.ts#azureNextPage
 azurePricesUrl: build/index.d.ts#azurePricesUrl
+azureRegion: build/index.d.ts#azureRegion
+azureRegionsDataText: build/index.d.ts#azureRegionsDataText
 azureUnit: build/index.d.ts#azureUnit
 azureVmSize: build/index.d.ts#azureVmSize
 bestBuyCondition: build/index.d.ts#bestBuyCondition
@@ -124,6 +132,7 @@ createEbayClient: build/index.d.ts#createEbayClient
 createPlanClient: build/index.d.ts#createPlanClient
 ebayCondition: build/index.d.ts#ebayCondition
 isAzurePricesUrl: build/index.d.ts#isAzurePricesUrl
+parseAzureRegionsPage: build/index.d.ts#parseAzureRegionsPage
 parseAzureRetailPricePages: build/index.d.ts#parseAzureRetailPricePages
 parseAzureRetailPrices: build/index.d.ts#parseAzureRetailPrices
 parseAzureSizeTables: build/index.d.ts#parseAzureSizeTables
@@ -159,11 +168,20 @@ export declare const AZURE_PACE_MS = 6e3;
 ### build/index.d.ts#AZURE_PAGE_LIMIT
 export declare const AZURE_PAGE_LIMIT = 10;
 
+### build/index.d.ts#AZURE_PLACE_COUNTRIES
+export declare const AZURE_PLACE_COUNTRIES: Readonly<Record<string, string>>;
+
 ### build/index.d.ts#AZURE_PRICES_URL
 export declare const AZURE_PRICES_URL = "https://prices.azure.com/api/retail/prices";
 
 ### build/index.d.ts#AZURE_PROVIDER
 export declare const AZURE_PROVIDER = "azure";
+
+### build/index.d.ts#AZURE_REGIONS_SOURCE
+export declare const AZURE_REGIONS_SOURCE: AzureRegionsSource;
+
+### build/index.d.ts#AZURE_REGION_TABLE
+export declare const AZURE_REGION_TABLE: Readonly<Record<string, readonly [country: string, place: string]>>;
 
 ### build/index.d.ts#AZURE_SOURCE
 export declare const AZURE_SOURCE = "azure";
@@ -208,6 +226,27 @@ type AzureFilterField = (typeof AZURE_FILTER_FIELDS)[number];
 interface AzureReadOptions {
   readonly pages?: number | undefined;
   readonly currency?: string | undefined;
+}
+
+### build/index.d.ts#AzureRegion
+interface AzureRegion {
+  readonly region: string;
+  readonly country: string;
+  readonly place: string;
+}
+
+### build/index.d.ts#AzureRegionsResult
+interface AzureRegionsResult {
+  readonly regions: readonly AzureRegion[];
+  readonly notes: readonly string[];
+}
+
+### build/index.d.ts#AzureRegionsSource
+interface AzureRegionsSource {
+  readonly page: string;
+  readonly read: string;
+  readonly terms: string;
+  readonly attribution: string;
 }
 
 ### build/index.d.ts#AzureSizeTablesResult
@@ -620,6 +659,12 @@ export declare function azureNextPage(answer: unknown): string | null;
 ### build/index.d.ts#azurePricesUrl
 export declare function azurePricesUrl(filter: AzureFilter, currency?: string): string;
 
+### build/index.d.ts#azureRegion
+export declare function azureRegion(name: string | undefined): AzureRegion | undefined;
+
+### build/index.d.ts#azureRegionsDataText
+export declare function azureRegionsDataText(source: AzureRegionsSource, regions: readonly AzureRegion[]): string;
+
 ### build/index.d.ts#azureUnit
 export declare function azureUnit(unitOfMeasure: string): AzureUnit | undefined;
 
@@ -663,6 +708,9 @@ export declare function ebayCondition(conditionId: unknown): Condition;
 
 ### build/index.d.ts#isAzurePricesUrl
 export declare function isAzurePricesUrl(link: string): boolean;
+
+### build/index.d.ts#parseAzureRegionsPage
+export declare function parseAzureRegionsPage(html: string): AzureRegionsResult;
 
 ### build/index.d.ts#parseAzureRetailPricePages
 export declare function parseAzureRetailPricePages(answers: readonly unknown[], at: string): MeteredParseResult;

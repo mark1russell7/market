@@ -11,6 +11,17 @@
 import type { SourceTerms } from "@mark1russell7/market";
 import { AZURE_TERMS } from "./azure.ts";
 export {
+  AZURE_PLACE_COUNTRIES,
+  AZURE_REGION_TABLE,
+  AZURE_REGIONS_SOURCE,
+  azureRegion,
+  azureRegionsDataText,
+  parseAzureRegionsPage,
+  type AzureRegion,
+  type AzureRegionsResult,
+  type AzureRegionsSource,
+} from "./azure-regions.ts";
+export {
   AZURE_VM_SIZE_TABLE,
   AZURE_VM_SIZES_SOURCE,
   azureVmSize,
