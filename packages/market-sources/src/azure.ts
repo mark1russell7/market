@@ -21,10 +21,17 @@ import {
   text,
   type MeteredParseResult,
 } from "./parse.ts";
+import { azureRegion } from "./azure-regions.ts";
 import { azureVmSize } from "./azure-sizes.ts";
 
 /** The name of the Azure Retail Prices API as a source of metered offers. */
 export const AZURE_SOURCE = "azure";
+
+// The location of an offer in a region. A region of `AZURE_REGION_TABLE` also gives its country.
+function locationOf(region: string): { provider: string; region: string; country?: string } {
+  const country = azureRegion(region)?.country;
+  return country === undefined ? { provider: AZURE_PROVIDER, region } : { provider: AZURE_PROVIDER, region, country };
+}
 
 /** The provider of the location of each offer of the Azure Retail Prices API. */
 export const AZURE_PROVIDER = "azure";
@@ -436,7 +443,7 @@ function observationOf(draft: OfferDraft, at: string, notes: string[]): MeteredO
       source: AZURE_SOURCE,
       sourceId: draft.sourceId,
       title: draft.title,
-      location: { provider: AZURE_PROVIDER, region: draft.region },
+      location: locationOf(draft.region),
       term: draft.term,
       specs: [...draft.specs],
     },

@@ -166,7 +166,7 @@ describe("parseAzureRetailPrices", () => {
         source: "azure",
         sourceId: "westeurope/DZH318Z0BNVX/003F/consumption",
         title: "Rtn Preference: MGN, Standard",
-        location: { provider: "azure", region: "westeurope" },
+        location: { provider: "azure", region: "westeurope", country: "NL" },
         term: { kind: "on-demand" },
         specs: [
           { name: "serviceName", value: "Bandwidth" },

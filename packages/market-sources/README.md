@@ -129,6 +129,17 @@ The Azure Retail Prices API gives no vCPUs and no memory. The size pages of the 
 - **Parser.** `parseAzureSizeTables(markdown)` reads the size tables of one page. It also gives the include files of the page, because some pages keep their tables in an include file.
 - **Update.** Start `node scripts/azure-sizes.ts` in the package folder. It reads each page through the polite send of `polite-crawler`, and writes `src/azure-sizes-data.ts`.
 
+#### The places of the regions
+
+The Azure Retail Prices API gives the name of a region, but not its country. The list of the regions of the Azure documentation gives the country and the physical location of each region. `AZURE_REGION_TABLE` keeps these two facts, by the programmatic name of the region.
+
+- **Source.** The page [Azure regions list](https://learn.microsoft.com/en-us/azure/reliability/regions-list), on the date of `AZURE_REGIONS_SOURCE`.
+- **Terms.** The page states no license. Thus the table keeps only facts, and no text of the page. Each copy of the data keeps the attribution of `AZURE_REGIONS_SOURCE`.
+- **Country.** The geography of a region gives its code of ISO 3166-1 alpha-2. A geography of more than one country, for example `Europe`, gives the country of the physical location.
+- **Offers.** The location of each offer of a region in the table has the country of the region.
+- **Parser.** `parseAzureRegionsPage(html)` reads the tables of the page. `azureRegion(name)` finds a region by its programmatic name.
+- **Update.** Start `node scripts/azure-regions.ts` in the package folder. It reads the page through the polite send of `polite-crawler`, and writes `src/azure-regions-data.ts`.
+
 A reservation and a savings plan cover a fixed amount of use. The metered model has no limit of coverage. Thus give the usage of a committed offer only for the covered hours.
 
 ### Plan lists
