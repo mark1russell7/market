@@ -163,6 +163,12 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The gate does not examine a resource code against a layer of stores. The code that joins the catalog to a layer of stores gives that gate.
 - Since 0.8.1, a food product can have cook facts in the field `cook`. The field `water` is the water for each volume or mass of the dry food. The field `bulk` is the mass of a volume of the dry food. The field `time` is the cook time from low to high. Each cites a fact and keeps the two values of the source, for example 2 cup of water for 1 cup of rice.
 - A water rate for each volume needs a bulk mass, or the gate gives the error `supplies-fact`. Cook facts on a product that is not food give the error `supplies-kind`.
+- The field `soak` is the cold soak: the dry food stands in cold water, with no heat. The cook discards this water, and the soak needs no fuel.
+- Since 0.10.1, the field `quickSoak` is the quick soak (type `QuickSoak`). It is a water rate, as `soak`, with the boil time `boil` and an optional stand time `stand`.
+- The water of a quick soak boils for the time `boil`. The food then stands in it off the heat for the time `stand`. This soak needs heat and fuel, and the cook discards its water.
+- The gate gives a quick soak the checks of a soak water. A quick soak that is not a record, or with no boil time, gives the error `supplies-amount`.
+- Since 0.10.1, the field `unsoakedTime` is the time on the heat for a cook with no soak. The field `time` stays the cook time after a soak.
+- The gate examines `boil`, `stand` and `unsoakedTime` as the cook time: each converts to `min` and cites a fact.
 - A resource of a fuel can have the field `fuelEnergy`: a cited energy for each mass, with its heating value (`higher` or `lower`). For example, 2219.2 kJ in 44.0956 g of propane. The gate examines its fact and its units.
 - A product can have the field `stove`: the resource of the fuel that it burns and, as an option, its fuel rate at full heat. The fuel rate is an energy or a mass in a time, for example 227 g in 90 min. A rate in an energy also has its heating value.
 - The fuel of a stove is a resource of the catalog with the kind `heat`. A fuel that is not in the catalog is the error `supplies-resource`.
@@ -182,6 +188,8 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 | `foodPlanCost(plan, members, days)` | It gives the cost of a food plan for the members of a household and a count of days. It applies the change for the size of the household. |
 | `foodPlanCheck(cost, plan, members, days)` | It compares the cost of the food of a buy list with the cost of the plan. A ratio above 1 tells that a price or an amount is possibly wrong. |
 | `cookWater(product)` | It gives the cook water of a dry food in `L/kg`. A water rate for each volume divides by the bulk mass. With no water rate, or with no bulk mass for a rate for each volume, it gives `undefined`. |
+| `soakWater(product)` | It gives the water of the cold soak of a dry food in `L/kg`, as `cookWater`. With no soak rate, it gives `undefined`. |
+| `quickSoakWater(product)` | Since 0.10.1, it gives the water of the quick soak of a dry food in `L/kg`, as `soakWater`. With no quick soak, it gives `undefined`. |
 | `fuelEnergyPerMass(resource)` | It gives the energy of a fuel in `kJ/kg`, for example 50327 kJ/kg for propane. A resource with no fuel energy gives `undefined`. |
 | `buyListEnergy(catalog, units)` | It gives the food energy of each line of a buy list in `kcal`, with the resources of the product, and their sum. |
 

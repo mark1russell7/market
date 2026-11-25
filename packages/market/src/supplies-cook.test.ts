@@ -1,6 +1,6 @@
 import { canonicalUnit, divide, quantity, valueIn } from "@mark1russell7/quantity";
 import { describe, expect, it } from "vitest";
-import { checkSupplies, cookWater, fuelEnergyPerMass, soakWater, type CitedRate, type CitedSpan, type SupplyCatalog, type SupplyProduct, type SupplyResource } from "./supplies.ts";
+import { checkSupplies, cookWater, fuelEnergyPerMass, quickSoakWater, soakWater, type CitedRate, type CitedSpan, type QuickSoak, type SupplyCatalog, type SupplyProduct, type SupplyResource } from "./supplies.ts";
 import { SUPPLY_CATALOG } from "./supplies-data.ts";
 
 const errors = (catalog: SupplyCatalog): string[] =>
@@ -22,6 +22,9 @@ function citedFacts(catalog: SupplyCatalog): { readonly where: string; readonly 
     const cook = each.cook;
     if (cook !== undefined)
       for (const [name, value] of Object.entries(cook) as [string, CitedRate | CitedSpan | undefined][]) if (value !== undefined) out.push({ where: `${each.id} cook.${name}`, fact: value.fact });
+    const quick = cook?.quickSoak;
+    if (quick !== undefined) out.push({ where: `${each.id} cook.quickSoak.boil`, fact: quick.boil.fact });
+    if (quick?.stand !== undefined) out.push({ where: `${each.id} cook.quickSoak.stand`, fact: quick.stand.fact });
     const rate = each.stove?.rate;
     if (rate !== undefined) out.push({ where: `${each.id} stove.rate`, fact: rate.fact });
     const boil = each.stove?.boil;
@@ -106,6 +109,15 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
     expect(cookWater(beans)!.value).toBeCloseTo((1.75 * 0.946352946) / 0.45359237, 9);
     expect(soakWater(beans)!.value).toBeCloseTo((1.75 * 0.946352946) / 0.45359237, 9);
     expect(soakWater(rice)).toBeUndefined();
+    expect(quickSoakWater(beans)).toBeUndefined();
+    // A made-up quick soak of 10 cup of water for each lb, and of 2 cup for each cup of rice with its bulk mass.
+    const time = rice.cook!.time!;
+    const quick = { ...beans, cook: { ...beans.cook, quickSoak: { amount: 10, unit: "cup", per: { amount: 1, unit: "lb" }, fact: "usda.refried-beans-soak", boil: time } } };
+    expect(quickSoakWater(quick)!.unit).toBe("L/kg");
+    expect(quickSoakWater(quick)!.value).toBeCloseTo((10 * 0.2365882365) / 0.45359237, 9);
+    expect(soakWater(quick)!.value).toBeCloseTo((1.75 * 0.946352946) / 0.45359237, 9);
+    expect(quickSoakWater({ ...rice, cook: { ...rice.cook, quickSoak: { ...rice.cook!.water!, boil: time } } })!.value).toBeCloseTo((2 * 0.2365882365) / 0.185, 9);
+    expect(quickSoakWater({ ...rice, cook: { quickSoak: { ...rice.cook!.water!, boil: time } } })).toBeUndefined();
     // The USDA recipe gives 3 gal of water for 1 lb 9 oz (25 oz) of dry spaghetti: about 16 L/kg.
     expect(cookWater(product("food.pasta-dry-1kg"))!.value).toBeCloseTo((3 * 3.785411784) / (25 * 0.028349523125), 9);
     expect(cookWater({ ...rice, cook: { water: { amount: 4, unit: "qt", per: { amount: 1, unit: "lb" }, fact: "usarice.long-grain-white" } } })!.value).toBeCloseTo((4 * 0.946352946) / 0.45359237, 9);
@@ -210,6 +222,40 @@ describe("the gate of the cook facts, the stoves and the fuel energy", () => {
     expect(errors(withProduct({ ...rice, cook: { ...rice.cook, soak: { ...soak, amount: 0 } } }))).toEqual(["supplies-amount"]);
     expect(errors(withProduct({ ...rice, cook: { ...rice.cook, soak: { ...soak, fact: "no.such-fact" } } }))).toEqual(["supplies-fact"]);
     expect(errors(withProduct({ ...rice, cook: { ...rice.cook, soak: { ...soak, bound: "least" } as never } }))).toEqual(["supplies-amount"]);
+  });
+
+  it("examines a quick soak water as a soak water, with a boil time, an optional stand time and no bound", () => {
+    // A made-up quick soak on the rice: its water rate is the cook water of the rice, and its times cite the cook time.
+    const water = rice.cook!.water!;
+    const time = rice.cook!.time!;
+    const quickSoak: QuickSoak = { ...water, boil: { ...time, low: 2, high: 2 }, stand: { ...time, low: 60, high: 60 } };
+    const cook = (fields: Record<string, unknown>): SupplyCatalog => withProduct({ ...rice, cook: { ...rice.cook, ...fields } } as unknown as SupplyProduct);
+    expect(errors(cook({ quickSoak }))).toEqual([]);
+    expect(errors(cook({ quickSoak: { ...quickSoak, stand: undefined } }))).toEqual([]);
+    expect(errors(withProduct({ ...rice, cook: { quickSoak } }))).toEqual(["supplies-fact"]);
+    expect(checkSupplies(withProduct({ ...rice, cook: { quickSoak } })).find((finding) => finding.code === "supplies-fact")?.message).toContain("The quick soak water of the product");
+    expect(errors(withProduct({ ...rice, cook: { quickSoak: { ...quickSoak, per: { amount: 1, unit: "kg" } } } }))).toEqual([]);
+    expect(errors(cook({ quickSoak: { ...quickSoak, unit: "kg" } }))).toEqual(["supplies-unit"]);
+    expect(errors(cook({ quickSoak: { ...quickSoak, amount: 0 } }))).toEqual(["supplies-amount"]);
+    expect(errors(cook({ quickSoak: { ...quickSoak, fact: "no.such-fact" } }))).toEqual(["supplies-fact"]);
+    expect(errors(cook({ quickSoak: { ...quickSoak, bound: "least" } }))).toEqual(["supplies-amount"]);
+    expect(errors(cook({ quickSoak: "a quick soak" }))).toEqual(["supplies-amount"]);
+    expect(errors(cook({ quickSoak: { ...quickSoak, boil: undefined } }))).toEqual(["supplies-amount"]);
+    expect(checkSupplies(cook({ quickSoak: { ...quickSoak, boil: undefined } })).find((finding) => finding.code === "supplies-amount")?.message).toContain("has no boil time");
+    expect(errors(cook({ quickSoak: { ...quickSoak, boil: 2 } }))).toEqual(["supplies-amount"]);
+    expect(errors(cook({ quickSoak: { ...quickSoak, boil: { ...quickSoak.boil, unit: "kg" } } }))).toEqual(["supplies-unit"]);
+    expect(errors(cook({ quickSoak: { ...quickSoak, boil: { ...quickSoak.boil, fact: "no.such-fact" } } }))).toEqual(["supplies-fact"]);
+    expect(errors(cook({ quickSoak: { ...quickSoak, stand: { ...time, low: 60, high: 30 } } }))).toEqual(["supplies-amount"]);
+    expect(errors(cook({ quickSoak: { ...quickSoak, stand: { ...time, unit: "foo" } } }))).toEqual(["supplies-unit"]);
+  });
+
+  it("examines an unsoaked cook time as a cook time", () => {
+    const time = rice.cook!.time!;
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, unsoakedTime: { ...time, low: 90, high: 120 } } }))).toEqual([]);
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, unsoakedTime: { ...time, low: 120, high: 90 } } }))).toEqual(["supplies-amount"]);
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, unsoakedTime: { ...time, unit: "kg" } } }))).toEqual(["supplies-unit"]);
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, unsoakedTime: { ...time, fact: "no.such-fact" } } }))).toEqual(["supplies-fact"]);
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, unsoakedTime: 90 } } as unknown as SupplyProduct))).toEqual(["supplies-amount"]);
   });
 
   it("refuses amounts that are not more than 0, units that do not fit, and a time with low more than high", () => {
