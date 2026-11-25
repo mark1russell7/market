@@ -45,7 +45,8 @@ const MEMORY = /^memory\s*\((gib|gb)\)$/i;
 const SIZE_NAME = /^size\s*name$/i;
 const VCPUS = /^vcpus\b/i;
 const SKU = /^Standard_[A-Za-z0-9_-]+$/;
-const INCLUDE = /\[!INCLUDE\s*\[[^\]]*\]\(([^)\s]+)\)\s*\]/gi;
+/** An include of a page. Its label has no bracket, thus each try of a match ends at the next bracket. */
+const INCLUDE = /\[!INCLUDE[ \t]*\[[^[\]\r\n]*\]\(([^()\s]+)\)[ \t]*\]/gi;
 
 function cellsOf(line: string): string[] | undefined {
   const trimmed = line.trim();
@@ -58,7 +59,7 @@ function plain(cell: string | undefined): string {
   return (cell ?? "")
     .replace(/<sup>.*?<\/sup>/gi, "")
     .replace(/<[^>]*>/g, "")
-    .replace(/[*`]/g, "")
+    .replace(/[<>*`]/g, "")
     .trim();
 }
 
