@@ -27,6 +27,8 @@ type AzureUnit: build/index.d.ts#AzureUnit
 BEST_BUY_HOST: build/index.d.ts#BEST_BUY_HOST
 BEST_BUY_PACE_MS: build/index.d.ts#BEST_BUY_PACE_MS
 BEST_BUY_PAGE_LIMIT: build/index.d.ts#BEST_BUY_PAGE_LIMIT
+BEST_BUY_QUOTA: build/index.d.ts#BEST_BUY_QUOTA
+BEST_BUY_QUOTA_KEY: build/index.d.ts#BEST_BUY_QUOTA_KEY
 BEST_BUY_SOURCE: build/index.d.ts#BEST_BUY_SOURCE
 BEST_BUY_TERMS: build/index.d.ts#BEST_BUY_TERMS
 BLS_API_URL: build/index.d.ts#BLS_API_URL
@@ -47,6 +49,8 @@ type BlsClientOptions: build/index.d.ts#BlsClientOptions
 type BlsSeries: build/index.d.ts#BlsSeries
 DIGIKEY_HOST: build/index.d.ts#DIGIKEY_HOST
 DIGIKEY_PACE_MS: build/index.d.ts#DIGIKEY_PACE_MS
+DIGIKEY_QUOTA: build/index.d.ts#DIGIKEY_QUOTA
+DIGIKEY_QUOTA_KEY: build/index.d.ts#DIGIKEY_QUOTA_KEY
 DIGIKEY_SANDBOX_HOST: build/index.d.ts#DIGIKEY_SANDBOX_HOST
 DIGIKEY_SEARCH_LIMIT: build/index.d.ts#DIGIKEY_SEARCH_LIMIT
 DIGIKEY_SELLER: build/index.d.ts#DIGIKEY_SELLER
@@ -207,6 +211,12 @@ export declare const BEST_BUY_PACE_MS = 1e3;
 ### build/index.d.ts#BEST_BUY_PAGE_LIMIT
 export declare const BEST_BUY_PAGE_LIMIT = 100;
 
+### build/index.d.ts#BEST_BUY_QUOTA
+export declare const BEST_BUY_QUOTA: Quota;
+
+### build/index.d.ts#BEST_BUY_QUOTA_KEY
+export declare const BEST_BUY_QUOTA_KEY = "bestbuy:api-key";
+
 ### build/index.d.ts#BEST_BUY_SOURCE
 export declare const BEST_BUY_SOURCE = "bestbuy";
 
@@ -258,6 +268,7 @@ interface BestBuyClientOptions<S extends Signal> {
   readonly apiKey: string;
   readonly transport: Transport<S>;
   readonly pace: Pace<S>;
+  readonly quota?: QuotaGate | undefined;
 }
 
 ### build/index.d.ts#BlsClient
@@ -288,6 +299,12 @@ export declare const DIGIKEY_HOST = "api.digikey.com";
 
 ### build/index.d.ts#DIGIKEY_PACE_MS
 export declare const DIGIKEY_PACE_MS = 500;
+
+### build/index.d.ts#DIGIKEY_QUOTA
+export declare const DIGIKEY_QUOTA: Quota;
+
+### build/index.d.ts#DIGIKEY_QUOTA_KEY
+export declare const DIGIKEY_QUOTA_KEY = "digikey:product-information-v4";
 
 ### build/index.d.ts#DIGIKEY_SANDBOX_HOST
 export declare const DIGIKEY_SANDBOX_HOST = "sandbox-api.digikey.com";
@@ -321,6 +338,7 @@ interface DigiKeyClientOptions<S extends Signal> {
   readonly pace: Pace<S>;
   readonly sandbox?: boolean | undefined;
   readonly locale?: DigiKeyLocale | undefined;
+  readonly quota?: QuotaGate | undefined;
 }
 
 ### build/index.d.ts#DigiKeyLocale

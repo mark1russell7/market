@@ -69,6 +69,8 @@ export type { ApiScheduler, Exchange, Pace, Reply, Signal, Transport } from "./c
 export {
   DIGIKEY_HOST,
   DIGIKEY_PACE_MS,
+  DIGIKEY_QUOTA,
+  DIGIKEY_QUOTA_KEY,
   DIGIKEY_SANDBOX_HOST,
   DIGIKEY_SEARCH_LIMIT,
   DIGIKEY_US,
@@ -87,7 +89,7 @@ export {
 export type { EbayClient, EbayClientOptions } from "./ebay-client.ts";
 export { AZURE_HOST, AZURE_PACE_MS, AZURE_PAGE_LIMIT, createAzureClient } from "./azure-client.ts";
 export type { AzureClient, AzureClientOptions, AzureReadOptions } from "./azure-client.ts";
-export { BEST_BUY_HOST, BEST_BUY_PACE_MS, BEST_BUY_PAGE_LIMIT, createBestBuyClient } from "./bestbuy-client.ts";
+export { BEST_BUY_HOST, BEST_BUY_PACE_MS, BEST_BUY_PAGE_LIMIT, BEST_BUY_QUOTA, BEST_BUY_QUOTA_KEY, createBestBuyClient } from "./bestbuy-client.ts";
 export type { BestBuyClient, BestBuyClientOptions } from "./bestbuy-client.ts";
 export {
   PLAN_METER,
