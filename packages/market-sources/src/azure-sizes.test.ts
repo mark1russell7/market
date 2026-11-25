@@ -74,7 +74,7 @@ describe("the dataset of sizes", () => {
 });
 
 describe("the specs of a virtual machine offer", () => {
-  const row = (serviceName: string, armSkuName: string) => ({
+  const row = (serviceName: string, armSkuName: string, productName = "Virtual Machines Dsv5 Series") => ({
     currencyCode: "USD",
     tierMinimumUnits: 0,
     retailPrice: 0.096,
@@ -82,7 +82,7 @@ describe("the specs of a virtual machine offer", () => {
     location: "Example Central",
     meterId: "00000000-0000-0000-0000-000000000001",
     meterName: "D2s v5",
-    productName: "Virtual Machines Dsv5 Series",
+    productName,
     skuId: "EXAMPLE/0001",
     skuName: "D2s v5",
     serviceName,
@@ -104,6 +104,12 @@ describe("the specs of a virtual machine offer", () => {
         { name: "memory", value: "8 GiB" },
       ]),
     );
+  });
+
+  it("adds the operating system of the product to an offer of the service Virtual Machines", () => {
+    expect(specs(row("Virtual Machines", "Standard_D2s_v5"))).toContainEqual({ name: "os", value: "linux" });
+    expect(specs(row("Virtual Machines", "Standard_D2s_v5", "Virtual Machines Dsv5 Series Windows"))).toContainEqual({ name: "os", value: "windows" });
+    expect(specs(row("Azure Example", "Standard_D2s_v5")).map((spec) => spec.name)).not.toContain("os");
   });
 
   it("adds no size to an offer of another service, or of a size that the dataset does not have", () => {

@@ -121,6 +121,7 @@ azurePricesUrl: build/index.d.ts#azurePricesUrl
 azureRegion: build/index.d.ts#azureRegion
 azureRegionsDataText: build/index.d.ts#azureRegionsDataText
 azureUnit: build/index.d.ts#azureUnit
+azureVmOs: build/index.d.ts#azureVmOs
 azureVmSize: build/index.d.ts#azureVmSize
 bestBuyCondition: build/index.d.ts#bestBuyCondition
 blsRequest: build/index.d.ts#blsRequest
@@ -667,6 +668,9 @@ export declare function azureRegionsDataText(source: AzureRegionsSource, regions
 
 ### build/index.d.ts#azureUnit
 export declare function azureUnit(unitOfMeasure: string): AzureUnit | undefined;
+
+### build/index.d.ts#azureVmOs
+export declare function azureVmOs(productName: string): "windows" | "linux";
 
 ### build/index.d.ts#azureVmSize
 export declare function azureVmSize(armSkuName: string | undefined): AzureVmSize | undefined;

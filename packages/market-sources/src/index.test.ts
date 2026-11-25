@@ -74,6 +74,7 @@ describe("the entry", () => {
       "azureRegion",
       "azureRegionsDataText",
       "azureUnit",
+      "azureVmOs",
       "azureVmSize",
       "bestBuyCondition",
       "blsRequest",

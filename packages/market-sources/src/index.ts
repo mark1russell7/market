@@ -46,6 +46,7 @@ export {
   azureNextPage,
   azurePricesUrl,
   azureUnit,
+  azureVmOs,
   isAzurePricesUrl,
   parseAzureRetailPricePages,
   parseAzureRetailPrices,
