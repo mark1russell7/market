@@ -89,6 +89,8 @@ describe("meteredKindOf", () => {
 describe("the schemas", () => {
   it("accepts a location, each term and an offer", () => {
     expect(locationSchema.parse({ provider: "example-cloud", region: "region-1" })).toEqual({ provider: "example-cloud", region: "region-1" });
+    const placed = { provider: "example-cloud", region: "region-1", country: "NL" };
+    expect(locationSchema.parse(placed)).toEqual(placed);
     const terms: PriceTerm[] = [
       { kind: "on-demand" },
       { kind: "spot" },
@@ -102,6 +104,9 @@ describe("the schemas", () => {
   it("refuses a bad provider, a blank region, a bad term and an id that does not agree", () => {
     expect(locationSchema.safeParse({ provider: "Example Cloud", region: "region-1" }).success).toBe(false);
     expect(locationSchema.safeParse({ provider: "example-cloud", region: " " }).success).toBe(false);
+    for (const country of ["nl", "NLD", "", "N1"]) {
+      expect(locationSchema.safeParse({ provider: "example-cloud", region: "region-1", country }).success).toBe(false);
+    }
     expect(priceTermSchema.safeParse({ kind: "committed", length: q(0, "yr") }).success).toBe(false);
     expect(priceTermSchema.safeParse({ kind: "committed" }).success).toBe(false);
     expect(priceTermSchema.safeParse({ kind: "spot", notice: usd(1) }).success).toBe(false);

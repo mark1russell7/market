@@ -100,6 +100,16 @@ export type PlanRegionPrices =
   | { readonly kind: "map"; readonly path: string }
   | { readonly kind: "list"; readonly path: string; readonly id: string };
 
+/**
+ * The list of the places of the regions of a provider. Each row has the id of a region at `id` and its country at
+ * `country`, as a code of ISO 3166-1 alpha-2. The parser puts the country into the location of each offer.
+ */
+export interface PlanPlaces {
+  readonly read: PlanListRead;
+  readonly id: string;
+  readonly country: string;
+}
+
 /** A spec of each offer: its name, the path of its value in a plan, and the unit that the parser adds to the value. */
 export interface PlanSpec {
   readonly name: string;
@@ -124,14 +134,16 @@ export interface PlanProvider {
   readonly label?: string | undefined;
   readonly regions: PlanRegions;
   readonly regionPrices: PlanRegionPrices;
+  readonly places?: PlanPlaces | undefined;
   readonly prices: readonly PlanTerm[];
   readonly specs: readonly PlanSpec[];
 }
 
-/** The answers of one read of a provider: the pages of its plan list, and the pages of its list of regions. */
+/** The answers of one read of a provider: the pages of its plan list, of its list of regions and of its list of places. */
 export interface PlanAnswers {
   readonly plans: readonly unknown[];
   readonly regions?: readonly unknown[] | undefined;
+  readonly places?: readonly unknown[] | undefined;
 }
 
 const dottedSchema = z
@@ -196,6 +208,7 @@ export const planProviderSchema: z.ZodType<PlanProvider> = z
       z.strictObject({ kind: z.literal("map"), path: dottedSchema }),
       z.strictObject({ kind: z.literal("list"), path: dottedSchema, id: dottedSchema }),
     ]),
+    places: z.strictObject({ read: listReadSchema, id: dottedSchema, country: dottedSchema }).optional(),
     prices: z.array(termSchema).min(1),
     specs: z.array(z.strictObject({ name: textSchema, path: dottedSchema, unit: textSchema.optional() })),
   })
@@ -309,6 +322,34 @@ function availability(
   return map;
 }
 
+const COUNTRY = /^[A-Z]{2}$/;
+
+/**
+ * This function gives the country of each region id from the rows of a list of places. It changes a code to capital
+ * letters. A row with no id or with no code of two letters is skipped. When two rows give two countries for one
+ * region, the region gets no country.
+ */
+function countriesOf(rows: readonly unknown[], places: PlanPlaces, notes: string[]): ReadonlyMap<string, string> {
+  const map = new Map<string, string>();
+  const clash = new Set<string>();
+  let bad = 0;
+  for (const row of rows) {
+    const region = text(dig(row, places.id));
+    const country = text(dig(row, places.country))?.toUpperCase();
+    if (region === undefined || country === undefined || !COUNTRY.test(country)) {
+      bad += 1;
+      continue;
+    }
+    const found = map.get(region);
+    if (found !== undefined && found !== country) clash.add(region);
+    else map.set(region, country);
+  }
+  for (const region of clash) map.delete(region);
+  if (bad > 0) notes.push(`${bad} rows of the list of places are skipped: each has no region or no country of two letters.`);
+  if (clash.size > 0) notes.push(`The regions ${[...clash].sort().join(", ")} have no country: the list of places gives two countries for each.`);
+  return map;
+}
+
 function regionsOfItem(item: unknown, at: string): readonly string[] {
   const ids = (list(dig(item, at)) ?? []).map(text).filter((id): id is string => id !== undefined);
   return [...new Set(ids)];
@@ -359,6 +400,7 @@ function observationOf(
   plan: { readonly id: string; readonly title: string },
   term: PlanTerm,
   region: string,
+  country: string | undefined,
   at: string,
   notes: string[],
 ): MeteredObservation | undefined {
@@ -390,7 +432,7 @@ function observationOf(
       source: provider.source,
       sourceId,
       title: plan.title,
-      location: { provider: provider.provider, region },
+      location: { provider: provider.provider, region, ...(country === undefined ? {} : { country }) },
       term: term.term,
       specs: specsOf(item, provider, term.key),
     },
@@ -401,7 +443,8 @@ function observationOf(
 
 /**
  * This function reads the answers of a plan list at the instant `at`. It gives one metered offer for each plan,
- * available region and price term. A provider with regions of the kind `list` needs the pages of that list. The
+ * available region and price term. A provider with regions of the kind `list` needs the pages of that list. A
+ * provider with a list of places needs the pages of that list, and each offer gets the country of its region. The
  * result has no link of a next page: the client reads each page of a list before the parse.
  */
 export function parsePlanLists(provider: PlanProvider, answers: PlanAnswers, at: string): MeteredParseResult {
@@ -419,6 +462,16 @@ export function parsePlanLists(provider: PlanProvider, answers: PlanAnswers, at:
     if (!rows.ok) return refused(rows.why);
     available = availability(rows.value, regions, notes);
   }
+  let countries: ReadonlyMap<string, string> | undefined;
+  if (provider.places !== undefined) {
+    if (answers.places === undefined || answers.places.length === 0) {
+      return refused(`The provider ${provider.source} reads the countries of its regions from a list, and the answers have no page of that list.`);
+    }
+    const rows = itemsOf(answers.places, provider.places.read, "list of places");
+    if (!rows.ok) return refused(rows.why);
+    countries = countriesOf(rows.value, provider.places, notes);
+  }
+  const unplaced = new Set<string>();
   const observations: MeteredObservation[] = [];
   const seen = new Set<string>();
   for (const [index, item] of items.value.entries()) {
@@ -437,12 +490,15 @@ export function parsePlanLists(provider: PlanProvider, answers: PlanAnswers, at:
     for (const term of provider.prices) {
       if (term.when !== undefined && dig(item, term.when) !== true) continue;
       for (const region of places) {
-        const observation = observationOf(provider, item, plan, term, region, at, notes);
+        const country = countries?.get(region);
+        if (countries !== undefined && country === undefined) unplaced.add(region);
+        const observation = observationOf(provider, item, plan, term, region, country, at, notes);
         if (observation === undefined || seen.has(observation.offer.id)) continue;
         seen.add(observation.offer.id);
         observations.push(observation);
       }
     }
   }
+  if (unplaced.size > 0) notes.push(`The offers of the regions ${[...unplaced].sort().join(", ")} have no country.`);
   return { ok: true, observations, notes, next: null };
 }

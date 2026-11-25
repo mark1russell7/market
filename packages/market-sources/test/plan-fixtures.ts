@@ -1,6 +1,7 @@
 /**
  * The fixtures of the plan lists. Each plan is a plan of a public answer of 2026-11-18, with a shorter list of
- * regions. The rows of the regions `id-cgk` and `br-gru` of the Linode availability are made for the tests.
+ * regions. The rows of the regions `id-cgk` and `br-gru` of the Linode availability are made for the tests. The
+ * lists of places have the rows of a public answer of 2026-11-25, with only the regions of the plans.
  */
 
 /** A page of the Vultr plan list (`GET /v2/plans`), with three plans and no next page. */
@@ -193,3 +194,26 @@ export const linodeAvailability = [
     results: 12,
   },
 ];
+
+/** A page of the Vultr list of places (`GET /v2/regions`), with no next page. */
+export const vultrRegions = {
+  regions: [
+    { id: "ams", city: "Amsterdam", country: "NL", continent: "Europe", options: ["ddos_protection"] },
+    { id: "ewr", city: "New Jersey", country: "US", continent: "North America", options: ["ddos_protection"] },
+    { id: "sao", city: "São Paulo", country: "BR", continent: "South America", options: ["ddos_protection"] },
+  ],
+  meta: { total: 3, links: { next: "", prev: "" } },
+};
+
+/** A page of the Linode list of places (`GET /v4/regions`). The codes of the countries have small letters. */
+export const linodeRegions = {
+  data: [
+    { id: "us-central", label: "Dallas, TX", country: "us", status: "ok", site_type: "core" },
+    { id: "us-east", label: "Newark, NJ", country: "us", status: "ok", site_type: "core" },
+    { id: "id-cgk", label: "Jakarta, ID", country: "id", status: "ok", site_type: "core" },
+    { id: "br-gru", label: "Sao Paulo, BR", country: "br", status: "ok", site_type: "core" },
+  ],
+  page: 1,
+  pages: 1,
+  results: 4,
+};

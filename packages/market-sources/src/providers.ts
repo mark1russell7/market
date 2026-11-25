@@ -25,6 +25,7 @@ export const VULTR_TERMS: SourceTerms = {
  * The record of the Vultr plan list (`GET /v2/plans` of the API v2). The API gave the list with no key on
  * 2026-11-18. Each plan lists its regions, and the object `location_cost` has the prices that change with the region.
  * A plan has the on-demand term when `deploy_ondemand` is true, and the preemptible term when `deploy_preemptible` is true.
+ * The list `GET /v2/regions` tells the country of each region.
  */
 export const VULTR_PLANS: PlanProvider = {
   source: VULTR_SOURCE,
@@ -38,6 +39,11 @@ export const VULTR_PLANS: PlanProvider = {
   id: "id",
   regions: { kind: "field", path: "locations" },
   regionPrices: { kind: "map", path: "location_cost" },
+  places: {
+    read: { path: "/v2/regions", query: { per_page: "500" }, items: "regions", paging: { kind: "cursor", param: "cursor", next: "meta.links.next" } },
+    id: "id",
+    country: "country",
+  },
   prices: [
     { key: "on-demand", term: { kind: "on-demand" }, when: "deploy_ondemand", hourly: "hourly_cost", monthly: "monthly_cost" },
     {
@@ -80,7 +86,8 @@ const LINODE_PAGES: PlanListRead["paging"] = { kind: "page", param: "page", page
 /**
  * The record of the Linode plan list of Akamai Cloud (`GET /v4/linode/types` of the API v4). The API reference
  * tells that the read needs no permissions. The list of `GET /v4/regions/availability` tells the regions of each
- * plan. The list `region_prices` has the prices that change with the region.
+ * plan. The list `region_prices` has the prices that change with the region. The list `GET /v4/regions` tells the
+ * country of each region.
  */
 export const LINODE_PLANS: PlanProvider = {
   source: LINODE_SOURCE,
@@ -101,6 +108,7 @@ export const LINODE_PLANS: PlanProvider = {
     available: "available",
   },
   regionPrices: { kind: "list", path: "region_prices", id: "id" },
+  places: { read: { path: "/v4/regions", query: { page_size: "500" }, items: "data", paging: LINODE_PAGES }, id: "id", country: "country" },
   prices: [
     {
       key: "on-demand",
