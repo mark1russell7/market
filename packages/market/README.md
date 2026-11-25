@@ -169,6 +169,9 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The gate gives a quick soak the checks of a soak water. A quick soak that is not a record, or with no boil time, gives the error `supplies-amount`.
 - Since 0.10.1, the field `unsoakedTime` is the time on the heat for a cook with no soak. The field `time` stays the cook time after a soak.
 - The gate examines `boil`, `stand` and `unsoakedTime` as the cook time: each converts to `min` and cites a fact.
+- Since 0.10.2, the field `unsoakedWater` is the cook water for a cook with no soak. The field `water` stays the cook water after a soak.
+- The gate gives `unsoakedWater` the checks of a cook water. It is a cited fact, not a value from the soak water or from `water`.
+- The reference beans have no `unsoakedWater`. The USDA and extension sources tell to soak the beans first, so no cited source gives this water.
 - A resource of a fuel can have the field `fuelEnergy`: a cited energy for each mass, with its heating value (`higher` or `lower`). For example, 2219.2 kJ in 44.0956 g of propane. The gate examines its fact and its units.
 - A product can have the field `stove`: the resource of the fuel that it burns and, as an option, its fuel rate at full heat. The fuel rate is an energy or a mass in a time, for example 227 g in 90 min. A rate in an energy also has its heating value.
 - The fuel of a stove is a resource of the catalog with the kind `heat`. A fuel that is not in the catalog is the error `supplies-resource`.
@@ -188,6 +191,7 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 | `foodPlanCost(plan, members, days)` | It gives the cost of a food plan for the members of a household and a count of days. It applies the change for the size of the household. |
 | `foodPlanCheck(cost, plan, members, days)` | It compares the cost of the food of a buy list with the cost of the plan. A ratio above 1 tells that a price or an amount is possibly wrong. |
 | `cookWater(product)` | It gives the cook water of a dry food in `L/kg`. A water rate for each volume divides by the bulk mass. With no water rate, or with no bulk mass for a rate for each volume, it gives `undefined`. |
+| `unsoakedCookWater(product)` | Since 0.10.2, it gives the cook water of a dry food with no soak in `L/kg`, as `cookWater`. With no unsoaked cook water, it gives `undefined`. |
 | `soakWater(product)` | It gives the water of the cold soak of a dry food in `L/kg`, as `cookWater`. With no soak rate, it gives `undefined`. |
 | `quickSoakWater(product)` | Since 0.10.1, it gives the water of the quick soak of a dry food in `L/kg`, as `soakWater`. With no quick soak, it gives `undefined`. |
 | `fuelEnergyPerMass(resource)` | It gives the energy of a fuel in `kJ/kg`, for example 50327 kJ/kg for propane. A resource with no fuel energy gives `undefined`. |

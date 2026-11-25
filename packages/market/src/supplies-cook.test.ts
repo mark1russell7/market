@@ -1,6 +1,6 @@
 import { canonicalUnit, divide, quantity, valueIn } from "@mark1russell7/quantity";
 import { describe, expect, it } from "vitest";
-import { checkSupplies, cookWater, fuelEnergyPerMass, quickSoakWater, soakWater, type CitedRate, type CitedSpan, type QuickSoak, type SupplyCatalog, type SupplyProduct, type SupplyResource } from "./supplies.ts";
+import { checkSupplies, cookWater, fuelEnergyPerMass, quickSoakWater, soakWater, unsoakedCookWater, type CitedRate, type CitedSpan, type QuickSoak, type SupplyCatalog, type SupplyProduct, type SupplyResource } from "./supplies.ts";
 import { SUPPLY_CATALOG } from "./supplies-data.ts";
 
 const errors = (catalog: SupplyCatalog): string[] =>
@@ -110,6 +110,13 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
     expect(soakWater(beans)!.value).toBeCloseTo((1.75 * 0.946352946) / 0.45359237, 9);
     expect(soakWater(rice)).toBeUndefined();
     expect(quickSoakWater(beans)).toBeUndefined();
+    // No cited source gives the water of a cook of the beans with no soak, so the reference beans have none.
+    expect(beans.cook?.unsoakedWater).toBeUndefined();
+    expect(unsoakedCookWater(beans)).toBeUndefined();
+    // TEST VALUES: a made-up unsoaked cook water of 3 cup for each cup of rice, with its bulk mass, and of 8 cup for each lb.
+    expect(unsoakedCookWater({ ...rice, cook: { ...rice.cook, unsoakedWater: { ...rice.cook!.water!, amount: 3 } } })!.value).toBeCloseTo((3 * 0.2365882365) / 0.185, 9);
+    expect(unsoakedCookWater({ ...beans, cook: { ...beans.cook, unsoakedWater: { amount: 8, unit: "cup", per: { amount: 1, unit: "lb" }, fact: "usda.refried-beans-cook" } } })!.value).toBeCloseTo((8 * 0.2365882365) / 0.45359237, 9);
+    expect(unsoakedCookWater({ ...rice, cook: { unsoakedWater: rice.cook!.water } })).toBeUndefined();
     // A made-up quick soak of 10 cup of water for each lb, and of 2 cup for each cup of rice with its bulk mass.
     const time = rice.cook!.time!;
     const quick = { ...beans, cook: { ...beans.cook, quickSoak: { amount: 10, unit: "cup", per: { amount: 1, unit: "lb" }, fact: "usda.refried-beans-soak", boil: time } } };
@@ -247,6 +254,19 @@ describe("the gate of the cook facts, the stoves and the fuel energy", () => {
     expect(errors(cook({ quickSoak: { ...quickSoak, boil: { ...quickSoak.boil, fact: "no.such-fact" } } }))).toEqual(["supplies-fact"]);
     expect(errors(cook({ quickSoak: { ...quickSoak, stand: { ...time, low: 60, high: 30 } } }))).toEqual(["supplies-amount"]);
     expect(errors(cook({ quickSoak: { ...quickSoak, stand: { ...time, unit: "foo" } } }))).toEqual(["supplies-unit"]);
+  });
+
+  it("examines an unsoaked cook water as a cook water: a volume for each volume with a bulk mass, or for each mass, with its fact and no bound", () => {
+    const unsoakedWater = rice.cook!.water!;
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, unsoakedWater } }))).toEqual([]);
+    expect(errors(withProduct({ ...rice, cook: { unsoakedWater } }))).toEqual(["supplies-fact"]);
+    expect(checkSupplies(withProduct({ ...rice, cook: { unsoakedWater } })).find((finding) => finding.code === "supplies-fact")?.message).toContain("The unsoaked cook water of the product");
+    expect(errors(withProduct({ ...rice, cook: { unsoakedWater: { ...unsoakedWater, per: { amount: 1, unit: "kg" } } } }))).toEqual([]);
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, unsoakedWater: { ...unsoakedWater, unit: "kg" } } }))).toEqual(["supplies-unit"]);
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, unsoakedWater: { ...unsoakedWater, amount: 0 } } }))).toEqual(["supplies-amount"]);
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, unsoakedWater: { ...unsoakedWater, fact: "no.such-fact" } } }))).toEqual(["supplies-fact"]);
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, unsoakedWater: { ...unsoakedWater, bound: "least" } as never } }))).toEqual(["supplies-amount"]);
+    expect(errors(withProduct({ ...rice, cook: { ...rice.cook, unsoakedWater: 3 } } as unknown as SupplyProduct))).toEqual(["supplies-amount"]);
   });
 
   it("examines an unsoaked cook time as a cook time", () => {

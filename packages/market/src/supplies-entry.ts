@@ -13,6 +13,7 @@ export {
   averageSupplyPrices,
   checkSupplies,
   cookWater,
+  unsoakedCookWater,
   soakWater,
   quickSoakWater,
   fuelEnergyPerMass,
