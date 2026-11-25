@@ -113,18 +113,37 @@ export interface FuelEnergy extends CitedRate {
  * The cited facts to cook a dry food. Each field is optional. A product with no cited fact for a field has no such field.
  *
  * - `water`: the water to cook the food, in a volume, for each volume or mass of the dry food.
- * - `soak`: the water to soak the dry food before it cooks, in a volume, for each volume or mass of the dry food. The cook
- *   discards this water, so it is a second draw on the stored water. A soak with no heat needs no fuel.
+ * - `soak`: the water of the cold soak, in a volume, for each volume or mass of the dry food. The food stands in cold
+ *   water before it cooks. The cook discards this water, so it is a second draw on the stored water. A soak with no heat
+ *   needs no fuel.
+ * - `quickSoak`: the quick soak, since 0.10.1. Its water boils for a time, and then the food stands in it off the heat.
+ *   The soak water boils, so it needs heat and fuel. The cook discards this water, as for `soak`.
  * - `bulk`: the mass of a volume of the dry food. It converts a water rate for each volume to a rate for each mass.
- * - `time`: the time on the heat after the water boils. The heat to boil the water is not in this time.
+ * - `time`: the time on the heat after the water boils, for a cook after a soak. The heat to boil the water is not in
+ *   this time.
+ * - `unsoakedTime`: the time on the heat after the water boils, for a cook with no soak, since 0.10.1.
  *
- * `cookWater` and `soakWater` give the water in `L/kg` of dry food.
+ * `cookWater`, `soakWater` and `quickSoakWater` give the water in `L/kg` of dry food.
  */
 export interface CookFacts {
   readonly water?: CitedRate | undefined;
   readonly soak?: CitedRate | undefined;
+  readonly quickSoak?: QuickSoak | undefined;
   readonly bulk?: CitedRate | undefined;
   readonly time?: CitedSpan | undefined;
+  readonly unsoakedTime?: CitedSpan | undefined;
+}
+
+/**
+ * The quick soak of a dry food. The rate is the soak water, in a volume, for each volume or mass of the dry food, as the
+ * rate of `soak`. The soak water boils for the time `boil`. The food then stands in the water off the heat for the time
+ * `stand`. The two times are in a unit that converts to `min`.
+ */
+export interface QuickSoak extends CitedRate {
+  /** The time that the soak water stays at a boil. The heat to boil the water is not in this time. */
+  readonly boil: CitedSpan;
+  /** The time that the food stands in the soak water off the heat. */
+  readonly stand?: CitedSpan | undefined;
 }
 
 /**
@@ -507,6 +526,7 @@ function soundCatalog(input: unknown): { readonly catalog: SupplyCatalog; readon
  *   mass. The bulk is a mass for each volume. The cook time converts to `min`. The fuel energy of a resource is an
  *   energy for each mass, with a heating value.
  * - An error for cook facts on a product that is not food, and for a cook water for each volume with no bulk mass.
+ *   The soak water and the quick soak water have the same checks as the cook water. A quick soak has a boil time.
  * - An error for a stove that burns a resource that is not in the catalog, or a resource that is not of the kind heat.
  * - An error for a fuel rate of a stove that is not an energy or a mass in a time. A rate in an energy with no
  *   heating value is also an error.
@@ -849,19 +869,33 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
     if (product.cook !== undefined) {
       // An unknown kind has its own error above, so this rule examines only a known kind that is not food.
       if (product.kind !== "food" && (SUPPLY_KINDS as readonly string[]).includes(product.kind)) error("supplies-kind", "product", product.id, `The product ${product.id} has cook facts, and its kind is ${String(product.kind)}. Only a product of the kind food has cook facts.`);
-      const { water, soak, bulk, time } = product.cook;
+      const { water, soak, quickSoak, bulk, time, unsoakedTime } = product.cook;
       const goodWater = water !== undefined && rate("product", product.id, "cook water", water, [VOLUME_UNIT], [VOLUME_UNIT, MASS_UNIT]);
       const goodSoak = soak !== undefined && rate("product", product.id, "soak water", soak, [VOLUME_UNIT], [VOLUME_UNIT, MASS_UNIT]);
+      const goodQuick = quickSoak !== undefined && rate("product", product.id, "quick soak water", quickSoak, [VOLUME_UNIT], [VOLUME_UNIT, MASS_UNIT]);
       if (bulk !== undefined) rate("product", product.id, "bulk mass", bulk, [MASS_UNIT], [VOLUME_UNIT]);
       noBound("product", product.id, "cook water", water);
       noBound("product", product.id, "soak water", soak);
+      noBound("product", product.id, "quick soak water", quickSoak);
       noBound("product", product.id, "bulk mass", bulk);
       if (time !== undefined) span(product.id, "cook time", time, COOK_TIME_UNIT);
+      if (unsoakedTime !== undefined) span(product.id, "unsoaked cook time", unsoakedTime, COOK_TIME_UNIT);
+      // A quick soak that is not a record has the error of `rate` above.
+      if (isRecord(quickSoak)) {
+        const boil: unknown = quickSoak["boil"];
+        const stand: unknown = quickSoak["stand"];
+        if (boil === undefined)
+          error("supplies-amount", "product", product.id, `The quick soak of the product ${product.id} has no boil time. A quick soak has the time that its water stays at a boil.`);
+        else span(product.id, "boil time of the quick soak", boil, COOK_TIME_UNIT);
+        if (stand !== undefined) span(product.id, "stand time of the quick soak", stand, COOK_TIME_UNIT);
+      }
       // A water rate for each volume of dry food needs the mass of that volume.
       if (goodWater && convertible(water.per.unit, VOLUME_UNIT) && bulk === undefined)
         error("supplies-fact", "product", product.id, `The cook water of the product ${product.id} is for a volume of dry food, and the product has no bulk mass. The bulk mass converts the volume to a mass.`);
       if (goodSoak && convertible(soak.per.unit, VOLUME_UNIT) && bulk === undefined)
         error("supplies-fact", "product", product.id, `The soak water of the product ${product.id} is for a volume of dry food, and the product has no bulk mass. The bulk mass converts the volume to a mass.`);
+      if (goodQuick && convertible(quickSoak.per.unit, VOLUME_UNIT) && bulk === undefined)
+        error("supplies-fact", "product", product.id, `The quick soak water of the product ${product.id} is for a volume of dry food, and the product has no bulk mass. The bulk mass converts the volume to a mass.`);
     }
     if (product.stove !== undefined) {
       const { fuel, rate: fuelRate, boil, adverse, heating } = product.stove;
@@ -1073,6 +1107,19 @@ export function cookWater(product: SupplyProduct): Quantity | undefined {
  */
 export function soakWater(product: SupplyProduct): Quantity | undefined {
   return waterPerMass(product, product.cook?.soak);
+}
+
+/**
+ * This function gives the water of the quick soak of a dry food in `L/kg`, from its cited facts. `soakWater` gives the
+ * water of the cold soak in the same way. The cook discards this water. The water boils, so it also needs heat. A product with no quick
+ * soak, or with a quick soak rate for each volume and no bulk mass, gives `undefined`.
+ *
+ * @param product - The product
+ * @returns The litres of quick soak water for each kilogram of the dry food, or `undefined`
+ * @throws The error of `@mark1russell7/quantity` when a unit is not known or does not convert
+ */
+export function quickSoakWater(product: SupplyProduct): Quantity | undefined {
+  return waterPerMass(product, product.cook?.quickSoak);
 }
 
 /** This function gives a water rate of a dry food in `L/kg`. A rate for each volume divides by the bulk mass of the food. */

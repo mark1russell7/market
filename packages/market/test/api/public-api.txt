@@ -178,6 +178,7 @@ HEATING_VALUES: build/supplies-entry.d.ts#HEATING_VALUES
 type HeatingValue: build/supplies-entry.d.ts#HeatingValue
 type NoRead: build/supplies-entry.d.ts#NoRead
 type OpenedFacts: build/supplies-entry.d.ts#OpenedFacts
+type QuickSoak: build/supplies-entry.d.ts#QuickSoak
 RATE_BOUNDS: build/supplies-entry.d.ts#RATE_BOUNDS
 type RateBound: build/supplies-entry.d.ts#RateBound
 SUPPLY_CATALOG: build/supplies-entry.d.ts#SUPPLY_CATALOG
@@ -208,6 +209,7 @@ foodPlanCost: build/supplies-entry.d.ts#foodPlanCost
 fuelEnergyPerMass: build/supplies-entry.d.ts#fuelEnergyPerMass
 giftsOf: build/supplies-entry.d.ts#giftsOf
 kitMax: build/supplies-entry.d.ts#kitMax
+quickSoakWater: build/supplies-entry.d.ts#quickSoakWater
 soakWater: build/supplies-entry.d.ts#soakWater
 supplyWants: build/supplies-entry.d.ts#supplyWants
 
@@ -1051,8 +1053,10 @@ interface CitedSpan {
 interface CookFacts {
   readonly water?: CitedRate | undefined;
   readonly soak?: CitedRate | undefined;
+  readonly quickSoak?: QuickSoak | undefined;
   readonly bulk?: CitedRate | undefined;
   readonly time?: CitedSpan | undefined;
+  readonly unsoakedTime?: CitedSpan | undefined;
 }
 
 ### build/supplies-entry.d.ts#DeviceFacts
@@ -1143,6 +1147,12 @@ interface NoRead {
 interface OpenedFacts {
   readonly container: CitedAmount | NoRead;
   readonly noCold: string;
+}
+
+### build/supplies-entry.d.ts#QuickSoak
+interface QuickSoak extends CitedRate {
+  readonly boil: CitedSpan;
+  readonly stand?: CitedSpan | undefined;
 }
 
 ### build/supplies-entry.d.ts#RATE_BOUNDS
@@ -1330,6 +1340,9 @@ export declare function giftsOf(catalog: SupplyCatalog, id: string, units: numbe
 
 ### build/supplies-entry.d.ts#kitMax
 export declare function kitMax(people: number): (product: SupplyProduct) => number;
+
+### build/supplies-entry.d.ts#quickSoakWater
+export declare function quickSoakWater(product: SupplyProduct): Quantity | undefined;
 
 ### build/supplies-entry.d.ts#soakWater
 export declare function soakWater(product: SupplyProduct): Quantity | undefined;
