@@ -75,7 +75,7 @@ describe("the reference catalog of supplies", () => {
     const products = (basis: string | undefined): SupplyCatalog => ({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === radio.id ? { ...radio, basis } : each)) });
     expect(errors(products("unknown"))).toEqual(["supplies-fact"]);
     expect(errors(products(undefined))).toEqual(["supplies-basis"]);
-    expect(errors({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === radio.id ? { ...radio, basis: undefined, gives: plainRice.gives } : each)) })).toEqual([]);
+    expect(errors({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === radio.id ? { ...radio, basis: undefined, gives: SUPPLY_CATALOG.products.find((each) => each.id === "water.container-1gal")!.gives } : each)) })).toEqual([]);
     const unused = checkSupplies(products(undefined)).filter((finding) => finding.code === "supplies-unused");
     expect(unused.map((finding) => finding.id)).toEqual(["ready.kit-radio"]);
   });
@@ -412,7 +412,7 @@ describe("the gate of the catalog", () => {
   it("refuses a resource with a kind that is not a supply kind", () => {
     const resources = SUPPLY_CATALOG.resources.map((resource) => (resource.code === "food.no-cook" ? { ...resource, kind: "snacks" as never } : resource));
     expect(errors({ ...SUPPLY_CATALOG, resources })).toEqual(["supplies-kind"]);
-    expect(SUPPLY_CATALOG.resources.map((resource) => resource.kind)).toEqual(["water", "water", "food", "food", "food", "food", "food", "food", "food", "power", "power", "heat", "heat", "heat"]);
+    expect(SUPPLY_CATALOG.resources.map((resource) => resource.kind)).toEqual(["water", "water", "food", "food", "food", "food", "food", "food", "food", "food", "power", "power", "heat", "heat", "heat"]);
   });
 
   it("refuses a unit from JSON that is not a known unit, in an amount and in a resource, and does not throw", () => {

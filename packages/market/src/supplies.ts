@@ -1034,9 +1034,11 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
   const profiles = new Map<string, { readonly id: string; readonly profile: CookProfile }>();
   for (const product of catalog.products) {
     if (!Array.isArray(product.gives)) continue;
-    const foods = product.gives.filter((gift) => isRecord(gift) && resources.get(gift.resource)?.kind === "food").length;
+    // A gift of a bad shape has an error of its own above. It is not a food here.
+    const resourceOf = (gift: unknown): SupplyResource | undefined => (isRecord(gift) && typeof gift["resource"] === "string" ? resources.get(gift["resource"]) : undefined);
+    const foods = product.gives.filter((gift) => resourceOf(gift)?.kind === "food").length;
     for (const gift of product.gives) {
-      const resource = isRecord(gift) ? resources.get(gift.resource) : undefined;
+      const resource = resourceOf(gift);
       if (resource === undefined || !dryFood(resource)) continue;
       const profile = cookProfile(product, gift, resource.unit, foods);
       const first = profiles.get(resource.code);
