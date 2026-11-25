@@ -117,8 +117,8 @@ const DAILY_LIMIT = "Daily Ratelimit exceeded";
 
 /**
  * This function reads an answer of the daily limit: a 429 with the message of the daily limit, or with the header
- * `X-RateLimit-Remaining: 0`. The reading sets the count to the limit. The header `X-RateLimit-Reset` gives the seconds
- * to the reset. Each other answer gives no reading.
+ * `X-RateLimit-Remaining: 0`. With the header `X-RateLimit-Reset`, the reading stops the key until that reset, and the
+ * count of the window does not change. With no reset, the reading sets the count to the limit. Each other answer gives no reading.
  */
 function dailyLimitReading(answer: Answer, now: number): QuotaReading | undefined {
   const { reply } = answer;
@@ -126,7 +126,8 @@ function dailyLimitReading(answer: Answer, now: number): QuotaReading | undefine
   const get = (name: string): string | undefined => reply.headers[name];
   if (get("x-ratelimit-remaining")?.trim() !== "0" && !reply.body.includes(DAILY_LIMIT)) return undefined;
   const reset = readQuotaHeaders(get, { resetAt: "x-ratelimit-reset" }, now)?.resetAt;
-  return reset === undefined ? { remaining: 0 } : { remaining: 0, resetAt: reset };
+  // A reading with a reset and no count stops the key until the reset. A count of 0 fills the window for 24 hours.
+  return reset === undefined ? { remaining: 0 } : { resetAt: reset };
 }
 
 /**
@@ -136,8 +137,8 @@ function dailyLimitReading(answer: Answer, now: number): QuotaReading | undefine
  *
  * - The gate counts each request of a product before the client sends it, and it refuses a request over the quota.
  *   A request of a token does not count.
- * - An answer of the daily limit sets the count to the limit. Then the gate refuses each request until the reset of
- *   the answer. With no reset, it refuses until the requests of the window go out of it, 24 hours at most.
+ * - After an answer of the daily limit, the gate refuses each request until the reset of the answer. With no reset,
+ *   the answer sets the count to the limit, and the gate refuses until the requests of the window go out of it.
  *
  * @throws RangeError when the client id or the client secret is not a key. The message does not show the value.
  */

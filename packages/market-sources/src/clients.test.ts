@@ -233,8 +233,8 @@ describe("the Digi-Key client", () => {
     expect(quota.state()).toMatchObject({ used: 0 });
     await first.productDetails("P5555-ND");
     await second.keywordSearch("ssd");
-    // Two requests of products count. The request of the token does not count.
-    expect(sent).toHaveLength(3);
+    // Two requests of products count. Each client gets its own token, and a request of a token does not count.
+    expect(sent.filter(({ exchange }) => !isToken(exchange))).toHaveLength(2);
     expect(quota.state()).toMatchObject({ used: 2, left: 898 });
   });
 
