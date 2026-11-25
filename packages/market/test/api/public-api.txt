@@ -212,6 +212,7 @@ kitMax: build/supplies-entry.d.ts#kitMax
 quickSoakWater: build/supplies-entry.d.ts#quickSoakWater
 soakWater: build/supplies-entry.d.ts#soakWater
 supplyWants: build/supplies-entry.d.ts#supplyWants
+unsoakedCookWater: build/supplies-entry.d.ts#unsoakedCookWater
 
 ## Declarations
 
@@ -1057,6 +1058,7 @@ interface CookFacts {
   readonly bulk?: CitedRate | undefined;
   readonly time?: CitedSpan | undefined;
   readonly unsoakedTime?: CitedSpan | undefined;
+  readonly unsoakedWater?: CitedRate | undefined;
 }
 
 ### build/supplies-entry.d.ts#DeviceFacts
@@ -1349,3 +1351,6 @@ export declare function soakWater(product: SupplyProduct): Quantity | undefined;
 
 ### build/supplies-entry.d.ts#supplyWants
 export declare function supplyWants(catalog: SupplyCatalog, max?: (product: SupplyProduct) => number): ProductWant[];
+
+### build/supplies-entry.d.ts#unsoakedCookWater
+export declare function unsoakedCookWater(product: SupplyProduct): Quantity | undefined;

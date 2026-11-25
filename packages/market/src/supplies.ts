@@ -122,8 +122,10 @@ export interface FuelEnergy extends CitedRate {
  * - `time`: the time on the heat after the water boils, for a cook after a soak. The heat to boil the water is not in
  *   this time.
  * - `unsoakedTime`: the time on the heat after the water boils, for a cook with no soak, since 0.10.1.
+ * - `unsoakedWater`: the water to cook the food with no soak, in a volume, for each volume or mass of the dry food, since 0.10.3.
+ *   The field `water` stays the cook water after a soak. An unsoaked food takes up more water in the pot, so the two are different facts.
  *
- * `cookWater`, `soakWater` and `quickSoakWater` give the water in `L/kg` of dry food.
+ * `cookWater`, `unsoakedCookWater`, `soakWater` and `quickSoakWater` give the water in `L/kg` of dry food.
  */
 export interface CookFacts {
   readonly water?: CitedRate | undefined;
@@ -132,6 +134,7 @@ export interface CookFacts {
   readonly bulk?: CitedRate | undefined;
   readonly time?: CitedSpan | undefined;
   readonly unsoakedTime?: CitedSpan | undefined;
+  readonly unsoakedWater?: CitedRate | undefined;
 }
 
 /**
@@ -869,12 +872,14 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
     if (product.cook !== undefined) {
       // An unknown kind has its own error above, so this rule examines only a known kind that is not food.
       if (product.kind !== "food" && (SUPPLY_KINDS as readonly string[]).includes(product.kind)) error("supplies-kind", "product", product.id, `The product ${product.id} has cook facts, and its kind is ${String(product.kind)}. Only a product of the kind food has cook facts.`);
-      const { water, soak, quickSoak, bulk, time, unsoakedTime } = product.cook;
+      const { water, soak, quickSoak, bulk, time, unsoakedTime, unsoakedWater } = product.cook;
       const goodWater = water !== undefined && rate("product", product.id, "cook water", water, [VOLUME_UNIT], [VOLUME_UNIT, MASS_UNIT]);
+      const goodUnsoaked = unsoakedWater !== undefined && rate("product", product.id, "unsoaked cook water", unsoakedWater, [VOLUME_UNIT], [VOLUME_UNIT, MASS_UNIT]);
       const goodSoak = soak !== undefined && rate("product", product.id, "soak water", soak, [VOLUME_UNIT], [VOLUME_UNIT, MASS_UNIT]);
       const goodQuick = quickSoak !== undefined && rate("product", product.id, "quick soak water", quickSoak, [VOLUME_UNIT], [VOLUME_UNIT, MASS_UNIT]);
       if (bulk !== undefined) rate("product", product.id, "bulk mass", bulk, [MASS_UNIT], [VOLUME_UNIT]);
       noBound("product", product.id, "cook water", water);
+      noBound("product", product.id, "unsoaked cook water", unsoakedWater);
       noBound("product", product.id, "soak water", soak);
       noBound("product", product.id, "quick soak water", quickSoak);
       noBound("product", product.id, "bulk mass", bulk);
@@ -892,6 +897,8 @@ export function checkSupplies(catalog: SupplyCatalog, options: SupplyGateOptions
       // A water rate for each volume of dry food needs the mass of that volume.
       if (goodWater && convertible(water.per.unit, VOLUME_UNIT) && bulk === undefined)
         error("supplies-fact", "product", product.id, `The cook water of the product ${product.id} is for a volume of dry food, and the product has no bulk mass. The bulk mass converts the volume to a mass.`);
+      if (goodUnsoaked && convertible(unsoakedWater.per.unit, VOLUME_UNIT) && bulk === undefined)
+        error("supplies-fact", "product", product.id, `The unsoaked cook water of the product ${product.id} is for a volume of dry food, and the product has no bulk mass. The bulk mass converts the volume to a mass.`);
       if (goodSoak && convertible(soak.per.unit, VOLUME_UNIT) && bulk === undefined)
         error("supplies-fact", "product", product.id, `The soak water of the product ${product.id} is for a volume of dry food, and the product has no bulk mass. The bulk mass converts the volume to a mass.`);
       if (goodQuick && convertible(quickSoak.per.unit, VOLUME_UNIT) && bulk === undefined)
@@ -1095,6 +1102,19 @@ export function giftsOf(catalog: SupplyCatalog, id: string, units: number): Gift
  */
 export function cookWater(product: SupplyProduct): Quantity | undefined {
   return waterPerMass(product, product.cook?.water);
+}
+
+/**
+ * This function gives the cook water of a dry food with no soak in `L/kg`, from its cited facts. `cookWater` gives the cook
+ * water after a soak in the same way. It does not derive the value from the soak water or from the cook water after a soak. A product with
+ * no unsoaked cook water, or with a rate for each volume and no bulk mass, gives `undefined`. It is not 0.
+ *
+ * @param product - The product
+ * @returns The litres of water for each kilogram of the dry food, or `undefined`
+ * @throws The error of `@mark1russell7/quantity` when a unit is not known or does not convert
+ */
+export function unsoakedCookWater(product: SupplyProduct): Quantity | undefined {
+  return waterPerMass(product, product.cook?.unsoakedWater);
 }
 
 /**
