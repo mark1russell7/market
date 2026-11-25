@@ -82,7 +82,13 @@ export function createPlanClient<S extends Signal>(options: PlanClientOptions<S>
         if (!read.ok) return read;
         regions = read.pages;
       }
-      return parsePlanLists(record, { plans: plans.pages, regions }, instantOf(pace.now()));
+      let places: readonly unknown[] | undefined;
+      if (record.places !== undefined) {
+        const read = await readList(record, record.places.read, "the list of places", limit, signal);
+        if (!read.ok) return read;
+        places = read.pages;
+      }
+      return parsePlanLists(record, { plans: plans.pages, regions, places }, instantOf(pace.now()));
     },
   };
 }

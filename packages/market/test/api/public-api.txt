@@ -302,6 +302,7 @@ interface Location {
   readonly provider: string;
   readonly region: string;
   readonly zone?: string | undefined;
+  readonly country?: string | undefined;
 }
 
 ### build/index.d.ts#METERED_KINDS

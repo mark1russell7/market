@@ -112,6 +112,7 @@ export {
   type PlanListRead,
   type PlanNextPage,
   type PlanPaging,
+  type PlanPlaces,
   type PlanProvider,
   type PlanProviderRead,
   type PlanRegionPrices,

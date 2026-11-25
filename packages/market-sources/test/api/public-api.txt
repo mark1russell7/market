@@ -94,6 +94,7 @@ type PlanClientOptions: build/index.d.ts#PlanClientOptions
 type PlanListRead: build/index.d.ts#PlanListRead
 type PlanNextPage: build/index.d.ts#PlanNextPage
 type PlanPaging: build/index.d.ts#PlanPaging
+type PlanPlaces: build/index.d.ts#PlanPlaces
 type PlanProvider: build/index.d.ts#PlanProvider
 type PlanProviderRead: build/index.d.ts#PlanProviderRead
 type PlanReadOptions: build/index.d.ts#PlanReadOptions
@@ -470,6 +471,7 @@ type ParseResult = {
 interface PlanAnswers {
   readonly plans: readonly unknown[];
   readonly regions?: readonly unknown[] | undefined;
+  readonly places?: readonly unknown[] | undefined;
 }
 
 ### build/index.d.ts#PlanClient
@@ -515,6 +517,13 @@ type PlanPaging = {
   readonly next: string;
 };
 
+### build/index.d.ts#PlanPlaces
+interface PlanPlaces {
+  readonly read: PlanListRead;
+  readonly id: string;
+  readonly country: string;
+}
+
 ### build/index.d.ts#PlanProvider
 interface PlanProvider {
   readonly source: string;
@@ -529,6 +538,7 @@ interface PlanProvider {
   readonly label?: string | undefined;
   readonly regions: PlanRegions;
   readonly regionPrices: PlanRegionPrices;
+  readonly places?: PlanPlaces | undefined;
   readonly prices: readonly PlanTerm[];
   readonly specs: readonly PlanSpec[];
 }

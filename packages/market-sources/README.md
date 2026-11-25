@@ -135,10 +135,10 @@ A reservation and a savings plan cover a fixed amount of use. The metered model 
 
 A plan list is an API that gives each plan of virtual machines with its prices and its regions. A `PlanProvider` record tells where the API keeps each value. Each value is at a path of names with dots, for example `price.hourly`. Thus a new provider is a record of data, and not new code. `parsePlanProvider` examines a record, for example a record from a JSON file.
 
-| Record | API | Regions | Prices of a region | Terms |
-| --- | --- | --- | --- | --- |
-| `VULTR_PLANS` | `GET /v2/plans` of the Vultr API v2 | the list `locations` of each plan | the object `location_cost` | `on-demand` when `deploy_ondemand` is true, `spot` when `deploy_preemptible` is true |
-| `LINODE_PLANS` | `GET /v4/linode/types` of the Linode API v4 of Akamai Cloud | the rows of `GET /v4/regions/availability` with `available: true` | the list `region_prices` | `on-demand` |
+| Record | API | Regions | Prices of a region | Countries | Terms |
+| --- | --- | --- | --- | --- | --- |
+| `VULTR_PLANS` | `GET /v2/plans` of the Vultr API v2 | the list `locations` of each plan | the object `location_cost` | `GET /v2/regions` | `on-demand` when `deploy_ondemand` is true, `spot` when `deploy_preemptible` is true |
+| `LINODE_PLANS` | `GET /v4/linode/types` of the Linode API v4 of Akamai Cloud | the rows of `GET /v4/regions/availability` with `available: true` | the list `region_prices` | `GET /v4/regions` | `on-demand` |
 
 | Field | Rule |
 | --- | --- |
@@ -148,9 +148,10 @@ A plan list is an API that gives each plan of virtual machines with its prices a
 | Prices of a region | The price of a region replaces the price of the plan. A field that the price of a region does not have comes from the plan. |
 | Specs | Each spec of the record, with its unit, for example `memory` with the value `1024 MiB`. The spec `pricing` has the key of the term. |
 | Availability | The rows of the list of regions with no plan, no region or no `available` of true or false count in one note. The pairs that are not available count in one note. |
+| Country | The list of places gives the country of each region. The location of each offer gets the code of ISO 3166-1 alpha-2 in capital letters. A bad row, a region with two countries and the offers with no country each give a note. |
 | Transfer | The included transfer is a spec. The plan lists do not give the price of the transfer above it. Thus an offer has no meter of transfer. |
 
-`parsePlanLists(provider, { plans, regions }, at)` takes the pages of the plan list. A record with regions of the kind `list` also needs the pages of that list. The field `next` of the result is always `null`, because the client reads each page before the parse.
+`parsePlanLists(provider, { plans, regions, places }, at)` takes the pages of the plan list. A record with regions of the kind `list` also needs the pages of that list. A record with `places` also needs the pages of the list of places. The field `next` of the result is always `null`, because the client reads each page before the parse.
 
 ### BLS average prices
 

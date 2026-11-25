@@ -36,11 +36,16 @@ export const FREE_SCOPES = ["account", "region", "resource"] as const;
 /** The scope of a free amount: the usage that shares it. */
 export type FreeScope = (typeof FREE_SCOPES)[number];
 
-/** The location of a metered offer: the provider, and its region and zone, as the provider names them. */
+/**
+ * The location of a metered offer: the provider, and its region and zone, as the provider names them. The country
+ * is the country of the region, when the source tells it.
+ */
 export interface Location {
   readonly provider: string;
   readonly region: string;
   readonly zone?: string | undefined;
+  /** The country of the region, as a code of ISO 3166-1 alpha-2 with two capital letters, for example `NL`. */
+  readonly country?: string | undefined;
 }
 
 /**
@@ -210,12 +215,17 @@ export function meteredKindOf(unit: string): MeteredKind {
 
 /**
  * This schema accepts the location of a metered offer. The name of the provider has small letters, digits and
- * hyphens, as the name of a source. The region and the zone are the ids of the provider.
+ * hyphens, as the name of a source. The region and the zone are the ids of the provider. The country has two
+ * capital letters.
  */
 export const locationSchema: z.ZodType<Location> = z.strictObject({
   provider: sourceSchema,
   region: textSchema,
   zone: textSchema.optional(),
+  country: z
+    .string()
+    .regex(/^[A-Z]{2}$/, "The country is a code of ISO 3166-1 alpha-2 with two capital letters.")
+    .optional(),
 });
 
 /**

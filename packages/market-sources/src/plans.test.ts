@@ -1,7 +1,7 @@
 import { meteredCost, meteredObservationSchema, type MeteredObservation } from "@mark1russell7/market";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { linodeAvailability, linodeTypes, vultrPlans } from "../test/plan-fixtures.ts";
+import { linodeAvailability, linodeRegions, linodeTypes, vultrPlans, vultrRegions } from "../test/plan-fixtures.ts";
 import { AT, meteredNotes, meteredObservations, mutated } from "../test/fixtures.ts";
 import type { MeteredParseResult } from "./parse.ts";
 import {
@@ -15,8 +15,8 @@ import {
 } from "./plans.ts";
 import { LINODE_PLANS, PLAN_PROVIDERS, VULTR_PLANS } from "./providers.ts";
 
-const vultr = (): MeteredParseResult => parsePlanLists(VULTR_PLANS, { plans: [vultrPlans] }, AT);
-const linode = (): MeteredParseResult => parsePlanLists(LINODE_PLANS, { plans: [linodeTypes], regions: linodeAvailability }, AT);
+const vultr = (): MeteredParseResult => parsePlanLists(VULTR_PLANS, { places: [vultrRegions], plans: [vultrPlans] }, AT);
+const linode = (): MeteredParseResult => parsePlanLists(LINODE_PLANS, { places: [linodeRegions], plans: [linodeTypes], regions: linodeAvailability }, AT);
 
 /** This function gives the observation of an offer id, and it throws when the result does not have it. */
 function offer(result: MeteredParseResult, id: string): MeteredObservation {
@@ -111,7 +111,7 @@ describe("parsePlanLists with the Vultr record", () => {
   });
 
   it("gives only the preemptible term of a plan with deploy_ondemand false", () => {
-    const result = parsePlanLists(VULTR_PLANS, { plans: [vultrWith(1, { locations: ["ewr"] })] }, AT);
+    const result = parsePlanLists(VULTR_PLANS, { places: [vultrRegions], plans: [vultrWith(1, { locations: ["ewr"] })] }, AT);
     expectValid(result);
     const spot = offer(result, "vultr:vcg-h100-216c-1914gb-640vram/ewr/spot");
     expect(spot.offer.term).toEqual({ kind: "spot" });
@@ -120,42 +120,42 @@ describe("parsePlanLists with the Vultr record", () => {
   });
 
   it("skips an offer with an hourly price of 0 and a monthly price, notes a monthly price of 0, and keeps a free plan", () => {
-    const priced = parsePlanLists(VULTR_PLANS, { plans: [vultrWith(0, { hourly_cost: 0, monthly_cost: 5, location_cost: {} })] }, AT);
+    const priced = parsePlanLists(VULTR_PLANS, { places: [vultrRegions], plans: [vultrWith(0, { hourly_cost: 0, monthly_cost: 5, location_cost: {} })] }, AT);
     expect(meteredObservations(priced)).toEqual([]);
     expect(meteredNotes(priced)).toContain("The offer vultr:vc2-1c-1gb/ewr/on-demand is skipped: its hourly price is 0 and its monthly price is 5.");
-    const uncapped = parsePlanLists(VULTR_PLANS, { plans: [vultrWith(0, { hourly_cost: 0.01, monthly_cost: 0, location_cost: {} })] }, AT);
+    const uncapped = parsePlanLists(VULTR_PLANS, { places: [vultrRegions], plans: [vultrWith(0, { hourly_cost: 0.01, monthly_cost: 0, location_cost: {} })] }, AT);
     expect(meteredObservations(uncapped)).toHaveLength(3);
     expect(meteredNotes(uncapped)).toContain("The offer vultr:vc2-1c-1gb/ewr/on-demand has no monthly cap: its monthly price is 0 and its hourly price is 0.01.");
-    const free = parsePlanLists(VULTR_PLANS, { plans: [vultrWith(0, { hourly_cost: 0, monthly_cost: 0, location_cost: {} })] }, AT);
+    const free = parsePlanLists(VULTR_PLANS, { places: [vultrRegions], plans: [vultrWith(0, { hourly_cost: 0, monthly_cost: 0, location_cost: {} })] }, AT);
     expect(meteredObservations(free).map((observation) => observation.offer.id)).toEqual(["vultr:vc2-1c-1gb/ewr/on-demand", "vultr:vc2-1c-1gb/ams/on-demand", "vultr:vc2-1c-1gb/sao/on-demand"]);
   });
 
   it("skips an offer with a bad price, with a note", () => {
-    const result = parsePlanLists(VULTR_PLANS, { plans: [vultrWith(0, { hourly_cost: "-1", monthly_cost: 5 })] }, AT);
+    const result = parsePlanLists(VULTR_PLANS, { places: [vultrRegions], plans: [vultrWith(0, { hourly_cost: "-1", monthly_cost: 5 })] }, AT);
     expect(meteredObservations(result).map((observation) => observation.offer.id)).toEqual(["vultr:vc2-1c-1gb/sao/on-demand"]);
     expect(meteredNotes(result)).toContain('The offer vultr:vc2-1c-1gb/ewr/on-demand is skipped: its hourly price "-1" is not a number of 0 or more.');
-    const monthly = parsePlanLists(VULTR_PLANS, { plans: [vultrWith(0, { monthly_cost: -5, location_cost: {} })] }, AT);
+    const monthly = parsePlanLists(VULTR_PLANS, { places: [vultrRegions], plans: [vultrWith(0, { monthly_cost: -5, location_cost: {} })] }, AT);
     expect(meteredObservations(monthly)).toEqual([]);
     expect(meteredNotes(monthly)[0]).toBe("The offer vultr:vc2-1c-1gb/ewr/on-demand is skipped: its monthly price -5 is not a number of 0 or more.");
   });
 
   it("skips a plan with no id, and counts a plan of two pages one time", () => {
-    const result = parsePlanLists(VULTR_PLANS, { plans: [vultrWith(0, { id: " " }), vultrPlans] }, AT);
+    const result = parsePlanLists(VULTR_PLANS, { places: [vultrRegions], plans: [vultrWith(0, { id: " " }), vultrPlans] }, AT);
     expect(meteredNotes(result)[0]).toBe('The plan 1 is skipped: it has no text at "id".');
     expect(meteredObservations(result)).toHaveLength(3);
-    const twice = parsePlanLists(VULTR_PLANS, { plans: [vultrPlans, vultrPlans] }, AT);
+    const twice = parsePlanLists(VULTR_PLANS, { places: [vultrRegions], plans: [vultrPlans, vultrPlans] }, AT);
     expect(meteredObservations(twice)).toEqual(meteredObservations(vultr()));
   });
 
   it("refuses a page with no list of plans", () => {
-    expect(parsePlanLists(VULTR_PLANS, { plans: [vultrPlans, { meta: {} }] }, AT)).toEqual({
+    expect(parsePlanLists(VULTR_PLANS, { places: [vultrRegions], plans: [vultrPlans, { meta: {} }] }, AT)).toEqual({
       ok: false,
       problems: ['The page 2 of the plan list has no list at "plans".'],
     });
   });
 
   it("refuses an instant that is not an instant in UTC", () => {
-    expect(() => parsePlanLists(VULTR_PLANS, { plans: [vultrPlans] }, "2026-11-18")).toThrow(RangeError);
+    expect(() => parsePlanLists(VULTR_PLANS, { places: [vultrRegions], plans: [vultrPlans] }, "2026-11-18")).toThrow(RangeError);
   });
 });
 
@@ -197,7 +197,7 @@ describe("parsePlanLists with the Linode record", () => {
   });
 
   it("refuses answers with no page of the list of regions", () => {
-    expect(parsePlanLists(LINODE_PLANS, { plans: [linodeTypes] }, AT)).toEqual({
+    expect(parsePlanLists(LINODE_PLANS, { places: [linodeRegions], plans: [linodeTypes] }, AT)).toEqual({
       ok: false,
       problems: ["The provider linode reads its regions from a list, and the answers have no page of that list."],
     });
@@ -205,9 +205,47 @@ describe("parsePlanLists with the Linode record", () => {
 
   it("counts the bad rows of the list of regions in one note", () => {
     const bad = { data: [{ region: "us-east", plan: "g6-nanode-1", available: "yes" }, { plan: "g6-nanode-1", available: true }] };
-    const result = parsePlanLists(LINODE_PLANS, { plans: [linodeTypes], regions: [bad] }, AT);
+    const result = parsePlanLists(LINODE_PLANS, { places: [linodeRegions], plans: [linodeTypes], regions: [bad] }, AT);
     expect(meteredObservations(result)).toEqual([]);
     expect(meteredNotes(result)[0]).toBe('2 rows of the list of regions are skipped: each has no plan, no region or no "available" of true or false.');
+  });
+});
+
+describe("the country of each offer", () => {
+  it("puts the country of the region into the location of each offer, in capital letters", () => {
+    expect(offer(vultr(), "vultr:vc2-1c-1gb/ams/on-demand").offer.location).toEqual({ provider: "vultr", region: "ams", country: "NL" });
+    expect(offer(linode(), "linode:g6-nanode-1/us-east/on-demand").offer.location).toEqual({ provider: "linode", region: "us-east", country: "US" });
+    expect(offer(linode(), "linode:g6-nanode-1/id-cgk/on-demand").offer.location.country).toBe("ID");
+  });
+
+  it("refuses answers with no page of the list of places", () => {
+    expect(parsePlanLists(VULTR_PLANS, { plans: [vultrPlans] }, AT)).toEqual({
+      ok: false,
+      problems: ["The provider vultr reads the countries of its regions from a list, and the answers have no page of that list."],
+    });
+  });
+
+  it("skips a bad row, gives no country to a region with two countries, and notes each offer with no country", () => {
+    const places = {
+      regions: [{ id: "ewr", country: "US" }, { id: "ewr", country: "CA" }, { id: "ams", country: "Netherlands" }, { country: "BR" }],
+    };
+    const result = parsePlanLists(VULTR_PLANS, { plans: [vultrPlans], places: [places] }, AT);
+    expectValid(result);
+    expect(meteredObservations(result).map((observation) => observation.offer.location.country)).toEqual([undefined, undefined, undefined]);
+    expect(meteredNotes(result)).toEqual([
+      "2 rows of the list of places are skipped: each has no region or no country of two letters.",
+      "The regions ewr have no country: the list of places gives two countries for each.",
+      "The plan vcg-h100-216c-1914gb-640vram has no offer: it has no available region.",
+      "The plan vcg-l40s-16c-180g-48vram has no offer: it has no available region.",
+      "The offers of the regions ams, ewr, sao have no country.",
+    ]);
+  });
+
+  it("refuses a page of the list of places with no list", () => {
+    expect(parsePlanLists(VULTR_PLANS, { plans: [vultrPlans], places: [{ meta: {} }] }, AT)).toEqual({
+      ok: false,
+      problems: ['The page 1 of the list of places has no list at "regions".'],
+    });
   });
 });
 
@@ -273,12 +311,18 @@ describe("parsePlanProvider", () => {
 
 describe("the properties of the plan parser", () => {
   const cases: readonly { name: string; record: PlanProvider; answers: (page: unknown) => PlanAnswers; fixture: unknown }[] = [
-    { name: "Vultr", record: VULTR_PLANS, answers: (page) => ({ plans: [page] }), fixture: vultrPlans },
-    { name: "Linode plans", record: LINODE_PLANS, answers: (page) => ({ plans: [page], regions: linodeAvailability }), fixture: linodeTypes },
+    { name: "Vultr", record: VULTR_PLANS, answers: (page) => ({ plans: [page], places: [vultrRegions] }), fixture: vultrPlans },
+    { name: "Vultr places", record: VULTR_PLANS, answers: (page) => ({ plans: [vultrPlans], places: [page] }), fixture: vultrRegions },
+    {
+      name: "Linode plans",
+      record: LINODE_PLANS,
+      answers: (page) => ({ plans: [page], regions: linodeAvailability, places: [linodeRegions] }),
+      fixture: linodeTypes,
+    },
     {
       name: "Linode regions",
       record: LINODE_PLANS,
-      answers: (page) => ({ plans: [linodeTypes], regions: [page, linodeAvailability[1]] }),
+      answers: (page) => ({ plans: [linodeTypes], regions: [page, linodeAvailability[1]], places: [linodeRegions] }),
       fixture: linodeAvailability[0],
     },
   ];
