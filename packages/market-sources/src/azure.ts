@@ -270,9 +270,19 @@ function yearsOf(value: unknown): number | undefined {
 
 /**
  * The fields of a row that each offer keeps as specs. The spec `pricing` adds the key of the term of the offer. A row of
- * the service `Virtual Machines` also gets the specs `vcpu` and `memory` from `AZURE_VM_SIZE_TABLE` by its `armSkuName`.
+ * the service `Virtual Machines` also gets the specs `vcpu` and `memory` from `AZURE_VM_SIZE_TABLE` by its `armSkuName`, and
+ * the spec `os` from `azureVmOs`.
  */
 const SPEC_FIELDS = ["serviceName", "serviceFamily", "productName", "skuName", "armSkuName", "location"] as const;
+
+/**
+ * This function gives the operating system of a row of the service `Virtual Machines` from its product name: `windows`
+ * or `linux`. The price of a machine with a Windows license is in a product with the word `Windows` in its name. The
+ * price of each other product of the service has no license of an operating system, thus the machine runs Linux.
+ */
+export function azureVmOs(productName: string): "windows" | "linux" {
+  return /Windows/u.test(productName) ? "windows" : "linux";
+}
 
 function readRow(item: unknown, where: string, notes: string[]): Row | undefined {
   if (!isRecord(item)) {
@@ -325,6 +335,7 @@ function readRow(item: unknown, where: string, notes: string[]): Row | undefined
   }
   const size = text(item["serviceName"]) === "Virtual Machines" ? azureVmSize(text(item["armSkuName"])) : undefined;
   if (size !== undefined) specs.push({ name: "vcpu", value: String(size.vcpu) }, { name: "memory", value: `${size.memoryGiB} GiB` });
+  if (text(item["serviceName"]) === "Virtual Machines") specs.push({ name: "os", value: azureVmOs(product) });
   const spot = SPOT.test(sku);
   return { where, region, skuId, meterId, meterName, unitOfMeasure, unit, currency, start, price, type, title: `${product}, ${sku}`, spot, specs, item };
 }

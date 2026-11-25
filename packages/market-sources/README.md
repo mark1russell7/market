@@ -111,6 +111,7 @@ The Azure Retail Prices API gives the public retail prices of Azure. It needs no
 | Period | Each reading has the period of 1 month. |
 | Specs | `serviceName`, `serviceFamily`, `productName`, `skuName`, `armSkuName` and `location`, and `pricing`: the key of the term, for example `savings-plan-3y`. |
 | Sizes | A `Virtual Machines` row also gets `vcpu` and `memory`, for example `8 GiB`, from `AZURE_VM_SIZE_TABLE` by its `armSkuName`. A size that the table does not have gets no size specs. |
+| Operating system | A `Virtual Machines` row also gets `os`: `windows` when its product name has the word `Windows`, else `linux`. The price of a Windows product includes the license. |
 | Pages | A page has 1,000 rows at most. The tiers of a meter can continue on the next page. Thus `parseAzureRetailPricePages` reads the pages of one read together. |
 
 These rows give a note, and the parser skips them:

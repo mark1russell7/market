@@ -213,6 +213,7 @@ describe("parseAzureRetailPrices", () => {
     const reservation = offer(result, "azure:southcentralus/DZH318Z0D1L7/018J/reservation-1y");
     expect(reservation.offer.title).toBe("Virtual Machines Ev4 Series, E64 v4, 1-year reservation");
     expect(reservation.offer.term).toEqual({ kind: "committed", length: { value: 1, unit: "yr" } });
+    expect(reservation.offer.specs).toContainEqual({ name: "os", value: "linux" });
     expect(reservation.reading.upfront).toEqual({ value: 25007, unit: "USD" });
     expect(reservation.reading.meters).toEqual([
       { name: "E64 v4", tiers: [{ from: { value: 0, unit: "h" }, unitPrice: { value: 0, unit: "USD/h" } }] },
@@ -230,6 +231,7 @@ describe("parseAzureRetailPrices", () => {
     expect(devTest.offer.term).toEqual({ kind: "spot" });
     expect(devTest.offer.title).toBe("Virtual Machines Ev4 Series Windows, E64 v4 Spot, Dev/Test");
     expect(devTest.offer.specs.at(-1)).toEqual({ name: "pricing", value: "dev-test" });
+    expect(devTest.offer.specs).toContainEqual({ name: "os", value: "windows" });
     expect(devTest.reading.meters[0]?.tiers[0]?.unitPrice.value).toBe(0.894062);
   });
 
