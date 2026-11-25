@@ -2,10 +2,11 @@ import { Buffer } from "node:buffer";
 import { describe, expect, it } from "vitest";
 import { AZURE_PACE_MS, createAzureClient } from "./azure-client.ts";
 import { azurePricesUrl, parseAzureRetailPricePages } from "./azure.ts";
-import { createBestBuyClient } from "./bestbuy-client.ts";
+import { isQuotaError, memoryQuotaStore, quotaGate, type QuotaError } from "polite-crawler/api";
+import { BEST_BUY_QUOTA, BEST_BUY_QUOTA_KEY, createBestBuyClient } from "./bestbuy-client.ts";
 import { parseBestBuyOpenBox, parseBestBuyProduct, parseBestBuyProducts } from "./bestbuy.ts";
 import { SECRET_MARK, ApiError, instantOf, type Exchange, type Reply } from "./client.ts";
-import { createDigiKeyClient, DIGIKEY_PACE_MS } from "./digikey-client.ts";
+import { createDigiKeyClient, DIGIKEY_PACE_MS, DIGIKEY_QUOTA, DIGIKEY_QUOTA_KEY } from "./digikey-client.ts";
 import { parseDigiKeyKeywordSearch, parseDigiKeyProductDetails } from "./digikey.ts";
 import { createEbayClient } from "./ebay-client.ts";
 import { parseEbayItem, parseEbaySearch } from "./ebay.ts";
@@ -162,6 +163,81 @@ describe("the Digi-Key client", () => {
     expect(texts([], errors)).not.toContain(CLIENT_ID);
   });
 
+  it("keeps a margin under the daily limit of 1000: the gate refuses request 901 of a rolling day, and sends nothing", async () => {
+    expect(DIGIKEY_QUOTA.limit - (DIGIKEY_QUOTA.reserve ?? 0)).toBe(900);
+    const { client, sent } = setup((exchange) => (isToken(exchange) ? token("token-0001", 86_400 * 2) : reply(200, digiKeyDetails)));
+    for (let index = 0; index < 900; index += 1) await client.productDetails("P5555-ND");
+    const error = await client.keywordSearch("ssd").catch((caught: unknown) => caught);
+    expect(isQuotaError(error)).toBe(true);
+    const reads = sent.filter(({ exchange }) => !isToken(exchange));
+    expect(reads).toHaveLength(900);
+    // A request counts until all of its time bucket is out of the window: 24 hours, plus one bucket of the 60 at most.
+    expect((error as QuotaError).resetAt).toBeGreaterThanOrEqual(reads[0]!.at + 86_400_000);
+    expect((error as QuotaError).resetAt).toBeLessThanOrEqual(reads[0]!.at + 86_400_000 + 86_400_000 / 60);
+  });
+
+  it("refuses each request after an answer of the daily limit, until its reset", async () => {
+    const daily = reply(429, { ErrorMessage: "Daily Ratelimit exceeded" }, { "retry-after": "3600", "x-ratelimit-remaining": "0", "x-ratelimit-reset": "3600" }, "Too Many Requests");
+    let reads = 0;
+    const { client, sent, clock } = setup((exchange) => {
+      if (isToken(exchange)) return token("token-0001", 86_400);
+      reads += 1;
+      return reads === 1 ? daily : reply(200, digiKeyDetails);
+    });
+    expect(await client.productDetails("P5555-ND")).toMatchObject({ ok: false });
+    const answered = clock.now();
+    const error = await client.productDetails("P5555-ND").catch((caught: unknown) => caught);
+    expect(isQuotaError(error)).toBe(true);
+    expect((error as QuotaError).resetAt).toBe(answered + 3_600_000);
+    expect(sent).toHaveLength(2);
+    await clock.sleep((error as QuotaError).resetAt - clock.now());
+    expect(await client.productDetails("P5555-ND")).toMatchObject({ ok: true });
+    expect(sent).toHaveLength(3);
+  });
+
+  it("sets the count to the limit for the message of the daily limit with no header, and not for the burst limit", async () => {
+    const dailyOnly = reply(429, { ErrorMessage: "Daily Ratelimit exceeded" }, {}, "Too Many Requests");
+    const burst = reply(429, { ErrorMessage: "BurstLimit exceeded" }, { "retry-after": "30", "x-burstlimit-remaining": "0" }, "Too Many Requests");
+    for (const [answer, refused] of [[dailyOnly, true], [burst, false]] as const) {
+      const { pace, clock } = fakePace();
+      const { transport } = fakeTransport(clock, (exchange, index) => (isToken(exchange) ? token("token-0001", 86_400) : index === 1 ? answer : reply(200, digiKeyDetails)));
+      const quota = quotaGate(DIGIKEY_QUOTA, { key: DIGIKEY_QUOTA_KEY, store: memoryQuotaStore(), now: clock.now });
+      const client = createDigiKeyClient({ clientId: CLIENT_ID, clientSecret: CLIENT_SECRET, transport, pace, quota });
+      expect(await client.productDetails("P5555-ND")).toMatchObject({ ok: false });
+      expect(quota.state().left, String(refused)).toBe(refused ? 0 : 899);
+    }
+  });
+
+  it("counts the requests of two clients of one pace in the default gate of the pace, and a new pace has its own gate", async () => {
+    const { pace, clock } = fakePace();
+    const daily = reply(429, { ErrorMessage: "Daily Ratelimit exceeded" }, {}, "Too Many Requests");
+    const { transport, sent } = fakeTransport(clock, (exchange, index) => (isToken(exchange) ? token("token-0001", 86_400) : index === 1 ? daily : reply(200, digiKeyDetails)));
+    const first = createDigiKeyClient({ clientId: CLIENT_ID, clientSecret: CLIENT_SECRET, transport, pace });
+    const second = createDigiKeyClient({ clientId: CLIENT_ID, clientSecret: CLIENT_SECRET, transport, pace });
+    expect(await first.productDetails("P5555-ND")).toMatchObject({ ok: false });
+    await expect(second.keywordSearch("ssd")).rejects.toSatisfy(isQuotaError);
+    expect(sent).toHaveLength(2);
+    const other = fakePace();
+    const fresh = fakeTransport(other.clock, (exchange) => (isToken(exchange) ? token("token-0001") : reply(200, digiKeyDetails)));
+    expect(await createDigiKeyClient({ clientId: CLIENT_ID, clientSecret: CLIENT_SECRET, transport: fresh.transport, pace: other.pace }).productDetails("P5555-ND")).toMatchObject({ ok: true });
+  });
+
+  it("counts the requests of two clients in one gate, and nothing for a request that the client refuses before it sends", async () => {
+    const { pace, clock } = fakePace();
+    const { transport, sent } = fakeTransport(clock, (exchange) => (isToken(exchange) ? token("token-0001", 86_400) : reply(200, digiKeyDetails)));
+    const quota = quotaGate(DIGIKEY_QUOTA, { key: DIGIKEY_QUOTA_KEY, store: memoryQuotaStore(), now: clock.now });
+    const first = createDigiKeyClient({ clientId: CLIENT_ID, clientSecret: CLIENT_SECRET, transport, pace, quota });
+    const second = createDigiKeyClient({ clientId: CLIENT_ID, clientSecret: CLIENT_SECRET, transport, pace, quota });
+    await expect(first.keywordSearch("ssd", 51)).rejects.toThrow(RangeError);
+    await expect(second.productDetails("  ")).rejects.toThrow(RangeError);
+    expect(quota.state()).toMatchObject({ used: 0 });
+    await first.productDetails("P5555-ND");
+    await second.keywordSearch("ssd");
+    // Two requests of products count. The request of the token does not count.
+    expect(sent).toHaveLength(3);
+    expect(quota.state()).toMatchObject({ used: 2, left: 898 });
+  });
+
   it("refuses a client id or a secret that is not a key, and the message does not show it", () => {
     const { pace } = fakePace();
     const transport = async (): Promise<Reply> => reply(200, {});
@@ -274,16 +350,74 @@ describe("the Best Buy client", () => {
   });
 
   it("stops the host after a 403 for 1 hour, and no message has the key", async () => {
-    const { client, sent } = setup(() => reply(403, { message: API_KEY }, {}, "Forbidden"));
+    const { pace, clock } = fakePace();
+    const { transport, sent } = fakeTransport(clock, () => reply(403, { message: API_KEY }, {}, "Forbidden"));
+    const client = createBestBuyClient({ apiKey: API_KEY, transport, pace });
     expect(await client.product("6534613")).toEqual({
       ok: false,
       problems: ["Best Buy answered 403 Forbidden to the product 6534613."],
     });
-    const error = await failure(client.product("6534613"));
+    // The 403 set the count of the default gate to the limit. A client with a new gate finds the host stopped.
+    const quota = quotaGate(BEST_BUY_QUOTA, { key: BEST_BUY_QUOTA_KEY, store: memoryQuotaStore(), now: clock.now });
+    const error = await failure(createBestBuyClient({ apiKey: API_KEY, transport, pace, quota }).product("6534613"));
     expect(error).toBeInstanceOf(ApiError);
     expect(error.message).toBe("The client of Best Buy did not send the product 6534613: api.bestbuy.com stopped: blocked");
     expect(sent).toHaveLength(1);
     expect(error.message).not.toContain(API_KEY);
+  });
+
+  it("keeps a margin under the daily limit of 50,000: the gate refuses call 45,001 of a rolling day, and sends nothing", async () => {
+    expect(BEST_BUY_QUOTA.limit - (BEST_BUY_QUOTA.reserve ?? 0)).toBe(45_000);
+    const { pace, clock } = fakePace();
+    const { transport, sent } = fakeTransport(clock, () => reply(200, bestBuyProduct));
+    const quota = quotaGate(BEST_BUY_QUOTA, { key: BEST_BUY_QUOTA_KEY, store: memoryQuotaStore(), now: clock.now });
+    const client = createBestBuyClient({ apiKey: API_KEY, transport, pace, quota });
+    await client.product("6534613");
+    // The test takes the other 44,999 units of the window from the gate, not with 44,999 calls.
+    quota.take(44_999);
+    expect(quota.state()).toMatchObject({ used: 45_000, left: 0 });
+    const error = await client.openBox("6534613").catch((caught: unknown) => caught);
+    expect(isQuotaError(error)).toBe(true);
+    expect(sent).toHaveLength(1);
+    expect((error as QuotaError).resetAt).toBeGreaterThanOrEqual(sent[0]!.at + 86_400_000);
+    expect((error as QuotaError).resetAt).toBeLessThanOrEqual(sent[0]!.at + 86_400_000 + 86_400_000 / 60);
+  });
+
+  it("refuses each call after a 403, until the window has units again", async () => {
+    const { client, sent, clock } = setup((_, index) => (index === 0 ? reply(403, {}, {}, "Forbidden") : reply(200, bestBuyProduct)));
+    expect(await client.product("6534613")).toMatchObject({ ok: false });
+    const error = await client.search("ssd").catch((caught: unknown) => caught);
+    expect(isQuotaError(error)).toBe(true);
+    expect(sent).toHaveLength(1);
+    await clock.sleep((error as QuotaError).resetAt - clock.now());
+    expect(await client.product("6534613")).toMatchObject({ ok: true });
+    expect(sent).toHaveLength(2);
+  });
+
+  it("counts the calls of two clients of one pace in the default gate of the pace, and a new pace has its own gate", async () => {
+    const { pace, clock } = fakePace();
+    const { transport, sent } = fakeTransport(clock, (_, index) => (index === 0 ? reply(403, {}, {}, "Forbidden") : reply(200, bestBuyProduct)));
+    expect(await createBestBuyClient({ apiKey: API_KEY, transport, pace }).product("6534613")).toMatchObject({ ok: false });
+    await expect(createBestBuyClient({ apiKey: API_KEY, transport, pace }).product("6534613")).rejects.toSatisfy(isQuotaError);
+    expect(sent).toHaveLength(1);
+    const other = fakePace();
+    const fresh = fakeTransport(other.clock, () => reply(200, bestBuyProduct));
+    expect(await createBestBuyClient({ apiKey: API_KEY, transport: fresh.transport, pace: other.pace }).product("6534613")).toMatchObject({ ok: true });
+  });
+
+  it("counts the calls of two clients in one gate, and nothing for a call that the client refuses before it sends", async () => {
+    const { pace, clock } = fakePace();
+    const { transport, sent } = fakeTransport(clock, (exchange) => reply(200, exchange.url.includes("openBox") ? bestBuyOpenBox : bestBuyProduct));
+    const quota = quotaGate(BEST_BUY_QUOTA, { key: BEST_BUY_QUOTA_KEY, store: memoryQuotaStore(), now: clock.now });
+    const first = createBestBuyClient({ apiKey: API_KEY, transport, pace, quota });
+    const second = createBestBuyClient({ apiKey: API_KEY, transport, pace, quota });
+    await expect(first.product("65346A")).rejects.toThrow(RangeError);
+    await expect(second.search("ssd", 101)).rejects.toThrow(RangeError);
+    expect(quota.state()).toMatchObject({ used: 0 });
+    await first.product("6534613");
+    await second.openBox("6534613");
+    expect(sent).toHaveLength(2);
+    expect(quota.state()).toMatchObject({ used: 2, left: 44_998 });
   });
 
   it("puts the mark in the place of the key of a URL in an error of the transport", async () => {
