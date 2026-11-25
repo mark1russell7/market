@@ -281,7 +281,7 @@ const SPEC_FIELDS = ["serviceName", "serviceFamily", "productName", "skuName", "
  * price of each other product of the service has no license of an operating system, thus the machine runs Linux.
  */
 export function azureVmOs(productName: string): "windows" | "linux" {
-  return /Windows/u.test(productName) ? "windows" : "linux";
+  return /\bWindows\b/u.test(productName) ? "windows" : "linux";
 }
 
 function readRow(item: unknown, where: string, notes: string[]): Row | undefined {
