@@ -354,6 +354,13 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       locator: "Page 4, Soaking Beans, overnight method",
     },
     {
+      id: "usda.refried-beans-quick-soak",
+      use: "fact",
+      text: "The recipe tells to boil 1 3/4 qt of water for each 1 lb of dry beans. Add the beans and boil for 2 minutes. Remove from heat and soak for 1 hour. Then discard the water.",
+      source: "usda.refried-beans",
+      locator: "Page 4, Soaking Beans, quick-soak method",
+    },
+    {
       id: "usda.refried-beans-cook",
       use: "fact",
       text: "The recipe tells to add 1 3/4 qt of water for each lb of dry beans after the soak. Boil gently with the lid tilted until tender, about 2 hours.",
@@ -643,6 +650,14 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       cook: {
         water: { amount: 1.75, unit: "qt", per: { amount: 1, unit: "lb" }, fact: "usda.refried-beans-cook" },
         soak: { amount: 1.75, unit: "qt", per: { amount: 1, unit: "lb" }, fact: "usda.refried-beans-soak" },
+        quickSoak: {
+          amount: 1.75,
+          unit: "qt",
+          per: { amount: 1, unit: "lb" },
+          fact: "usda.refried-beans-quick-soak",
+          boil: { low: 2, high: 2, unit: "min", fact: "usda.refried-beans-quick-soak" },
+          stand: { low: 1, high: 1, unit: "h", fact: "usda.refried-beans-quick-soak" },
+        },
         time: { low: 1, high: 1.5, unit: "h", fact: "usda.pinto-beans-cook" },
       },
       average: {

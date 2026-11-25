@@ -45,7 +45,7 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
 
   it("gives each cook and fuel field a fact with a source and a license", () => {
     const cited = citedFacts(SUPPLY_CATALOG);
-    expect(cited.length).toBe(20);
+    expect(cited.length).toBe(23);
     for (const { where, fact } of cited) {
       const unit = SUPPLY_CATALOG.facts.find((each) => each.id === fact);
       expect(unit?.use, where).toBe("fact");
@@ -109,7 +109,11 @@ describe("the cook facts and the fuel energy of the reference catalog", () => {
     expect(cookWater(beans)!.value).toBeCloseTo((1.75 * 0.946352946) / 0.45359237, 9);
     expect(soakWater(beans)!.value).toBeCloseTo((1.75 * 0.946352946) / 0.45359237, 9);
     expect(soakWater(rice)).toBeUndefined();
-    expect(quickSoakWater(beans)).toBeUndefined();
+    // The quick soak of the same recipe boils the same 1 3/4 qt for each lb for 2 min, and the beans stand in it for 1 h.
+    expect(quickSoakWater(beans)!.value).toBeCloseTo((1.75 * 0.946352946) / 0.45359237, 9);
+    expect(beans.cook?.quickSoak?.boil).toEqual({ low: 2, high: 2, unit: "min", fact: "usda.refried-beans-quick-soak" });
+    expect(beans.cook?.quickSoak?.stand).toEqual({ low: 1, high: 1, unit: "h", fact: "usda.refried-beans-quick-soak" });
+    expect(beans.cook?.unsoakedTime).toBeUndefined();
     // A made-up quick soak of 10 cup of water for each lb, and of 2 cup for each cup of rice with its bulk mass.
     const time = rice.cook!.time!;
     const quick = { ...beans, cook: { ...beans.cook, quickSoak: { amount: 10, unit: "cup", per: { amount: 1, unit: "lb" }, fact: "usda.refried-beans-soak", boil: time } } };
