@@ -75,7 +75,7 @@ describe("parsePlanLists with the Vultr record", () => {
       source: "vultr",
       sourceId: "vc2-1c-1gb/ewr/on-demand",
       title: "Vultr vc2-1c-1gb",
-      location: { provider: "vultr", region: "ewr" },
+      location: { provider: "vultr", region: "ewr", country: "US" },
       term: { kind: "on-demand" },
       specs: [
         { name: "type", value: "vc2" },
