@@ -19,3 +19,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+The data of src/azure-sizes-data.ts is not under the MIT License. It comes from the size
+tables of the Azure documentation, Copyright Microsoft Corporation, in the repository
+MicrosoftDocs/azure-compute-docs, under the Creative Commons Attribution 4.0 International
+License (https://creativecommons.org/licenses/by/4.0/). The commit of the source is in the
+file. The file keeps only the counts of vCPUs and the memory of each size.

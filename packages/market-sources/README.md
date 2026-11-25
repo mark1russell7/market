@@ -110,6 +110,7 @@ The Azure Retail Prices API gives the public retail prices of Azure. It needs no
 | Tiers | `tierMinimumUnits` is the start of a tier, in the unit of its meter. A free first amount stays a tier at the price 0. |
 | Period | Each reading has the period of 1 month. |
 | Specs | `serviceName`, `serviceFamily`, `productName`, `skuName`, `armSkuName` and `location`, and `pricing`: the key of the term, for example `savings-plan-3y`. |
+| Sizes | A `Virtual Machines` row also gets `vcpu` and `memory`, for example `8 GiB`, from `AZURE_VM_SIZE_TABLE` by its `armSkuName`. A size that the table does not have gets no size specs. |
 | Pages | A page has 1,000 rows at most. The tiers of a meter can continue on the next page. Thus `parseAzureRetailPricePages` reads the pages of one read together. |
 
 These rows give a note, and the parser skips them:
@@ -117,6 +118,16 @@ These rows give a note, and the parser skips them:
 - A meter whose tiers start above 0 in a unit of more than 1 count. The documentation does not tell the unit of the start.
 - A meter with no tier at 0, or with two prices for one tier.
 - A unit of measure that the parser does not know, for example `1 PB`. The unit `PiB` is not in `@mark1russell7/quantity`.
+
+#### The sizes of the virtual machines
+
+The Azure Retail Prices API gives no vCPUs and no memory. The size pages of the Azure documentation give them in tables. `AZURE_VM_SIZE_TABLE` keeps the vCPUs and the memory in GiB of each size, by its ARM SKU name.
+
+- **Source.** The tables of `articles/virtual-machines/sizes` in [MicrosoftDocs/azure-compute-docs](https://github.com/MicrosoftDocs/azure-compute-docs), at the commit of `AZURE_VM_SIZES_SOURCE`.
+- **License.** The documentation is under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The table keeps only the columns of vCPUs and memory. Each copy of the data keeps the attribution of `AZURE_VM_SIZES_SOURCE`.
+- **Units.** A GB of a size table is 2^30 bytes. Thus `Memory (GB)` and `Memory (GiB)` both give GiB.
+- **Parser.** `parseAzureSizeTables(markdown)` reads the size tables of one page. It also gives the include files of the page, because some pages keep their tables in an include file.
+- **Update.** Start `node scripts/azure-sizes.ts` in the package folder. It reads each page through the polite send of `polite-crawler`, and writes `src/azure-sizes-data.ts`.
 
 A reservation and a savings plan cover a fixed amount of use. The metered model has no limit of coverage. Thus give the usage of a committed offer only for the covered hours.
 

@@ -21,6 +21,7 @@ import {
   text,
   type MeteredParseResult,
 } from "./parse.ts";
+import { azureVmSize } from "./azure-sizes.ts";
 
 /** The name of the Azure Retail Prices API as a source of metered offers. */
 export const AZURE_SOURCE = "azure";
@@ -260,7 +261,10 @@ function yearsOf(value: unknown): number | undefined {
   return match?.[1] === undefined ? undefined : Number(match[1]);
 }
 
-/** The fields of a row that each offer keeps as specs. The spec `pricing` adds the key of the term of the offer. */
+/**
+ * The fields of a row that each offer keeps as specs. The spec `pricing` adds the key of the term of the offer. A row of
+ * the service `Virtual Machines` also gets the specs `vcpu` and `memory` from `AZURE_VM_SIZE_TABLE` by its `armSkuName`.
+ */
 const SPEC_FIELDS = ["serviceName", "serviceFamily", "productName", "skuName", "armSkuName", "location"] as const;
 
 function readRow(item: unknown, where: string, notes: string[]): Row | undefined {
@@ -312,6 +316,8 @@ function readRow(item: unknown, where: string, notes: string[]): Row | undefined
     const value = text(item[name]);
     if (value !== undefined) specs.push({ name, value });
   }
+  const size = text(item["serviceName"]) === "Virtual Machines" ? azureVmSize(text(item["armSkuName"])) : undefined;
+  if (size !== undefined) specs.push({ name: "vcpu", value: String(size.vcpu) }, { name: "memory", value: `${size.memoryGiB} GiB` });
   const spot = SPOT.test(sku);
   return { where, region, skuId, meterId, meterName, unitOfMeasure, unit, currency, start, price, type, title: `${product}, ${sku}`, spot, specs, item };
 }
