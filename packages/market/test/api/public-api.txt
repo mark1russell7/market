@@ -125,6 +125,7 @@ type BuyCandidate: build/order.chunk.d.ts#BuyCandidate
 type BuyCandidates: build/order.chunk.d.ts#BuyCandidates
 BuyChoice: build/plan.d.ts#BuyChoice
 BuyItem: build/plan.d.ts#BuyItem
+type BuyKit: build/order.chunk.d.ts#BuyKit
 BuyNeed: build/plan.d.ts#BuyNeed
 type BuyOrder: build/order.chunk.d.ts#BuyOrder
 BuyPlan: build/plan.d.ts#BuyPlan
@@ -776,12 +777,20 @@ interface BuyCandidates {
   }[];
 }
 
+### build/order.chunk.d.ts#BuyKit
+interface BuyKit {
+  readonly id: string;
+  readonly parts: Readonly<Record<string, number>>;
+  readonly max?: number | undefined;
+}
+
 ### build/order.chunk.d.ts#BuyOrder
 interface BuyOrder {
   readonly budget: number;
   readonly spent: number;
   readonly buys: readonly OrderBuy[];
   readonly units: Selection;
+  readonly kits: Selection;
   readonly stages: readonly OrderStageResult[];
 }
 
@@ -798,6 +807,7 @@ interface OrderBuy {
   readonly quote: string;
   readonly cost: number;
   readonly gain: readonly number[];
+  readonly kit?: Readonly<Record<string, number>> | undefined;
 }
 
 ### build/order.chunk.d.ts#OrderOptions
@@ -807,6 +817,7 @@ interface OrderOptions {
   readonly goal?: Goal | undefined;
   readonly start?: Selection | undefined;
   readonly lazy?: boolean | undefined;
+  readonly kits?: readonly BuyKit[] | undefined;
 }
 
 ### build/order.chunk.d.ts#OrderStage

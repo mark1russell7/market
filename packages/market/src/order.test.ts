@@ -90,6 +90,50 @@ describe("orderBuys", () => {
     expect(order.stages[1]?.stop).toBe("units");
   });
 
+  /*
+   * The complements: one day of food takes 1 rice and 2 fuel. A unit of rice or of fuel alone gives no day, so the
+   * order with no kit stops at once. A kit of 1 rice and 2 fuel gives one day for 2 + 2 * 3 = 8.
+   */
+  const complements: BuyCandidate[] = [
+    { product: "RICE", price: 2, max: 10, quote: "a:1" },
+    { product: "FUEL", price: 3, max: 10, quote: "a:2" },
+  ];
+  const meals = (target: number) => (units: Selection) => [Math.max(0, target - Math.min(units["RICE"] ?? 0, Math.floor((units["FUEL"] ?? 0) / 2)))];
+
+  it("buys nothing when no unit alone has a gain, and buys a kit of the complements", () => {
+    const stages = [{ name: "3 days", value: meals(3) }];
+    const alone = orderBuys(complements, { budget: 100, goal: "min", stages });
+    expect(alone.buys).toEqual([]);
+    expect(alone.stages[0]?.stop).toBe("no-gain");
+    expect(alone.kits).toEqual({});
+    const order = orderBuys(complements, { budget: 100, goal: "min", stages, kits: [{ id: "MEAL", parts: { RICE: 1, FUEL: 2 } }] });
+    expect(order.buys.map((buy) => buy.product)).toEqual(["MEAL", "MEAL", "MEAL"]);
+    expect(order.buys[0]).toMatchObject({ stage: "3 days", product: "MEAL", quote: "a:1, a:2", cost: 8, kit: { RICE: 1, FUEL: 2 } });
+    expect(order.units).toMatchObject({ RICE: 3, FUEL: 6 });
+    expect(order.units["MEAL"]).toBeUndefined();
+    expect(order.kits).toEqual({ MEAL: 3 });
+    expect(order.spent).toBe(24);
+    expect(order.stages[0]?.after).toEqual([0]);
+  });
+
+  it("gives a kit the max that its parts permit, or its own max", () => {
+    const stages = [{ name: "9 days", value: meals(9) }];
+    // The fuel has a max of 10, so 5 kits of 2 fuel.
+    expect(orderBuys(complements, { budget: 100, goal: "min", stages, kits: [{ id: "MEAL", parts: { RICE: 1, FUEL: 2 } }] }).kits).toEqual({ MEAL: 5 });
+    expect(orderBuys(complements, { budget: 100, goal: "min", stages, kits: [{ id: "MEAL", parts: { RICE: 1, FUEL: 2 }, max: 2 }] }).kits).toEqual({ MEAL: 2 });
+  });
+
+  it("refuses a bad kit", () => {
+    const stages = [{ name: "x", value: meals(1) }];
+    const order = (kits: Parameters<typeof orderBuys>[1]["kits"]) => () => orderBuys(complements, { budget: 10, stages, kits });
+    expect(order([{ id: "RICE", parts: { FUEL: 1 } }])).toThrow(RangeError);
+    expect(order([{ id: "MEAL", parts: {} }])).toThrow(RangeError);
+    expect(order([{ id: "MEAL", parts: { SALT: 1 } }])).toThrow(RangeError);
+    expect(order([{ id: "MEAL", parts: { RICE: 0.5 } }])).toThrow(RangeError);
+    expect(order([{ id: "MEAL", parts: { RICE: 1 }, max: -1 }])).toThrow(RangeError);
+    expect(order([{ id: "MEAL", parts: { RICE: 1 } }, { id: "MEAL", parts: { FUEL: 1 } }])).toThrow(RangeError);
+  });
+
   it("refuses an order with no stage or a bad budget", () => {
     expect(() => orderBuys(candidates, { budget: 10, stages: [] })).toThrow(RangeError);
     expect(() => orderBuys(candidates, { budget: Number.NaN, stages: [{ name: "x", value: short(1) }] })).toThrow(RangeError);
