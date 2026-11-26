@@ -152,8 +152,8 @@ export { PLAN_PAGE_LIMIT, createPlanClient } from "./plans-client.ts";
 export type { PlanClient, PlanClientOptions, PlanReadOptions } from "./plans-client.ts";
 
 /**
- * The terms of each source of this package: the sellers in the order of the hand crawl, then Azure, then the plan
- * lists, then BLS, then the grocery sellers.
+ * The terms of each source of this package. The order is the sellers of the hand crawl, Azure, the plan lists, BLS
+ * and the grocery sellers.
  */
 export const SOURCE_TERMS: readonly SourceTerms[] = [
   EBAY_TERMS,
