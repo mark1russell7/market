@@ -3,8 +3,8 @@ import { canonicalUnit, convertible, divide, kindOf, multiply, quantity, rationa
 import { isRecord } from "@mark1russell7/optional/read";
 import { latestAverages, monthSchema, type AveragePrice } from "./average.ts";
 import { moneyOf } from "./records.ts";
-import type { PartWant } from "./offers.ts";
-import type { ProductWant } from "./order.ts";
+import type { Observation, PartWant } from "./offers.ts";
+import { buyCandidates, type BuyCandidate, type CandidateOptions, type ProductWant } from "./order.ts";
 
 /*
  * This module is the format and the gate of a catalog of supplies: the products that a household keeps for an
@@ -1298,4 +1298,82 @@ export function averageSupplyPrices(catalog: SupplyCatalog, prices: readonly Ave
     const price = quantity(valueIn(average.price, unit) * join.per.amount, money);
     return [{ product: product.id, read: true, price, average: average.id, period: average.period }];
   });
+}
+
+/** A candidate of a buy order of supplies, with the basis of its price. */
+export interface SupplyCandidate extends BuyCandidate {
+  /**
+   * The basis of the price. `offer`: the price of a live offer, and `quote` is the id of the offer. `average`: the
+   * average price of a series, and `quote` is the id of the average price. An average price is an estimate of the cost,
+   * not an offer of a seller.
+   */
+  readonly basis: "offer" | "average";
+}
+
+/** The candidates of a buy order of supplies, and the products that have no price. */
+export interface SupplyCandidates {
+  readonly currency: string;
+  readonly candidates: readonly SupplyCandidate[];
+  readonly unpriced: readonly { readonly product: string; readonly why: string }[];
+}
+
+/** The options of `supplyCandidates`. */
+export interface SupplyCandidateOptions extends CandidateOptions {
+  /** The largest count of units of a product, for example from `kitMax`. A product with a max of 0 is not in the result. */
+  readonly max: (product: SupplyProduct) => number;
+  /** The average prices, from one or more reads, for the products with a join to a series. The default is none. */
+  readonly averages?: readonly AveragePrice[] | undefined;
+  /** The first month of an average price that the result can use, in the form `YYYY-MM`, as in `averageSupplyPrices`. */
+  readonly since?: string | undefined;
+}
+
+/**
+ * This function gives a candidate of a buy order for each product of the catalog with a price, in the order of the
+ * catalog. It joins `buyCandidates` and `averageSupplyPrices`.
+ *
+ * - A usable live offer gives the price, with the basis `offer`.
+ * - With no usable offer, the average price of the join of the product gives the price, with the basis `average`.
+ *   The average price must be in the currency of the order.
+ * - Each other product is in `unpriced`, with the reason of each basis. A product with no price has no cost of 0.
+ *
+ * @param catalog - The catalog
+ * @param observations - The observations of the live offers
+ * @param options - The currency, the conditions, the largest count of units and the average prices
+ * @throws RangeError when a max is not a whole number of 0 or more, or when `since` is not a month in the form `YYYY-MM`
+ */
+export function supplyCandidates(catalog: SupplyCatalog, observations: readonly Observation[], options: SupplyCandidateOptions): SupplyCandidates {
+  const { currency, conditions, max } = options;
+  const counts = new Map(catalog.products.map((product) => [product.id, max(product)]));
+  for (const [product, count] of counts) {
+    if (!(Number.isSafeInteger(count) && count >= 0)) throw new RangeError(`The max of the product ${product} is ${String(count)}. It must be a whole number of 0 or more.`);
+  }
+  const wanted = (product: SupplyProduct) => (counts.get(product.id) ?? 0) > 0;
+  const offers = buyCandidates(supplyWants(catalog, max).filter((want) => (want.max ?? 1) > 0), observations, { currency, conditions });
+  const byOffer = new Map(offers.candidates.map((candidate) => [candidate.product, candidate]));
+  const offerWhy = new Map(offers.unpriced.map((item) => [item.product, item.why]));
+  const averages = new Map(averageSupplyPrices(catalog, options.averages ?? [], { since: options.since }).map((price) => [price.product, price]));
+  const candidates: SupplyCandidate[] = [];
+  const unpriced: { product: string; why: string }[] = [];
+  for (const product of catalog.products.filter(wanted)) {
+    const offer = byOffer.get(product.id);
+    if (offer !== undefined) {
+      candidates.push({ ...offer, basis: "offer" });
+      continue;
+    }
+    const average = averages.get(product.id);
+    if (average?.read === true && convertible(average.price.unit, currency)) {
+      candidates.push({ product: product.id, price: valueIn(average.price, currency), max: counts.get(product.id)!, quote: average.average, basis: "average" });
+      continue;
+    }
+    const why = [
+      product.want === undefined ? "The catalog gives no part for the offers of this product." : (offerWhy.get(product.id) ?? "No live offer matches the part."),
+      average === undefined
+        ? "The catalog gives no series of average prices for this product."
+        : average.read
+          ? `The average price ${average.average} is in ${average.price.unit}, not in ${currency}.`
+          : average.why,
+    ];
+    unpriced.push({ product: product.id, why: why.join(" ") });
+  }
+  return { currency, candidates, unpriced };
 }

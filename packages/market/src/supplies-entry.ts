@@ -11,6 +11,7 @@ export {
   HEATING_VALUES,
   RATE_BOUNDS,
   averageSupplyPrices,
+  supplyCandidates,
   checkSupplies,
   cookWater,
   unsoakedCookWater,
@@ -48,6 +49,9 @@ export {
   type SupplyGift,
   type SupplyKind,
   type SupplyPrice,
+  type SupplyCandidate,
+  type SupplyCandidateOptions,
+  type SupplyCandidates,
   type SupplyProduct,
   type SupplyResource,
 } from "./supplies.ts";

@@ -191,6 +191,9 @@ type StoveFactor: build/supplies-entry.d.ts#StoveFactor
 type StoveFacts: build/supplies-entry.d.ts#StoveFacts
 type StoveRate: build/supplies-entry.d.ts#StoveRate
 type StoveYield: build/supplies-entry.d.ts#StoveYield
+type SupplyCandidate: build/supplies-entry.d.ts#SupplyCandidate
+type SupplyCandidateOptions: build/supplies-entry.d.ts#SupplyCandidateOptions
+type SupplyCandidates: build/supplies-entry.d.ts#SupplyCandidates
 type SupplyCatalog: build/supplies-entry.d.ts#SupplyCatalog
 type SupplyCode: build/supplies-entry.d.ts#SupplyCode
 type SupplyFinding: build/supplies-entry.d.ts#SupplyFinding
@@ -211,6 +214,7 @@ giftsOf: build/supplies-entry.d.ts#giftsOf
 kitMax: build/supplies-entry.d.ts#kitMax
 quickSoakWater: build/supplies-entry.d.ts#quickSoakWater
 soakWater: build/supplies-entry.d.ts#soakWater
+supplyCandidates: build/supplies-entry.d.ts#supplyCandidates
 supplyWants: build/supplies-entry.d.ts#supplyWants
 unsoakedCookWater: build/supplies-entry.d.ts#unsoakedCookWater
 
@@ -1244,6 +1248,28 @@ interface StoveYield extends StoveRate {
   readonly end?: BoilTemperature | undefined;
 }
 
+### build/supplies-entry.d.ts#SupplyCandidate
+interface SupplyCandidate extends BuyCandidate {
+  readonly basis: "offer" | "average";
+}
+
+### build/supplies-entry.d.ts#SupplyCandidateOptions
+interface SupplyCandidateOptions extends CandidateOptions {
+  readonly max: (product: SupplyProduct) => number;
+  readonly averages?: readonly AveragePrice[] | undefined;
+  readonly since?: string | undefined;
+}
+
+### build/supplies-entry.d.ts#SupplyCandidates
+interface SupplyCandidates {
+  readonly currency: string;
+  readonly candidates: readonly SupplyCandidate[];
+  readonly unpriced: readonly {
+    readonly product: string;
+    readonly why: string;
+  }[];
+}
+
 ### build/supplies-entry.d.ts#SupplyCatalog
 interface SupplyCatalog {
   readonly format: typeof SUPPLY_FORMAT;
@@ -1351,6 +1377,9 @@ export declare function quickSoakWater(product: SupplyProduct): Quantity | undef
 
 ### build/supplies-entry.d.ts#soakWater
 export declare function soakWater(product: SupplyProduct): Quantity | undefined;
+
+### build/supplies-entry.d.ts#supplyCandidates
+export declare function supplyCandidates(catalog: SupplyCatalog, observations: readonly Observation[], options: SupplyCandidateOptions): SupplyCandidates;
 
 ### build/supplies-entry.d.ts#supplyWants
 export declare function supplyWants(catalog: SupplyCatalog, max?: (product: SupplyProduct) => number): ProductWant[];

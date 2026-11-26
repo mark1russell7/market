@@ -3,7 +3,8 @@ import { FOODKEEPER_PRODUCTS } from "@mark1russell7/stock/foodkeeper";
 import { describe, expect, it } from "vitest";
 import { buyCandidates } from "./order.ts";
 import type { AveragePrice } from "./average.ts";
-import { averageSupplyPrices, checkSupplies, giftsOf, kitMax, SUPPLY_KINDS, supplyWants, type SupplyCatalog, type SupplyProduct } from "./supplies.ts";
+import type { Observation } from "./offers.ts";
+import { averageSupplyPrices, checkSupplies, supplyCandidates, giftsOf, kitMax, SUPPLY_KINDS, supplyWants, type SupplyCatalog, type SupplyProduct } from "./supplies.ts";
 import { SUPPLY_CATALOG } from "./supplies-data.ts";
 
 const codes = (catalog: SupplyCatalog): string[] => checkSupplies(catalog).map((finding) => finding.code);
@@ -669,5 +670,58 @@ describe("the cook profile of a dry food", () => {
     const foods = SUPPLY_CATALOG.products.filter((product) => product.gives.some((gift) => gift.resource === "food.no-cook"));
     expect(foods.length).toBeGreaterThan(1);
     expect(errors(SUPPLY_CATALOG)).toEqual([]);
+  });
+});
+
+/** This function gives an in-stock offer of the power bank with free shipping. */
+const bankOffer = (price: number): Observation => ({
+  offer: {
+    id: "example:1",
+    source: "example",
+    sourceId: "1",
+    title: "A power bank",
+    seller: {},
+    condition: "new",
+    format: "fixed-price",
+    gtins: [],
+    partNumbers: [{ brand: "Anker", partNumber: "A1289" }],
+    specs: [],
+  },
+  reading: { offerId: "example:1", at: "2026-11-15T02:00:00Z", price: { value: price, unit: "USD" }, shipping: { kind: "free" }, availability: "in-stock" },
+});
+
+describe("supplyCandidates", () => {
+  const max = (counts: Readonly<Record<string, number>>) => (product: SupplyProduct) => counts[product.id] ?? 0;
+
+  it("prices a product from its live offer, then from its average price, and keeps each other product unpriced", () => {
+    const result = supplyCandidates(SUPPLY_CATALOG, [bankOffer(99)], {
+      currency: "USD",
+      max: max({ "power.anker-737": 1, "food.rice-white-1kg": 20, "water.jug-1gal": 8, "food.oats-1kg": 2 }),
+      averages: [ricePrice("2026-10", 1.101)],
+    });
+    expect(result.currency).toBe("USD");
+    expect(result.candidates.map(({ product, basis, max: count, quote }) => ({ product, basis, count, quote }))).toEqual([
+      { product: "food.rice-white-1kg", basis: "average", count: 20, quote: "bls-ap:APU0000701312:2026-10" },
+      { product: "power.anker-737", basis: "offer", count: 1, quote: "example:1" },
+    ]);
+    expect(result.candidates[0]!.price).toBeCloseTo(1.101 / 0.45359237, 10);
+    expect(result.candidates[1]!.price).toBe(99);
+    expect(result.unpriced.map((item) => item.product)).toEqual(["water.jug-1gal", "food.oats-1kg"]);
+    expect(result.unpriced[0]!.why).toBe("The catalog gives no part for the offers of this product. The catalog gives no series of average prices for this product.");
+    expect(result.unpriced[1]!.why).toContain("no series of oats");
+  });
+
+  it("leaves out a product with a max of 0, and gives a no read, not 0, with no offer and no average price", () => {
+    const result = supplyCandidates(SUPPLY_CATALOG, [], { currency: "USD", max: max({ "power.anker-737": 1, "food.rice-white-1kg": 1 }) });
+    expect(result.candidates).toEqual([]);
+    expect(result.unpriced.map((item) => item.product)).toEqual(["food.rice-white-1kg", "power.anker-737"]);
+    expect(result.unpriced[0]!.why).toContain("The prices have no average price of the series APU0000701312");
+  });
+
+  it("keeps an average price in another currency unpriced, and refuses a max that is not a whole number", () => {
+    const result = supplyCandidates(SUPPLY_CATALOG, [], { currency: "EUR", max: max({ "food.rice-white-1kg": 1 }), averages: [ricePrice("2026-10", 1.101)] });
+    expect(result.candidates).toEqual([]);
+    expect(result.unpriced[0]!.why).toContain("is in USD, not in EUR");
+    expect(() => supplyCandidates(SUPPLY_CATALOG, [], { currency: "USD", max: () => 1.5 })).toThrow(RangeError);
   });
 });
