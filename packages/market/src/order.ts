@@ -87,15 +87,38 @@ export interface OrderOptions {
   readonly start?: Selection | undefined;
   /** With `false`, each step evaluates each product again. Use it when two products give more together than apart. */
   readonly lazy?: boolean | undefined;
+  /**
+   * The kits: sets of units that one step buys together. Use a kit when no unit of its parts has a gain alone.
+   * An example is a dry food and the fuel to cook it. The default is none. Since 0.11.6.
+   */
+  readonly kits?: readonly BuyKit[] | undefined;
 }
 
-/** One purchase of a buy order: one unit of a product, its offer and its cost, and its gain in its stage. */
+/**
+ * A kit of a buy order: the units of products that one step buys together. The cost of a kit is the sum of the prices
+ * of its units. Each part is a product of the candidates.
+ */
+export interface BuyKit {
+  /** The key of the kit. It is not the key of a product of the candidates. */
+  readonly id: string;
+  /** The count of units of each product in one kit, each a whole number of 1 or more. */
+  readonly parts: Readonly<Record<string, number>>;
+  /** The largest count of kits to buy. The default is the most kits that the max of each part permits. */
+  readonly max?: number | undefined;
+}
+
+/**
+ * One purchase of a buy order: one unit of a product or one kit, its offer and its cost, and its gain in its stage.
+ * A kit has the key of the kit in `product`, its parts in `kit`, and the offers of its parts in `quote`, joined by ", ".
+ */
 export interface OrderBuy {
   readonly stage: string;
   readonly product: string;
   readonly quote: string;
   readonly cost: number;
   readonly gain: readonly number[];
+  /** The units of each product of a kit. A purchase of one unit of a product has no field `kit`. Since 0.11.6. */
+  readonly kit?: Readonly<Record<string, number>> | undefined;
 }
 
 /** The result of one stage: the value before and after it, the money that it spends and the reason that it stops. */
@@ -114,8 +137,10 @@ export interface BuyOrder {
   readonly budget: number;
   readonly spent: number;
   readonly buys: readonly OrderBuy[];
-  /** The units of each product after the order, with the units of `start`. */
+  /** The units of each product after the order, with the units of `start` and the units of each kit. */
   readonly units: Selection;
+  /** The count of each kit that the order buys. Since 0.11.6. */
+  readonly kits: Selection;
   readonly stages: readonly OrderStageResult[];
 }
 
@@ -125,17 +150,38 @@ export interface BuyOrder {
  *
  * - A stage starts from the units of the stage before it, and it spends only the money that is left.
  * - A stage can give the best single unit in place of its steps, when that unit has a better value (`method: "single"`).
+ * - A kit is one more item of the choice. Its cost is the sum of the prices of its units. The value of a stage gets the
+ *   units of each product with the units of each kit. Thus one step of a kit can have a gain when no unit alone has one.
+ * - The max of a product limits the units of that product alone, and the max of a kit limits the count of that kit.
+ *   Thus the units of a product with its kits can be more than its max. Give a kit its own `max` to limit them.
  *
  * @param candidates - The candidates, from `buyCandidates`
- * @param options - The budget, the stages, the goal and the start
+ * @param options - The budget, the stages, the goal, the start and the kits
  * @returns The buy order
  * @throws RangeError when the options are bad, or when a value is not a list of finite numbers with one length
+ * @throws RangeError when a kit has the key of a product or of another kit, or when it has no parts
+ * @throws RangeError when a part of a kit is not a candidate, or when a kit has a bad count or max
  */
 export function orderBuys(candidates: readonly BuyCandidate[], options: OrderOptions): BuyOrder {
   if (options.stages.length === 0) throw new RangeError("The order has no stage.");
   if (!(Number.isFinite(options.budget) && options.budget >= 0)) throw new RangeError(`The budget is ${String(options.budget)}. It must be a finite number of 0 or more.`);
   const byProduct = new Map(candidates.map((candidate) => [candidate.product, candidate]));
-  const items = candidates.map((candidate) => ({ id: candidate.product, cost: candidate.price, max: candidate.max }));
+  const kits = new Map((options.kits ?? []).map((kit) => [kit.id, checkKit(kit, byProduct)]));
+  if (kits.size !== (options.kits ?? []).length) throw new RangeError("Two kits have the same key.");
+  const items = [
+    ...candidates.map((candidate) => ({ id: candidate.product, cost: candidate.price, max: candidate.max })),
+    ...[...kits.values()].map((kit) => ({ id: kit.id, cost: kit.cost, max: kit.max })),
+  ];
+  // The value of a stage gets the units of each product, with the units of each kit. A kit key is not a product.
+  const expand = (selection: Selection): Selection => {
+    const out: Record<string, number> = {};
+    for (const [id, count] of Object.entries(selection)) {
+      const kit = kits.get(id);
+      if (kit === undefined) out[id] = (out[id] ?? 0) + count;
+      else for (const [part, each] of Object.entries(kit.parts)) out[part] = (out[part] ?? 0) + count * each;
+    }
+    return out;
+  };
   const start: Selection = options.start ?? {};
   let units: Selection = start;
   let left = options.budget;
@@ -148,16 +194,51 @@ export function orderBuys(candidates: readonly BuyCandidate[], options: OrderOpt
     const run = greedy({
       items: open,
       budget: Math.max(0, left),
-      value: stage.value,
+      value: kits.size === 0 ? stage.value : (selection: Selection) => stage.value(expand(selection)),
       start: units,
       ...(options.goal === undefined ? {} : { goal: options.goal }),
       ...(options.lazy === undefined ? {} : { lazy: options.lazy }),
     });
-    for (const pick of run.picks) buys.push({ stage: stage.name, product: pick.id, quote: byProduct.get(pick.id)?.quote ?? "", cost: pick.cost, gain: pick.gain });
+    for (const pick of run.picks) {
+      const kit = kits.get(pick.id);
+      if (kit === undefined) buys.push({ stage: stage.name, product: pick.id, quote: byProduct.get(pick.id)?.quote ?? "", cost: pick.cost, gain: pick.gain });
+      else buys.push({ stage: stage.name, product: pick.id, quote: kit.quotes, cost: pick.cost, gain: pick.gain, kit: kit.parts });
+    }
     units = run.selection;
     left -= run.spent;
     spent += run.spent;
     stages.push({ name: stage.name, method: run.method, before: run.before, after: run.after, spent: run.spent, stop: run.stop, evaluations: run.evaluations });
   }
-  return { budget: options.budget, spent, buys, units, stages };
+  const bought = Object.fromEntries(Object.entries(units).filter(([id, count]) => kits.has(id) && count > 0));
+  return { budget: options.budget, spent, buys, units: expand(units), kits: bought, stages };
+}
+
+/** A kit with its cost, its max and the offers of its parts. */
+interface CheckedKit {
+  readonly id: string;
+  readonly parts: Readonly<Record<string, number>>;
+  readonly cost: number;
+  readonly max: number;
+  readonly quotes: string;
+}
+
+/** This function checks a kit against the candidates, and gives its cost, its max and the offers of its parts. */
+function checkKit(kit: BuyKit, byProduct: ReadonlyMap<string, BuyCandidate>): CheckedKit {
+  if (byProduct.has(kit.id)) throw new RangeError(`The kit ${kit.id} has the key of a product.`);
+  const parts = Object.entries(kit.parts);
+  if (parts.length === 0) throw new RangeError(`The kit ${kit.id} has no parts.`);
+  let cost = 0;
+  let most = Number.MAX_SAFE_INTEGER;
+  const quotes: string[] = [];
+  for (const [product, count] of parts) {
+    const candidate = byProduct.get(product);
+    if (candidate === undefined) throw new RangeError(`The kit ${kit.id} has the part ${product}, and that product is not a candidate.`);
+    if (!(Number.isSafeInteger(count) && count >= 1)) throw new RangeError(`The kit ${kit.id} has ${String(count)} units of ${product}. It must be a whole number of 1 or more.`);
+    cost += count * candidate.price;
+    most = Math.min(most, Math.floor(candidate.max / count));
+    quotes.push(candidate.quote);
+  }
+  const max = kit.max ?? most;
+  if (!(Number.isSafeInteger(max) && max >= 0)) throw new RangeError(`The max of the kit ${kit.id} is ${String(max)}. It must be a whole number of 0 or more.`);
+  return { id: kit.id, parts: kit.parts, cost, max, quotes: quotes.join(", ") };
 }

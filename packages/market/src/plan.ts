@@ -263,7 +263,7 @@ export interface BuyPlan {
   readonly unpriced: readonly UnpricedPart[];
 }
 
-export { buyCandidates, orderBuys, type BuyCandidate, type BuyCandidates, type BuyOrder, type CandidateOptions, type OrderBuy, type OrderOptions, type OrderStage, type OrderStageResult, type ProductWant } from "./order.ts";
+export { buyCandidates, orderBuys, type BuyCandidate, type BuyCandidates, type BuyKit, type BuyOrder, type CandidateOptions, type OrderBuy, type OrderOptions, type OrderStage, type OrderStageResult, type ProductWant } from "./order.ts";
 
 /** These options change the search of a plan. */
 export interface PlanOptions {

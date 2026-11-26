@@ -123,6 +123,9 @@ A buy order chooses units of products, one unit at a time, under a budget. Each 
 - **The value.** A value is a list of numbers, the most important number first. Thus a gain on the first number comes before each gain on the second number. With `goal: "min"`, a smaller value is better, as for a shortfall.
 - **The stops.** A stage stops at `budget` when no unit fits the money that is left. It stops at `units` when each product is at its `max`. It stops at `no-gain` when no unit has a gain.
 - **The bound.** With gains that do not increase as the order grows, the order holds at least `(1 - 1/e) / 2` of the best value. When two products give more together than apart, set `lazy` to `false`.
+- **The kits.** Since 0.11.6, the option `kits` gives sets of units that one step buys together. A kit is for complements: a dry food gives no meal without the fuel to cook it. Thus no unit alone has a gain, and the order stops at `no-gain`.
+- The cost of a kit is the sum of the prices of its units. The value of a stage gets the units of each product with the units of each kit. The order gives the count of each kit in `kits`.
+- The max of a kit is the most kits that the max of each part permits, or its own `max`. The max of a product limits only the units of that product alone.
 
 ```ts
 import { orderBuys, type BuyCandidate } from "@mark1russell7/market/plan";
