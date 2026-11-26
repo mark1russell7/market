@@ -155,6 +155,14 @@ describe("priceReadingSchema", () => {
     expect(priceReadingSchema.parse(reading)).toEqual(reading);
   });
 
+  it("accepts an estimate with a price for each unit of an amount ", () => {
+    const byWeight = { ...reading, estimate: true, amountPrice: { value: 2.49, unit: `${reading.price.unit}/lb` } } as const;
+    expect(priceReadingSchema.parse(byWeight)).toEqual(byWeight);
+    expect(priceReadingSchema.safeParse({ ...reading, estimate: false }).success).toBe(false);
+    expect(priceReadingSchema.safeParse({ ...reading, amountPrice: { value: 2.49, unit: "lb" } }).success).toBe(false);
+    expect(priceReadingSchema.safeParse({ ...reading, amountPrice: { value: 0, unit: `${reading.price.unit}/lb` } }).success).toBe(false);
+  });
+
   it("accepts each kind of shipping, and refuses a fixed shipping with no cost", () => {
     for (const shipping of [{ kind: "free" }, { kind: "calculated" }, { kind: "unknown" }]) {
       expect(priceReadingSchema.safeParse({ ...reading, shipping }).success).toBe(true);

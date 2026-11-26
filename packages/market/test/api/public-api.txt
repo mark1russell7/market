@@ -114,7 +114,7 @@ specSchema: build/offers.chunk.d.ts#specSchema
 textSchema: build/offers.chunk.d.ts#textSchema
 tierSchema: build/index.d.ts#tierSchema
 unitPriceFor: build/index.d.ts#unitPriceFor
-unitPriceSchema: build/average.chunk.d.ts#unitPriceSchema
+unitPriceSchema: build/offers.chunk.d.ts#unitPriceSchema
 watchEntrySchema: build/index.d.ts#watchEntrySchema
 watchProblems: build/index.d.ts#watchProblems
 
@@ -240,9 +240,6 @@ declare function latestAverages(prices: readonly AveragePrice[]): readonly Avera
 
 ### build/average.chunk.d.ts#monthSchema
 declare const monthSchema: z.ZodType<string>;
-
-### build/average.chunk.d.ts#unitPriceSchema
-declare const unitPriceSchema: z.ZodType<Quantity, Quantity>;
 
 ### build/index.d.ts#BOARD_FORMAT
 export declare const BOARD_FORMAT = "price-board/1";
@@ -645,6 +642,8 @@ interface PriceReading {
   readonly available?: number | undefined;
   readonly minimumQuantity?: number | undefined;
   readonly priceBreaks?: readonly PriceBreak[] | undefined;
+  readonly amountPrice?: Quantity | undefined;
+  readonly estimate?: true | undefined;
 }
 
 ### build/offers.chunk.d.ts#Product
@@ -751,6 +750,9 @@ declare const specSchema: z.ZodType<Spec>;
 
 ### build/offers.chunk.d.ts#textSchema
 declare const textSchema: z.ZodType<string>;
+
+### build/offers.chunk.d.ts#unitPriceSchema
+declare const unitPriceSchema: z.ZodType<Quantity, Quantity>;
 
 ### build/order.chunk.d.ts#BuyCandidate
 interface BuyCandidate {

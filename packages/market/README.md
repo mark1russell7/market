@@ -25,6 +25,8 @@ Each record has a `zod` schema. A schema refuses an unknown field, an empty text
 - **Conditions.** A source maps its own condition to `new`, `open-box`, `refurbished`, `used`, `for-parts` or `unknown`. The field `grade` keeps the text of the source, for example `excellent`.
 - **Shipping.** The shipping is `free`, `fixed` with a cost, `calculated` (it depends on the address) or `unknown`.
 - **Price breaks.** `price` is the unit price for an order of `minimumQuantity` units, or of one unit. The quantities of the breaks increase, and each is more than the minimum.
+- **Amount prices.** `amountPrice` is the price for each unit of an amount, for example `USD/lb`. Its unit has one unit of money above and a unit of an amount below. With it, a buyer compares items of different sizes.
+- **Estimates.** `estimate: true` marks a price that is not final. For an item sold by weight, the final price depends on the weight of the item.
 - **Stock.** A count of `available` units agrees with the availability: `out-of-stock` has the count 0, and `in-stock` and `low-stock` have a count of 1 or more.
 
 ## The functions

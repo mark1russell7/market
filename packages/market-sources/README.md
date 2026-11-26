@@ -210,7 +210,8 @@ The Kroger parsers take a third argument: the location id of the request. The AP
 | Stock | `inventory.stockLevel`: `HIGH` gives `in-stock`, `LOW` gives `low-stock`, and `TEMPORARILY_OUT_OF_STOCK` gives `out-of-stock`. With no level, the stock is `unknown`. |
 | GTIN | The product id is the 13 digits of a barcode with no check digit. The parser adds the check digit. A PLU code (7 zeros or more first) and a code of the store (the GS1 prefix 02, 04 or 2) give no GTIN. |
 | Specs | The size, the unit of sale, and the ways of fulfillment that are true. |
-| By weight | The parser skips an item sold by weight, with a note. Its price is for each unit of mass, and a reading has no field for that unit. |
+| By weight | An item with `soldBy` `weight` has the estimated price of one unit: `regularPerUnitEstimate`, or `promoPerUnitEstimate` when it is lower. The reading has `estimate: true`. The documentation gives no unit for `regular` of such an item, thus the parser does not read it. |
+| Price by mass | For an item sold by weight, `amountPrice` is the price divided by `itemInformation.averageWeightPerUnit`, for example `USD/lb`. The parser reads the UCUM units `[lb_av]`, `[oz_av]`, `kg` and `g`. With no valid weight, the reading has no `amountPrice`, and a note tells it. |
 
 The shipping of a reading is `unknown`: the API gives no cost of delivery.
 
