@@ -1,4 +1,4 @@
-import { gtinCheckDigit, offerId, parseGtin, type Availability, type SourceTerms, type Spec } from "@mark1russell7/market";
+import { gtinCheckDigit, offerId, parseGtin, parseSize, sizePrice, type Availability, type SourceTerms, type Spec } from "@mark1russell7/market";
 import { tryParseUnit, type Quantity } from "@mark1russell7/quantity";
 import {
   checkAt,
@@ -104,6 +104,19 @@ function averageWeight(product: Readonly<Record<string, unknown>>): Quantity | u
   return unit === undefined || !(value > 0) ? undefined : { value, unit };
 }
 
+/**
+ * This function gives the price for each unit of the size of an item sold by unit, for example `USD/fl oz` for the size
+ * `24 ct / 16.9 fl oz`. A size that `parseSize` does not read gives a note and no price.
+ */
+function sizeAmountPrice(id: string, paid: Quantity, item: unknown, notes: string[]): Quantity | undefined {
+  const sizeText = text(field(item, "size"));
+  if (sizeText === undefined) return undefined;
+  const size = parseSize(sizeText);
+  if (size.ok) return sizePrice(paid, size);
+  notes.push(`The offer ${id} has no price for each unit of an amount. ${size.why}`);
+  return undefined;
+}
+
 function specsOf(item: unknown): Spec[] {
   const specs: Spec[] = [];
   const size = text(field(item, "size"));
@@ -150,7 +163,8 @@ function mapItem(
   const paid = sale ?? regular.value;
   const weight = byWeight ? averageWeight(product) : undefined;
   if (byWeight && weight === undefined) notes.push(`The offer ${id} has no average weight, thus it has no price for each unit of mass.`);
-  const amountPrice = weight === undefined ? undefined : { value: paid.value / weight.value, unit: `${paid.unit}/${weight.unit}` };
+  const massPrice = weight === undefined ? undefined : { value: paid.value / weight.value, unit: `${paid.unit}/${weight.unit}` };
+  const amountPrice = byWeight ? massPrice : sizeAmountPrice(id, paid, item, notes);
 
   const stock = text(field(field(item, "inventory"), "stockLevel"));
   const availability = AVAILABILITY_BY_LEVEL.get(stock ?? "") ?? "unknown";

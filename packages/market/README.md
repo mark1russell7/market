@@ -33,6 +33,7 @@ Each record has a `zod` schema. A schema refuses an unknown field, an empty text
 
 - `parseGtin(text)` gives the GTIN-14 form of a GTIN-8, a UPC-A, an EAN-13 or a GTIN-14, or null. It examines the check digit, and it refuses a GTIN of zeros only.
 - `matchKeys({ gtins, partNumbers })` gives the keys of a record. A key is `gtin:` with the GTIN-14, or `part:` with the folded brand and part number. Two records with a key in common name one product.
+- `parseSize(text)` reads the size text of a seller, for example `16.9 fl oz`, `24 ct`, `24 ct / 16.9 fl oz` or `6 x 8 oz`. It gives the whole amount in a unit of mass, volume or count (`{each}`), or the reason that it does not read the text. `oz` is a mass, and `fl oz` is a volume. `sizePrice(price, size)` gives the price for each unit of the amount, for example `USD/fl oz`.
 - `unitPriceFor(reading, count)` gives the unit price for an order of `count` units. `costOf(reading, count)` adds the shipping, or it gives null when the shipping cost is not known. The cost is exact and not rounded.
 - `keepUntil(terms, reading)` gives the last instant at which a store keeps a reading, or null with no limit. `isKept(terms, reading, now, ended)` tells if a store keeps it at `now`.
 - `permitsHistory(terms)` and `permitsTrend(terms)` tell if the terms of a source permit a stored history and a trend of its prices.
