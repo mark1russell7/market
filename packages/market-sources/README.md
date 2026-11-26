@@ -40,6 +40,8 @@ for (const note of result.notes) console.warn(note);
 | `parseAzureRetailPricePages` | all the pages of one read of the Azure Retail Prices API |
 | `parsePlanLists` | all the pages of the plan list of a provider record, for example `GET /v2/plans` of the Vultr API |
 | `parseBlsSeries` | version 1 of the BLS Public Data API: `POST /publicAPI/v1/timeseries/data/` |
+| `parseKrogerProduct` | Product details of the Kroger Products API: `GET /v1/products/{id}` |
+| `parseKrogerProducts` | Product search of the Kroger Products API: `GET /v1/products` |
 
 Each parser takes the JSON of the answer and the instant `at` of the answer. It gives one of two results:
 
@@ -48,7 +50,7 @@ Each parser takes the JSON of the answer and the instant `at` of the answer. It 
 
 The Azure parsers and the plan parser give metered observations of `@mark1russell7/market`, and `next`. The field `next` is the link of the next page, or `null`.
 
-A parser throws a `RangeError` only when `at` is not an ISO 8601 instant in UTC. It does not throw on the answer, for any JSON value.
+A parser throws a `RangeError` only for a bad `at` or a bad location id. The instant must be ISO 8601 in UTC. It does not throw on the answer, for any JSON value.
 
 ## The rules of the parsers
 
@@ -193,6 +195,23 @@ The Northeast series of these items exist, but they have no value since 2023. Th
 
 The terms make two things necessary for each user of the data: the date of the retrieval, and the statement `BLS_STATEMENT`. The field `at` of each price is the instant of the read. No field of the record has the statement. The layer that shows the prices, for example a page or a printed list, shows it with the date.
 
+### Kroger
+
+The Kroger parsers take a third argument: the location id of the request. The API gives a price, the stock and the fulfillment only for a location, and the answer does not name the location.
+
+| Field | Rule |
+| --- | --- |
+| Offers | Each item of a product is one offer at one location. Its source id is `{itemId}@{locationId}`. Thus the price of each store is its own offer. |
+| Seller | The location id. |
+| Price | `price.promo` when it is more than 0 and less than `price.regular`. Then the regular price is the list price. Else the price is `price.regular`. An item with no regular price at the location is skipped. The national price is not a price of the store, and the parser does not read it. |
+| Currency | The API gives no currency. The prices are in US dollars, because each store of the API is in the US. |
+| Stock | `inventory.stockLevel`: `HIGH` gives `in-stock`, `LOW` gives `low-stock`, and `TEMPORARILY_OUT_OF_STOCK` gives `out-of-stock`. With no level, the stock is `unknown`. |
+| GTIN | The product id is the 13 digits of a barcode with no check digit. The parser adds the check digit. A PLU code (7 zeros or more first) and a code of the store (the GS1 prefix 02, 04 or 2) give no GTIN. |
+| Specs | The size, the unit of sale, and the ways of fulfillment that are true. |
+| By weight | The parser skips an item sold by weight, with a note. Its price is for each unit of mass, and a reading has no field for that unit. |
+
+The shipping of a reading is `unknown`: the API gives no cost of delivery.
+
 ## The clients
 
 | Client | Methods | Pace | Access |
@@ -203,6 +222,7 @@ The terms make two things necessary for each user of the data: the date of the r
 | `createAzureClient` | `prices(filter, { pages, currency })`, `more(next, pages)` | 6 s | no key |
 | `createPlanClient` | `plans(provider, { pages })` | the pace of the record, 2 s for each record of the package | no key |
 | `createBlsClient` | `averages(series, years)` | 10 s, and the quota `BLS_QUOTA`: 20 queries in a rolling 24 hours, under the limit of 25 | no key (version 1) |
+| `createKrogerClient` | `product(productId)`, `search(term, limit, start)` | 1 s, and the quota `KROGER_QUOTA`: 9,000 calls in a rolling 24 hours, under the limit of 10,000 | OAuth 2.0 client credentials with Basic, the scope `product.compact` |
 
 The BLS client counts its queries with a gate of `BLS_QUOTA` from `polite-crawler/api`. The gate refuses a query over the quota with a `QuotaError`, and it sends nothing. An answer that tells that the daily threshold is reached sets the count to the limit. The default gate is in memory, one for each pace: the clients of one pace count in one gate. Each process of one address can count in one record. For that, give the option `quota`: a `quotaGate` with a shared store, for example `SqliteHostStateStore` of `polite-crawler`.
 
@@ -212,8 +232,9 @@ The Digi-Key client and the Best Buy client count their requests in the same way
 | --- | --- | --- | --- | --- |
 | `createDigiKeyClient` | `DIGIKEY_QUOTA`: 1000 requests of products each day, 100 in reserve | `DIGIKEY_QUOTA_KEY` | a 429 with the message `Daily Ratelimit exceeded` or `X-RateLimit-Remaining: 0`. The header `X-RateLimit-Reset` gives the reset. | the table "Rate Limits" of the [Digi-Key API documentation](https://developer.digikey.com/documentation), standard products |
 | `createBestBuyClient` | `BEST_BUY_QUOTA`: 50,000 calls each day, 5,000 in reserve | `BEST_BUY_QUOTA_KEY` | a 403. Best Buy gives it for a key over its limit and for a key that is not valid. | the section "Rate Limit" of the [Best Buy API Operational Policy](https://developer.bestbuy.com/legal) |
+| `createKrogerClient` | `KROGER_QUOTA`: 10,000 calls each day, 1,000 in reserve | `KROGER_QUOTA_KEY` | a 429. The documentation gives no status for a client over its limit. | the section "Rate Limit" of the [Kroger Products API](https://developer.kroger.com/api-products/api/product-api-public) 1.3.0 |
 
-A request of a Digi-Key token does not count. The burst limit of Digi-Key and the limit of 5 calls each second of Best Buy are under the pace. The provider counts the calls of each application or key. Thus give a gate with its own key name to each client of a different application or key on one pace.
+A request of a Digi-Key token or a Kroger token does not count. A Kroger client reads one location: give the option `locationId`. The clients of many stores share the gate of their pace. The burst limit of Digi-Key and the limit of 5 calls each second of Best Buy are under the pace. The provider counts the calls of each application or key. Thus give a gate with its own key name to each client of a different application or key on one pace.
 
 ```ts
 import { HostScheduler, realClock } from "polite-crawler/politeness";
@@ -232,7 +253,7 @@ The package uses no type of a platform. Thus the host gives each port:
 
 - **The transport** sends one exchange: a method, a URL, headers with lowercase names, and a body. It gives the status, the headers and the body of the answer. It does not follow a redirect.
 - **The pace** is a `HostScheduler` of `polite-crawler` and its clock. Give one pace to the clients of one process, thus each host keeps one pace.
-- **The eBay client** also takes a `base64` function for the Basic header.
+- **The eBay client and the Kroger client** also take a `base64` function for the Basic header.
 
 ### The rules of the clients
 
@@ -264,8 +285,11 @@ Each source has its terms as a `SourceTerms` record of `@mark1russell7/market`, 
 | `linode` | `LINODE_TERMS` | no store | not applicable | no |
 | `vultr` | `VULTR_TERMS` | no store | not applicable | no |
 | `bls-ap` | `BLS_TERMS` | no limit | not applicable | yes |
+| `kroger` | `KROGER_TERMS` | no store | not applicable | no |
 
-`SOURCE_TERMS` has the seven records.
+`SOURCE_TERMS` has the eight records.
+
+Section 4(e) of the Kroger Developer Terms of Service forbids a database and a permanent copy of the content. It also forbids a cache past the cache header. Thus a Kroger reading serves one request, and no store keeps a history of the prices.
 
 The terms pages of Vultr and of Akamai refused an automated read on 2026-11-18. Thus `LINODE_TERMS` and `VULTR_TERMS` have the strictest rules: no store and no model of prices. A person reads the terms before a rule changes. The Linode API reference tells that the reads of the plan list need no permissions.
 

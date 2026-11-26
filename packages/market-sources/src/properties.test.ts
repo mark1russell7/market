@@ -10,11 +10,15 @@ import {
   digiKeyKeyword,
   ebayItem,
   ebaySearch,
+  KROGER_LOCATION,
+  krogerDetails,
+  krogerSearch,
   mutated,
 } from "../test/fixtures.ts";
 import { parseBestBuyOpenBox, parseBestBuyProduct, parseBestBuyProducts } from "./bestbuy.ts";
 import { parseDigiKeyKeywordSearch, parseDigiKeyProductDetails } from "./digikey.ts";
 import { parseEbayItem, parseEbaySearch } from "./ebay.ts";
+import { parseKrogerProduct, parseKrogerProducts } from "./kroger.ts";
 import type { ParseResult } from "./parse.ts";
 
 const parsers: readonly { name: string; parse: (answer: unknown, at: string) => ParseResult; fixture: unknown }[] = [
@@ -25,6 +29,8 @@ const parsers: readonly { name: string; parse: (answer: unknown, at: string) => 
   { name: "parseBestBuyOpenBox", parse: parseBestBuyOpenBox, fixture: bestBuyOpenBox },
   { name: "parseDigiKeyProductDetails", parse: parseDigiKeyProductDetails, fixture: digiKeyDetails },
   { name: "parseDigiKeyKeywordSearch", parse: parseDigiKeyKeywordSearch, fixture: digiKeyKeyword },
+  { name: "parseKrogerProduct", parse: (answer, at) => parseKrogerProduct(answer, at, KROGER_LOCATION), fixture: krogerDetails },
+  { name: "parseKrogerProducts", parse: (answer, at) => parseKrogerProducts(answer, at, KROGER_LOCATION), fixture: krogerSearch },
 ];
 
 /** This function examines the invariants of a result: each record is valid, and each reading belongs to its offer. */

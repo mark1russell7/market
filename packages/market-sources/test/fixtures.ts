@@ -364,3 +364,70 @@ export const azurePage = {
   NextPageLink: null,
   Count: 18,
 };
+
+/** The location id of the Kroger fixtures. It is a fake id. */
+export const KROGER_LOCATION = "01234567";
+
+/**
+ * A product of the Kroger Products API at a location (`products.productModel` of the OpenAPI contract 1.3.0). The
+ * product id is the GTIN-12 `036000291452` with no check digit, in 13 digits.
+ */
+export const krogerProduct = {
+  productId: "0003600029145",
+  productPageURI: "/p/examplebrand-spring-water/0003600029145?cid=example",
+  aliasProductIds: [],
+  aisleLocations: [{ number: "7", description: "Aisle 7" }],
+  brand: "ExampleBrand",
+  categories: ["Beverages"],
+  countryOrigin: "United States",
+  description: "ExampleBrand Spring Water 24 Bottles",
+  snapEligible: true,
+  upc: "0003600029145",
+  items: [
+    {
+      itemId: "0003600029145",
+      inventory: { stockLevel: "HIGH" },
+      favorite: false,
+      fulfillment: { curbside: true, delivery: true, instore: true, shiptohome: false },
+      price: {
+        regular: 4.99,
+        promo: 3.99,
+        regularPerUnitEstimate: 4.99,
+        promoPerUnitEstimate: 3.99,
+        expirationDate: { value: "2026-11-30T00:00:00Z", timezone: "UTC" },
+        effectiveDate: { value: "2026-11-01T00:00:00Z", timezone: "UTC" },
+      },
+      nationalPrice: { regular: 5.29, promo: 0 },
+      size: "24 ct / 16.9 fl oz",
+      soldBy: "UNIT",
+    },
+  ],
+};
+
+/** The answer of Product details of the Kroger Products API (`products.productPayloadModel`). */
+export const krogerDetails = { data: krogerProduct, meta: {} };
+
+/** The answer of Product search of the Kroger Products API (`products.productsPayloadModel`), with two products. */
+export const krogerSearch = {
+  data: [
+    krogerProduct,
+    {
+      ...krogerProduct,
+      productId: "0001111041700",
+      productPageURI: "/p/examplebrand-2-reduced-fat-milk/0001111041700",
+      description: "ExampleBrand 2% Reduced Fat Milk",
+      upc: "0001111041700",
+      items: [
+        {
+          itemId: "0001111041700",
+          inventory: { stockLevel: "LOW" },
+          fulfillment: { curbside: false, delivery: false, instore: true, shiptohome: false },
+          price: { regular: 1.99, promo: 0 },
+          size: "1 gal",
+          soldBy: "UNIT",
+        },
+      ],
+    },
+  ],
+  meta: { pagination: { start: 0, limit: 10, total: 2 } },
+};
