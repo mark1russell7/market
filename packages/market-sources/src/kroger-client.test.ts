@@ -2,9 +2,17 @@ import { Buffer } from "node:buffer";
 import { isQuotaError, memoryQuotaStore, quotaGate } from "polite-crawler/api";
 import { describe, expect, it } from "vitest";
 import { failure, fakePace, fakeTransport, reply } from "../test/fakes.ts";
-import { KROGER_LOCATION, krogerDetails, krogerSearch } from "../test/fixtures.ts";
+import { KROGER_LOCATION, krogerDetails, krogerLocationDetails, krogerLocationSearch, krogerSearch } from "../test/fixtures.ts";
 import { SECRET_MARK, instantOf, type Exchange, type Reply } from "./client.ts";
-import { KROGER_QUOTA, KROGER_QUOTA_KEY, createKrogerClient } from "./kroger-client.ts";
+import {
+  KROGER_LOCATIONS_QUOTA,
+  KROGER_LOCATIONS_QUOTA_KEY,
+  KROGER_QUOTA,
+  KROGER_QUOTA_KEY,
+  createKrogerClient,
+  createKrogerLocationClient,
+} from "./kroger-client.ts";
+import { parseKrogerLocation, parseKrogerLocations } from "./kroger-locations.ts";
 import { parseKrogerProduct, parseKrogerProducts } from "./kroger.ts";
 
 const CLIENT_ID = "client-id-0001";
@@ -125,6 +133,81 @@ describe("the Kroger client", () => {
     const { client } = setup((exchange) => new Error(`failed with ${exchange.headers["authorization"] ?? ""}`));
     const error = await failure(client.product("0003600029145"));
     expect(error.message).toBe(`Kroger gave no answer to the token: failed with Basic ${SECRET_MARK}`);
+    expect(error.message).not.toContain(basic);
+    expect(error.message).not.toContain(CLIENT_SECRET);
+  });
+});
+
+function locationSetup(handler: (exchange: Exchange, index: number) => Reply | Error) {
+  const { pace, clock } = fakePace();
+  const { transport, sent } = fakeTransport(clock, handler);
+  const client = createKrogerLocationClient({ clientId: CLIENT_ID, clientSecret: CLIENT_SECRET, base64, transport, pace });
+  return { client, sent };
+}
+
+describe("the Kroger location client", () => {
+  it("gets a client token with no scope, then reads Location search near a ZIP code", async () => {
+    const { client, sent } = locationSetup((exchange) => (isToken(exchange) ? token("token-0002") : reply(200, krogerLocationSearch)));
+    const result = await client.near({ zipCode: "45000" }, { radiusMiles: 25, limit: 5, chain: "Kroger" });
+    expect(result).toEqual(parseKrogerLocations(krogerLocationSearch));
+    const [grant, read] = sent.map(({ exchange }) => exchange);
+    expect(grant?.body).toBe("grant_type=client_credentials");
+    expect(read).toEqual({
+      method: "GET",
+      url: "https://api.kroger.com/v1/locations?filter.zipCode.near=45000&filter.radiusInMiles=25&filter.limit=5&filter.chain=Kroger",
+      headers: { accept: "application/json", authorization: "Bearer token-0002" },
+      body: null,
+    });
+  });
+
+  it("reads Location search near a point, with the default limit and no radius", async () => {
+    const { client, sent } = locationSetup((exchange) => (isToken(exchange) ? token("token-0002") : reply(200, krogerLocationSearch)));
+    await client.near({ point: { lat: 39.1, lon: -84.5 } });
+    expect(sent[1]!.exchange.url).toBe("https://api.kroger.com/v1/locations?filter.latLong.near=39.1%2C-84.5&filter.limit=10");
+  });
+
+  it("reads Location details of a location id", async () => {
+    const { client, sent } = locationSetup((exchange) => (isToken(exchange) ? token("token-0002") : reply(200, krogerLocationDetails)));
+    expect(await client.location(KROGER_LOCATION)).toEqual(parseKrogerLocation(krogerLocationDetails));
+    expect(sent[1]!.exchange.url).toBe(`https://api.kroger.com/v1/locations/${KROGER_LOCATION}`);
+  });
+
+  it("gives the status line of an answer that is not a 2xx, with no part of the body", async () => {
+    const { client } = locationSetup((exchange) => (isToken(exchange) ? token("token-0002") : reply(404, { errors: { reason: "secret detail" } }, {}, "Not Found")));
+    const result = await client.location(KROGER_LOCATION);
+    expect(result.ok).toBe(false);
+    expect(JSON.stringify(result)).not.toContain("secret detail");
+  });
+
+  it("refuses a bad ZIP code, point, radius, limit and location id before a request", async () => {
+    const { client, sent } = locationSetup(() => reply(200, {}));
+    await expect(client.near({ zipCode: "4500" })).rejects.toThrow(RangeError);
+    await expect(client.near({ point: { lat: 91, lon: 0 } })).rejects.toThrow(RangeError);
+    await expect(client.near({ point: { lat: 0, lon: Number.NaN } })).rejects.toThrow(RangeError);
+    await expect(client.near({ zipCode: "45000" }, { radiusMiles: 101 })).rejects.toThrow(RangeError);
+    await expect(client.near({ zipCode: "45000" }, { limit: 201 })).rejects.toThrow(RangeError);
+    await expect(client.near({ zipCode: "45000" }, { limit: 0 })).rejects.toThrow(RangeError);
+    await expect(client.location("0123")).rejects.toThrow(RangeError);
+    expect(sent).toHaveLength(0);
+  });
+
+  it("counts the calls of the endpoint in its own gate, with 160 in reserve", async () => {
+    expect(KROGER_LOCATIONS_QUOTA.limit - (KROGER_LOCATIONS_QUOTA.reserve ?? 0)).toBe(1_440);
+    const { pace, clock } = fakePace();
+    const { transport, sent } = fakeTransport(clock, (exchange) => (isToken(exchange) ? token("token-0002") : reply(200, krogerLocationDetails)));
+    const quota = quotaGate(KROGER_LOCATIONS_QUOTA, { key: KROGER_LOCATIONS_QUOTA_KEY, store: memoryQuotaStore(), now: clock.now });
+    const client = createKrogerLocationClient({ clientId: CLIENT_ID, clientSecret: CLIENT_SECRET, base64, transport, pace, quota });
+    await client.location(KROGER_LOCATION);
+    await client.near({ zipCode: "45000" });
+    expect(quota.state()).toMatchObject({ used: 2, left: 1_438 });
+    quota.take(1_438);
+    expect(isQuotaError(await failure(client.location(KROGER_LOCATION)))).toBe(true);
+    expect(sent.filter(({ exchange }) => !isToken(exchange))).toHaveLength(2);
+  });
+
+  it("puts no secret in an error", async () => {
+    const { client } = locationSetup((exchange) => new Error(`failed with ${exchange.headers["authorization"] ?? ""}`));
+    const error = await failure(client.location(KROGER_LOCATION));
     expect(error.message).not.toContain(basic);
     expect(error.message).not.toContain(CLIENT_SECRET);
   });

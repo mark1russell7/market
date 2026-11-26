@@ -431,3 +431,48 @@ export const krogerSearch = {
   ],
   meta: { pagination: { start: 0, limit: 10, total: 2 } },
 };
+
+/**
+ * A location of the Kroger Locations API in the documented shape (`locations.location`), with made-up values. The
+ * answer has more fields (`hours`, `departments`) that the parser does not read.
+ */
+export const krogerLocationRecord = {
+  address: {
+    addressLine1: "100 Example Avenue",
+    addressLine2: "",
+    city: "Exampleton",
+    county: "EXAMPLE COUNTY",
+    state: "OH",
+    zipCode: "45000",
+  },
+  chain: "KROGER",
+  phone: "5550100000",
+  departments: [{ departmentId: "01", name: "Example Department" }],
+  geolocation: { latLng: "39.1,-84.5", latitude: 39.1, longitude: -84.5 },
+  hours: { Open24: false, gmtOffset: "(UTC-05:00) Eastern Time" },
+  locationId: KROGER_LOCATION,
+  storeNumber: "34567",
+  divisionNumber: "012",
+  name: "Kroger Example Riverside",
+};
+
+/** The answer of Location details of the Kroger Locations API. */
+export const krogerLocationDetails = { data: krogerLocationRecord, meta: {} };
+
+/** The answer of Location search of the Kroger Locations API, with two locations. */
+export const krogerLocationSearch = {
+  data: [
+    krogerLocationRecord,
+    {
+      ...krogerLocationRecord,
+      address: { ...krogerLocationRecord.address, addressLine1: "200 Example Road", addressLine2: "Suite 2" },
+      chain: "EXAMPLEMART",
+      geolocation: { latLng: "39.2,-84.6", latitude: 39.2, longitude: -84.6 },
+      locationId: "07654321",
+      storeNumber: "54321",
+      divisionNumber: "076",
+      name: "ExampleMart North",
+    },
+  ],
+  meta: { pagination: { start: 0, limit: 10, total: 2 }, warnings: [] },
+};
