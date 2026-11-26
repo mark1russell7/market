@@ -46,6 +46,7 @@ describe("parseKrogerProduct", () => {
           listPrice: usd(4.99),
           shipping: { kind: "unknown" },
           availability: "in-stock",
+          amountPrice: { value: expect.closeTo(3.99 / (24 * 16.9), 12), unit: "USD/fl oz" },
         },
       },
     ]);
@@ -126,10 +127,21 @@ describe("parseKrogerProduct", () => {
       }
     });
 
-    it("leaves an item sold by unit with no estimate and no price for each unit of mass", () => {
+    it("gives an item sold by unit no estimate, and a price for each unit of its size", () => {
       const reading = only({}).reading;
       expect(reading.estimate).toBeUndefined();
-      expect(reading.amountPrice).toBeUndefined();
+      expect(reading.amountPrice?.unit).toBe("USD/fl oz");
+      expect(only({ size: "5 lb" }).reading.amountPrice).toEqual({ value: 3.99 / 5, unit: "USD/lb" });
+      expect(only({ size: "12 ct" }).reading.amountPrice).toEqual({ value: 3.99 / 12, unit: "USD/{each}" });
+    });
+
+    it("gives an item sold by unit with no size, or a size that is not read, no price for each unit", () => {
+      expect(only({ size: undefined }).reading.amountPrice).toBeUndefined();
+      const result = parseKrogerProduct(withItem({ size: "family size" }), AT, KROGER_LOCATION);
+      expect(observations(result)[0]?.reading.amountPrice).toBeUndefined();
+      expect(notes(result)).toEqual([
+        'The offer kroger:0003600029145@01234567 has no price for each unit of an amount. The size "family size" is not read: a part is not an amount with a unit of mass, volume or count.',
+      ]);
     });
   });
 

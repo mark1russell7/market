@@ -114,6 +114,7 @@ export {
   type Shipping,
   type Spec,
 } from "./records.ts";
+export { EACH_UNIT, parseSize, sizePrice, type ReadSize, type Size, type UnreadSize } from "./size.ts";
 export {
   isKept,
   keepUntil,

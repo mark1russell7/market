@@ -18,6 +18,7 @@ type BoardRead: build/index.d.ts#BoardRead
 CONDITIONS: build/offers.chunk.d.ts#CONDITIONS
 type Condition: build/offers.chunk.d.ts#Condition
 type Dropped: build/index.d.ts#Dropped
+EACH_UNIT: build/index.d.ts#EACH_UNIT
 FORMATS: build/offers.chunk.d.ts#FORMATS
 FREE_SCOPES: build/index.d.ts#FREE_SCOPES
 type Format: build/offers.chunk.d.ts#Format
@@ -49,15 +50,18 @@ type Product: build/offers.chunk.d.ts#Product
 type Rating: build/offers.chunk.d.ts#Rating
 type ReadInterval: build/index.d.ts#ReadInterval
 type ReadPlan: build/index.d.ts#ReadPlan
+type ReadSize: build/index.d.ts#ReadSize
 type Retention: build/index.d.ts#Retention
 type ScheduleOptions: build/index.d.ts#ScheduleOptions
 type Seller: build/offers.chunk.d.ts#Seller
 type SettleOptions: build/index.d.ts#SettleOptions
 type Settled: build/index.d.ts#Settled
 type Shipping: build/offers.chunk.d.ts#Shipping
+type Size: build/index.d.ts#Size
 type SourceTerms: build/index.d.ts#SourceTerms
 type Spec: build/offers.chunk.d.ts#Spec
 type Tier: build/index.d.ts#Tier
+type UnreadSize: build/index.d.ts#UnreadSize
 type WatchEntry: build/index.d.ts#WatchEntry
 averagePriceId: build/average.chunk.d.ts#averagePriceId
 averagePriceSchema: build/average.chunk.d.ts#averagePriceSchema
@@ -94,6 +98,7 @@ offerSchema: build/offers.chunk.d.ts#offerSchema
 offersOfPart: build/offers.chunk.d.ts#offersOfPart
 offersPart: build/offers.chunk.d.ts#offersPart
 parseGtin: build/index.d.ts#parseGtin
+parseSize: build/index.d.ts#parseSize
 partNumberSchema: build/offers.chunk.d.ts#partNumberSchema
 permitsHistory: build/index.d.ts#permitsHistory
 permitsTrend: build/index.d.ts#permitsTrend
@@ -107,6 +112,7 @@ retentionSchema: build/index.d.ts#retentionSchema
 sellerSchema: build/offers.chunk.d.ts#sellerSchema
 settleBoard: build/index.d.ts#settleBoard
 shippingSchema: build/offers.chunk.d.ts#shippingSchema
+sizePrice: build/index.d.ts#sizePrice
 sourceOfOffer: build/offers.chunk.d.ts#sourceOfOffer
 sourceSchema: build/offers.chunk.d.ts#sourceSchema
 sourceTermsSchema: build/index.d.ts#sourceTermsSchema
@@ -274,6 +280,9 @@ interface Dropped {
   readonly why: string;
 }
 
+### build/index.d.ts#EACH_UNIT
+export declare const EACH_UNIT = "{each}";
+
 ### build/index.d.ts#FREE_SCOPES
 export declare const FREE_SCOPES: readonly ["account", "region", "resource"];
 
@@ -396,6 +405,14 @@ interface ReadPlan {
   readonly next: string | null;
 }
 
+### build/index.d.ts#ReadSize
+interface ReadSize {
+  readonly ok: true;
+  readonly amount: Quantity;
+  readonly count?: number | undefined;
+  readonly each?: Quantity | undefined;
+}
+
 ### build/index.d.ts#Retention
 type Retention = {
   readonly kind: "keep";
@@ -423,6 +440,9 @@ interface Settled {
   readonly dropped: readonly BoardDrop[];
 }
 
+### build/index.d.ts#Size
+type Size = ReadSize | UnreadSize;
+
 ### build/index.d.ts#SourceTerms
 interface SourceTerms {
   readonly source: string;
@@ -436,6 +456,12 @@ interface SourceTerms {
 interface Tier {
   readonly from: Quantity;
   readonly unitPrice: Quantity;
+}
+
+### build/index.d.ts#UnreadSize
+interface UnreadSize {
+  readonly ok: false;
+  readonly why: string;
 }
 
 ### build/index.d.ts#WatchEntry
@@ -509,6 +535,9 @@ export declare const observationSchema: z.ZodType<Observation>;
 ### build/index.d.ts#parseGtin
 export declare function parseGtin(text: string): string | null;
 
+### build/index.d.ts#parseSize
+export declare function parseSize(text: string): Size;
+
 ### build/index.d.ts#permitsHistory
 export declare function permitsHistory(terms: SourceTerms): boolean;
 
@@ -529,6 +558,9 @@ export declare const retentionSchema: z.ZodType<Retention>;
 
 ### build/index.d.ts#settleBoard
 export declare function settleBoard(board: Board, options: SettleOptions, read?: BoardRead): Settled;
+
+### build/index.d.ts#sizePrice
+export declare function sizePrice(price: Quantity, size: ReadSize): Quantity;
 
 ### build/index.d.ts#sourceTermsSchema
 export declare const sourceTermsSchema: z.ZodType<SourceTerms>;
