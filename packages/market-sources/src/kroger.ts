@@ -1,5 +1,5 @@
 import { gtinCheckDigit, offerId, parseGtin, type Availability, type SourceTerms, type Spec } from "@mark1russell7/market";
-import type { Quantity } from "@mark1russell7/quantity";
+import { tryParseUnit, type Quantity } from "@mark1russell7/quantity";
 import {
   checkAt,
   done,
@@ -90,22 +90,16 @@ function positiveUsd(value: unknown): Read<Quantity> | undefined {
   return readMoney(value, "USD");
 }
 
-/** The UCUM units of mass of the Products API, with the unit of `@mark1russell7/quantity` for each. */
-const MASS_UNITS: ReadonlyMap<string, string> = new Map([
-  ["[lb_av]", "lb"],
-  ["[oz_av]", "oz"],
-  ["kg", "kg"],
-  ["g", "g"],
-]);
-
 /**
- * This function reads the average weight of one unit of a product, for example `8.62 [lb_av]`. It gives
- * undefined when the text is not a value above 0 and a known unit of mass.
+ * This function reads the average weight of one unit of a product, for example `8.62 [lb_av]`. The unit is a UCUM
+ * code, and `@mark1russell7/quantity` reads it. The function gives undefined when the text is not a value above 0 and
+ * a unit of mass.
  */
 function averageWeight(product: Readonly<Record<string, unknown>>): Quantity | undefined {
   const weight = text(field(product["itemInformation"], "averageWeightPerUnit"));
   const match = weight === undefined ? null : /^(\d+(?:\.\d+)?) (\S+)$/.exec(weight);
-  const unit = match === null ? undefined : MASS_UNITS.get(match[2] ?? "");
+  const parsed = match === null ? undefined : tryParseUnit(match[2] ?? "");
+  const unit = parsed?.kind === "mass" ? parsed.symbol : undefined;
   const value = Number(match?.[1]);
   return unit === undefined || !(value > 0) ? undefined : { value, unit };
 }

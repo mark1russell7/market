@@ -114,7 +114,7 @@ describe("parseKrogerProduct", () => {
     });
 
     it("keeps the estimate with no price for each unit of mass when the average weight is not valid, with a note", () => {
-      const weights = ["", "heavy", "0 [lb_av]", "8.62 [stone]", "8.62  [lb_av]", 8.62].map((averageWeightPerUnit) => ({ averageWeightPerUnit }));
+      const weights = ["", "heavy", "0 [lb_av]", "8.62 [stone]", "8.62 [in_i]", "8.62 [lb_av]^2", "8.62  [lb_av]", 8.62].map((averageWeightPerUnit) => ({ averageWeightPerUnit }));
       for (const weight of [null, {}, ...weights]) {
         const result = byWeight(estimates, weight);
         const [first] = observations(result);
