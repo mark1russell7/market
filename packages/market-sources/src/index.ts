@@ -4,7 +4,8 @@
  * and it sends no request. Each source also has the terms of its API. The Azure parser gives the metered prices
  * of cloud resources as metered offers. The plan parser reads the plan list of each provider record as metered offers.
  * The BLS parser reads the average prices of the Consumer Price Index as average prices of `@mark1russell7/market`.
- * The Kroger parsers read the offers of food and other goods at one store.
+ * The Kroger parsers read the offers of food and other goods at one store. The Kroger location parsers find the
+ * stores near a place.
  *
  * Each client sends the requests of one API through a transport that its host gives. The scheduler of
  * `polite-crawler/api` keeps the pace of each host. A client keeps no store, and no message of a client has a key.
@@ -113,16 +114,30 @@ export type { EbayClient, EbayClientOptions } from "./ebay-client.ts";
 export { KROGER_SOURCE, KROGER_TERMS, checkKrogerLocation, krogerGtin, parseKrogerProduct, parseKrogerProducts } from "./kroger.ts";
 export {
   KROGER_HOST,
+  KROGER_LOCATIONS_QUOTA,
+  KROGER_LOCATIONS_QUOTA_KEY,
+  KROGER_LOCATION_LIMIT,
   KROGER_PACE_MS,
   KROGER_QUOTA,
   KROGER_QUOTA_KEY,
+  KROGER_RADIUS_LIMIT,
   KROGER_SANDBOX_HOST,
   KROGER_SCOPE,
   KROGER_SEARCH_LIMIT,
   KROGER_START_LIMIT,
   createKrogerClient,
+  createKrogerLocationClient,
 } from "./kroger-client.ts";
-export type { KrogerClient, KrogerClientOptions } from "./kroger-client.ts";
+export type {
+  KrogerClient,
+  KrogerClientOptions,
+  KrogerLocationClient,
+  KrogerLocationClientOptions,
+  KrogerNearOptions,
+  KrogerPlace,
+} from "./kroger-client.ts";
+export { parseKrogerLocation, parseKrogerLocations } from "./kroger-locations.ts";
+export type { KrogerAddress, KrogerLocation, KrogerLocationsResult } from "./kroger-locations.ts";
 export { AZURE_HOST, AZURE_PACE_MS, AZURE_PAGE_LIMIT, createAzureClient } from "./azure-client.ts";
 export type { AzureClient, AzureClientOptions, AzureReadOptions } from "./azure-client.ts";
 export { BEST_BUY_HOST, BEST_BUY_PACE_MS, BEST_BUY_PAGE_LIMIT, BEST_BUY_QUOTA, BEST_BUY_QUOTA_KEY, createBestBuyClient } from "./bestbuy-client.ts";
