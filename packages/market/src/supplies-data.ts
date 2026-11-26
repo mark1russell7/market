@@ -840,6 +840,15 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       shelf: { read: false, why: "The source gives no shelf life." },
     },
     {
+      id: "fuel.isobutane-canister-227g",
+      title: "A screw-on canister of 227 g of isobutane and propane, the fuel of the canister stove",
+      kind: "heat",
+      basis: "ready.food-camp-stove",
+      size: { read: true, amount: 227, unit: "g", fact: "msr.pocketrocket-2-rate" },
+      gives: [{ resource: "fuel.isobutane-mix", amount: { read: true, amount: 227, unit: "g", size: true } }],
+      shelf: { read: false, why: "The source gives no shelf life." },
+    },
+    {
       id: "first-aid.kit",
       title: "A first aid kit",
       kind: "first-aid",
