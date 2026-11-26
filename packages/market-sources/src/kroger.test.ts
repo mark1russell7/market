@@ -75,9 +75,9 @@ describe("parseKrogerProduct", () => {
 
   describe("an item sold by weight", () => {
     const estimates = { regular: 1.99, promo: 0, regularPerUnitEstimate: 2.5, promoPerUnitEstimate: 0 };
-    const byWeight = (price: Record<string, unknown>, averageWeightPerUnit: unknown = "1.25 [lb_av]") =>
+    const byWeight = (price: Record<string, unknown>, itemInformation: unknown = { averageWeightPerUnit: "1.25 [lb_av]" }) =>
       parseKrogerProduct(
-        { data: { ...krogerProduct, itemInformation: { averageWeightPerUnit }, items: [{ ...item, soldBy: "WEIGHT", price }] } },
+        { data: { ...krogerProduct, itemInformation, items: [{ ...item, soldBy: "WEIGHT", price }] } },
         AT,
         KROGER_LOCATION,
       );
@@ -101,7 +101,7 @@ describe("parseKrogerProduct", () => {
 
     it("reads each UCUM unit of mass", () => {
       for (const [weight, unit] of [["8 [oz_av]", "USD/oz"], ["0.5 kg", "USD/kg"], ["500 g", "USD/g"]] as const) {
-        expect(observations(byWeight(estimates, weight))[0]?.reading.amountPrice?.unit).toBe(unit);
+        expect(observations(byWeight(estimates, { averageWeightPerUnit: weight }))[0]?.reading.amountPrice?.unit).toBe(unit);
       }
     });
 
@@ -114,12 +114,13 @@ describe("parseKrogerProduct", () => {
     });
 
     it("keeps the estimate with no price for each unit of mass when the average weight is not valid, with a note", () => {
-      for (const weight of [undefined, "", "heavy", "0 [lb_av]", "8.62 [stone]", "8.62  [lb_av]", 8.62]) {
+      const weights = ["", "heavy", "0 [lb_av]", "8.62 [stone]", "8.62  [lb_av]", 8.62].map((averageWeightPerUnit) => ({ averageWeightPerUnit }));
+      for (const weight of [null, {}, ...weights]) {
         const result = byWeight(estimates, weight);
         const [first] = observations(result);
-        expect(first?.reading.estimate, String(weight)).toBe(true);
-        expect(first?.reading.amountPrice, String(weight)).toBeUndefined();
-        expect(notes(result), String(weight)).toEqual([
+        expect(first?.reading.estimate, JSON.stringify(weight)).toBe(true);
+        expect(first?.reading.amountPrice, JSON.stringify(weight)).toBeUndefined();
+        expect(notes(result), JSON.stringify(weight)).toEqual([
           "The offer kroger:0003600029145@01234567 has no average weight, thus it has no price for each unit of mass.",
         ]);
       }
