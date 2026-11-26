@@ -90,6 +90,26 @@ function positiveUsd(value: unknown): Read<Quantity> | undefined {
   return readMoney(value, "USD");
 }
 
+/** The UCUM units of mass of the Products API, with the unit of `@mark1russell7/quantity` for each. */
+const MASS_UNITS: ReadonlyMap<string, string> = new Map([
+  ["[lb_av]", "lb"],
+  ["[oz_av]", "oz"],
+  ["kg", "kg"],
+  ["g", "g"],
+]);
+
+/**
+ * This function reads the average weight of one unit of a product, for example `8.62 [lb_av]`. It gives
+ * undefined when the text is not a value above 0 and a known unit of mass.
+ */
+function averageWeight(product: Readonly<Record<string, unknown>>): Quantity | undefined {
+  const weight = text(field(product["itemInformation"], "averageWeightPerUnit"));
+  const match = weight === undefined ? null : /^(\d+(?:\.\d+)?) (\S+)$/.exec(weight);
+  const unit = match === null ? undefined : MASS_UNITS.get(match[2] ?? "");
+  const value = Number(match?.[1]);
+  return unit === undefined || !(value > 0) ? undefined : { value, unit };
+}
+
 function specsOf(item: unknown): Spec[] {
   const specs: Spec[] = [];
   const size = text(field(item, "size"));
@@ -124,15 +144,19 @@ function mapItem(
 
   const title = text(product["description"]);
   if (title === undefined) return skip("it has no description");
-  if (text(item["soldBy"])?.toLowerCase() === "weight") {
-    return skip("it is sold by weight, and a reading has no price for each unit of mass");
-  }
+  const byWeight = text(item["soldBy"])?.toLowerCase() === "weight";
   const price = field(item, "price");
-  const regular = positiveUsd(field(price, "regular"));
-  if (regular === undefined) return skip("it has no price at the location");
-  if (!regular.ok) return skip(`its regular price is not valid: ${regular.why}`);
-  const promo = positiveUsd(field(price, "promo"));
+  const regular = positiveUsd(field(price, byWeight ? "regularPerUnitEstimate" : "regular"));
+  if (regular === undefined) {
+    return skip(byWeight ? "it is sold by weight, and it has no estimated price of one unit" : "it has no price at the location");
+  }
+  if (!regular.ok) return skip(`its ${byWeight ? "estimated" : "regular"} price is not valid: ${regular.why}`);
+  const promo = positiveUsd(field(price, byWeight ? "promoPerUnitEstimate" : "promo"));
   const sale = promo?.ok === true && promo.value.value < regular.value.value ? promo.value : undefined;
+  const paid = sale ?? regular.value;
+  const weight = byWeight ? averageWeight(product) : undefined;
+  if (byWeight && weight === undefined) notes.push(`The offer ${id} has no average weight, thus it has no price for each unit of mass.`);
+  const amountPrice = weight === undefined ? undefined : { value: paid.value / weight.value, unit: `${paid.unit}/${weight.unit}` };
 
   const stock = text(field(field(item, "inventory"), "stockLevel"));
   const availability = AVAILABILITY_BY_LEVEL.get(stock ?? "") ?? "unknown";
@@ -155,10 +179,12 @@ function mapItem(
     {
       offerId: id,
       at,
-      price: sale ?? regular.value,
+      price: paid,
       listPrice: sale === undefined ? undefined : regular.value,
       shipping: { kind: "unknown" },
       availability,
+      ...(byWeight ? { estimate: true as const } : {}),
+      ...(amountPrice === undefined ? {} : { amountPrice }),
     },
     notes,
   );

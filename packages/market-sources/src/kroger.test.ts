@@ -73,10 +73,64 @@ describe("parseKrogerProduct", () => {
     expect(notes(result)[0]).toContain("its regular price is not valid");
   });
 
-  it("skips an item sold by weight, because its price is for each unit of mass", () => {
-    const result = parseKrogerProduct(withItem({ soldBy: "WEIGHT" }), AT, KROGER_LOCATION);
-    expect(observations(result)).toEqual([]);
-    expect(notes(result)[0]).toContain("it is sold by weight");
+  describe("an item sold by weight", () => {
+    const estimates = { regular: 1.99, promo: 0, regularPerUnitEstimate: 2.5, promoPerUnitEstimate: 0 };
+    const byWeight = (price: Record<string, unknown>, itemInformation: unknown = { averageWeightPerUnit: "1.25 [lb_av]" }) =>
+      parseKrogerProduct(
+        { data: { ...krogerProduct, itemInformation, items: [{ ...item, soldBy: "WEIGHT", price }] } },
+        AT,
+        KROGER_LOCATION,
+      );
+
+    it("gives the estimated price of one unit, and the price for each unit of mass", () => {
+      const result = byWeight(estimates);
+      expect(notes(result)).toEqual([]);
+      const [first] = observations(result);
+      expect(first?.reading.price).toEqual(usd(2.5));
+      expect(first?.reading.listPrice).toBeUndefined();
+      expect(first?.reading.estimate).toBe(true);
+      expect(first?.reading.amountPrice).toEqual({ value: 2, unit: "USD/lb" });
+    });
+
+    it("gives the estimated sale price, with the estimated regular price as the list price", () => {
+      const [first] = observations(byWeight({ ...estimates, promoPerUnitEstimate: 2 }));
+      expect(first?.reading.price).toEqual(usd(2));
+      expect(first?.reading.listPrice).toEqual(usd(2.5));
+      expect(first?.reading.amountPrice).toEqual({ value: 1.6, unit: "USD/lb" });
+    });
+
+    it("reads each UCUM unit of mass", () => {
+      for (const [weight, unit] of [["8 [oz_av]", "USD/oz"], ["0.5 kg", "USD/kg"], ["500 g", "USD/g"]] as const) {
+        expect(observations(byWeight(estimates, { averageWeightPerUnit: weight }))[0]?.reading.amountPrice?.unit).toBe(unit);
+      }
+    });
+
+    it("skips the item with no estimated price, also when it has a regular price", () => {
+      const result = byWeight({ regular: 1.99 });
+      expect(observations(result)).toEqual([]);
+      expect(notes(result)).toEqual([
+        "The offer kroger:0003600029145@01234567 is skipped: it is sold by weight, and it has no estimated price of one unit.",
+      ]);
+    });
+
+    it("keeps the estimate with no price for each unit of mass when the average weight is not valid, with a note", () => {
+      const weights = ["", "heavy", "0 [lb_av]", "8.62 [stone]", "8.62  [lb_av]", 8.62].map((averageWeightPerUnit) => ({ averageWeightPerUnit }));
+      for (const weight of [null, {}, ...weights]) {
+        const result = byWeight(estimates, weight);
+        const [first] = observations(result);
+        expect(first?.reading.estimate, JSON.stringify(weight)).toBe(true);
+        expect(first?.reading.amountPrice, JSON.stringify(weight)).toBeUndefined();
+        expect(notes(result), JSON.stringify(weight)).toEqual([
+          "The offer kroger:0003600029145@01234567 has no average weight, thus it has no price for each unit of mass.",
+        ]);
+      }
+    });
+
+    it("leaves an item sold by unit with no estimate and no price for each unit of mass", () => {
+      const reading = only({}).reading;
+      expect(reading.estimate).toBeUndefined();
+      expect(reading.amountPrice).toBeUndefined();
+    });
   });
 
   it("reads the stock level, and gives unknown when the level is absent", () => {
