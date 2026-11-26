@@ -4,6 +4,7 @@
  * and it sends no request. Each source also has the terms of its API. The Azure parser gives the metered prices
  * of cloud resources as metered offers. The plan parser reads the plan list of each provider record as metered offers.
  * The BLS parser reads the average prices of the Consumer Price Index as average prices of `@mark1russell7/market`.
+ * The Kroger parsers read the offers of food and other goods at one store.
  *
  * Each client sends the requests of one API through a transport that its host gives. The scheduler of
  * `polite-crawler/api` keeps the pace of each host. A client keeps no store, and no message of a client has a key.
@@ -34,6 +35,7 @@ import { BEST_BUY_TERMS } from "./bestbuy.ts";
 import { BLS_TERMS } from "./bls.ts";
 import { DIGIKEY_TERMS } from "./digikey.ts";
 import { EBAY_TERMS } from "./ebay.ts";
+import { KROGER_TERMS } from "./kroger.ts";
 import { LINODE_TERMS, VULTR_TERMS } from "./providers.ts";
 
 export {
@@ -108,6 +110,19 @@ export {
   createEbayClient,
 } from "./ebay-client.ts";
 export type { EbayClient, EbayClientOptions } from "./ebay-client.ts";
+export { KROGER_SOURCE, KROGER_TERMS, checkKrogerLocation, krogerGtin, parseKrogerProduct, parseKrogerProducts } from "./kroger.ts";
+export {
+  KROGER_HOST,
+  KROGER_PACE_MS,
+  KROGER_QUOTA,
+  KROGER_QUOTA_KEY,
+  KROGER_SANDBOX_HOST,
+  KROGER_SCOPE,
+  KROGER_SEARCH_LIMIT,
+  KROGER_START_LIMIT,
+  createKrogerClient,
+} from "./kroger-client.ts";
+export type { KrogerClient, KrogerClientOptions } from "./kroger-client.ts";
 export { AZURE_HOST, AZURE_PACE_MS, AZURE_PAGE_LIMIT, createAzureClient } from "./azure-client.ts";
 export type { AzureClient, AzureClientOptions, AzureReadOptions } from "./azure-client.ts";
 export { BEST_BUY_HOST, BEST_BUY_PACE_MS, BEST_BUY_PAGE_LIMIT, BEST_BUY_QUOTA, BEST_BUY_QUOTA_KEY, createBestBuyClient } from "./bestbuy-client.ts";
@@ -136,5 +151,17 @@ export { LINODE_PLANS, LINODE_SOURCE, LINODE_TERMS, PLAN_PROVIDERS, VULTR_PLANS,
 export { PLAN_PAGE_LIMIT, createPlanClient } from "./plans-client.ts";
 export type { PlanClient, PlanClientOptions, PlanReadOptions } from "./plans-client.ts";
 
-/** The terms of each source of this package: the sellers in the order of the hand crawl, then Azure, then the plan lists. */
-export const SOURCE_TERMS: readonly SourceTerms[] = [EBAY_TERMS, BEST_BUY_TERMS, DIGIKEY_TERMS, AZURE_TERMS, LINODE_TERMS, VULTR_TERMS, BLS_TERMS];
+/**
+ * The terms of each source of this package: the sellers in the order of the hand crawl, then Azure, then the plan
+ * lists, then BLS, then the grocery sellers.
+ */
+export const SOURCE_TERMS: readonly SourceTerms[] = [
+  EBAY_TERMS,
+  BEST_BUY_TERMS,
+  DIGIKEY_TERMS,
+  AZURE_TERMS,
+  LINODE_TERMS,
+  VULTR_TERMS,
+  BLS_TERMS,
+  KROGER_TERMS,
+];

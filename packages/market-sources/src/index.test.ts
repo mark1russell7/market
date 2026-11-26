@@ -57,6 +57,16 @@ describe("the entry", () => {
       "EBAY_SOURCE",
       "EBAY_TERMS",
       "EBAY_US",
+      "KROGER_HOST",
+      "KROGER_PACE_MS",
+      "KROGER_QUOTA",
+      "KROGER_QUOTA_KEY",
+      "KROGER_SANDBOX_HOST",
+      "KROGER_SCOPE",
+      "KROGER_SEARCH_LIMIT",
+      "KROGER_SOURCE",
+      "KROGER_START_LIMIT",
+      "KROGER_TERMS",
       "LINODE_PLANS",
       "LINODE_SOURCE",
       "LINODE_TERMS",
@@ -78,14 +88,17 @@ describe("the entry", () => {
       "azureVmSize",
       "bestBuyCondition",
       "blsRequest",
+      "checkKrogerLocation",
       "createAzureClient",
       "createBestBuyClient",
       "createBlsClient",
       "createDigiKeyClient",
       "createEbayClient",
+      "createKrogerClient",
       "createPlanClient",
       "ebayCondition",
       "isAzurePricesUrl",
+      "krogerGtin",
       "parseAzureRegionsPage",
       "parseAzureRetailPricePages",
       "parseAzureRetailPrices",
@@ -98,6 +111,8 @@ describe("the entry", () => {
       "parseDigiKeyProductDetails",
       "parseEbayItem",
       "parseEbaySearch",
+      "parseKrogerProduct",
+      "parseKrogerProducts",
       "parsePlanLists",
       "parsePlanProvider",
       "planListUrl",
@@ -119,11 +134,12 @@ describe("the terms of each source", () => {
       entry.LINODE_SOURCE,
       entry.VULTR_SOURCE,
       entry.BLS_SOURCE,
+      entry.KROGER_SOURCE,
     ]);
   });
 
   it("permit no stored history and no trend for any seller and any plan list", () => {
-    for (const terms of [EBAY_TERMS, BEST_BUY_TERMS, DIGIKEY_TERMS, entry.LINODE_TERMS, entry.VULTR_TERMS]) {
+    for (const terms of [EBAY_TERMS, BEST_BUY_TERMS, DIGIKEY_TERMS, entry.LINODE_TERMS, entry.VULTR_TERMS, entry.KROGER_TERMS]) {
       expect(permitsHistory(terms)).toBe(false);
       expect(permitsTrend(terms)).toBe(false);
     }

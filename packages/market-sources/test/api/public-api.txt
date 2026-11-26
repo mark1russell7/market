@@ -82,6 +82,18 @@ EBAY_US: build/index.d.ts#EBAY_US
 type EbayClient: build/index.d.ts#EbayClient
 type EbayClientOptions: build/index.d.ts#EbayClientOptions
 type Exchange: polite-crawler/api#Exchange (external)
+KROGER_HOST: build/index.d.ts#KROGER_HOST
+KROGER_PACE_MS: build/index.d.ts#KROGER_PACE_MS
+KROGER_QUOTA: build/index.d.ts#KROGER_QUOTA
+KROGER_QUOTA_KEY: build/index.d.ts#KROGER_QUOTA_KEY
+KROGER_SANDBOX_HOST: build/index.d.ts#KROGER_SANDBOX_HOST
+KROGER_SCOPE: build/index.d.ts#KROGER_SCOPE
+KROGER_SEARCH_LIMIT: build/index.d.ts#KROGER_SEARCH_LIMIT
+KROGER_SOURCE: build/index.d.ts#KROGER_SOURCE
+KROGER_START_LIMIT: build/index.d.ts#KROGER_START_LIMIT
+KROGER_TERMS: build/index.d.ts#KROGER_TERMS
+type KrogerClient: build/index.d.ts#KrogerClient
+type KrogerClientOptions: build/index.d.ts#KrogerClientOptions
 LINODE_PLANS: build/index.d.ts#LINODE_PLANS
 LINODE_SOURCE: build/index.d.ts#LINODE_SOURCE
 LINODE_TERMS: build/index.d.ts#LINODE_TERMS
@@ -125,14 +137,17 @@ azureVmOs: build/index.d.ts#azureVmOs
 azureVmSize: build/index.d.ts#azureVmSize
 bestBuyCondition: build/index.d.ts#bestBuyCondition
 blsRequest: build/index.d.ts#blsRequest
+checkKrogerLocation: build/index.d.ts#checkKrogerLocation
 createAzureClient: build/index.d.ts#createAzureClient
 createBestBuyClient: build/index.d.ts#createBestBuyClient
 createBlsClient: build/index.d.ts#createBlsClient
 createDigiKeyClient: build/index.d.ts#createDigiKeyClient
 createEbayClient: build/index.d.ts#createEbayClient
+createKrogerClient: build/index.d.ts#createKrogerClient
 createPlanClient: build/index.d.ts#createPlanClient
 ebayCondition: build/index.d.ts#ebayCondition
 isAzurePricesUrl: build/index.d.ts#isAzurePricesUrl
+krogerGtin: build/index.d.ts#krogerGtin
 parseAzureRegionsPage: build/index.d.ts#parseAzureRegionsPage
 parseAzureRetailPricePages: build/index.d.ts#parseAzureRetailPricePages
 parseAzureRetailPrices: build/index.d.ts#parseAzureRetailPrices
@@ -145,6 +160,8 @@ parseDigiKeyKeywordSearch: build/index.d.ts#parseDigiKeyKeywordSearch
 parseDigiKeyProductDetails: build/index.d.ts#parseDigiKeyProductDetails
 parseEbayItem: build/index.d.ts#parseEbayItem
 parseEbaySearch: build/index.d.ts#parseEbaySearch
+parseKrogerProduct: build/index.d.ts#parseKrogerProduct
+parseKrogerProducts: build/index.d.ts#parseKrogerProducts
 parsePlanLists: build/index.d.ts#parsePlanLists
 parsePlanProvider: build/index.d.ts#parsePlanProvider
 planListUrl: build/index.d.ts#planListUrl
@@ -468,6 +485,54 @@ interface EbayClientOptions<S extends Signal> {
   readonly marketplace?: string | undefined;
 }
 
+### build/index.d.ts#KROGER_HOST
+export declare const KROGER_HOST = "api.kroger.com";
+
+### build/index.d.ts#KROGER_PACE_MS
+export declare const KROGER_PACE_MS = 1e3;
+
+### build/index.d.ts#KROGER_QUOTA
+export declare const KROGER_QUOTA: Quota;
+
+### build/index.d.ts#KROGER_QUOTA_KEY
+export declare const KROGER_QUOTA_KEY = "kroger:products";
+
+### build/index.d.ts#KROGER_SANDBOX_HOST
+export declare const KROGER_SANDBOX_HOST = "api-ce.kroger.com";
+
+### build/index.d.ts#KROGER_SCOPE
+export declare const KROGER_SCOPE = "product.compact";
+
+### build/index.d.ts#KROGER_SEARCH_LIMIT
+export declare const KROGER_SEARCH_LIMIT = 50;
+
+### build/index.d.ts#KROGER_SOURCE
+export declare const KROGER_SOURCE = "kroger";
+
+### build/index.d.ts#KROGER_START_LIMIT
+export declare const KROGER_START_LIMIT = 250;
+
+### build/index.d.ts#KROGER_TERMS
+export declare const KROGER_TERMS: SourceTerms;
+
+### build/index.d.ts#KrogerClient
+interface KrogerClient<S extends Signal> {
+  product(productId: string, signal?: S): Promise<ParseResult>;
+  search(term: string, limit?: number, start?: number, signal?: S): Promise<ParseResult>;
+}
+
+### build/index.d.ts#KrogerClientOptions
+interface KrogerClientOptions<S extends Signal> {
+  readonly clientId: string;
+  readonly clientSecret: string;
+  readonly base64: (text: string) => string;
+  readonly transport: Transport<S>;
+  readonly pace: Pace<S>;
+  readonly locationId: string;
+  readonly sandbox?: boolean | undefined;
+  readonly quota?: QuotaGate | undefined;
+}
+
 ### build/index.d.ts#LINODE_PLANS
 export declare const LINODE_PLANS: PlanProvider;
 
@@ -689,6 +754,9 @@ export declare function blsRequest(series: readonly string[], years?: {
   readonly body: string;
 };
 
+### build/index.d.ts#checkKrogerLocation
+export declare function checkKrogerLocation(locationId: string): string;
+
 ### build/index.d.ts#createAzureClient
 export declare function createAzureClient<S extends Signal>(options: AzureClientOptions<S>): AzureClient<S>;
 
@@ -704,6 +772,9 @@ export declare function createDigiKeyClient<S extends Signal>(options: DigiKeyCl
 ### build/index.d.ts#createEbayClient
 export declare function createEbayClient<S extends Signal>(options: EbayClientOptions<S>): EbayClient<S>;
 
+### build/index.d.ts#createKrogerClient
+export declare function createKrogerClient<S extends Signal>(options: KrogerClientOptions<S>): KrogerClient<S>;
+
 ### build/index.d.ts#createPlanClient
 export declare function createPlanClient<S extends Signal>(options: PlanClientOptions<S>): PlanClient<S>;
 
@@ -712,6 +783,9 @@ export declare function ebayCondition(conditionId: unknown): Condition;
 
 ### build/index.d.ts#isAzurePricesUrl
 export declare function isAzurePricesUrl(link: string): boolean;
+
+### build/index.d.ts#krogerGtin
+export declare function krogerGtin(productId: unknown): string | null;
 
 ### build/index.d.ts#parseAzureRegionsPage
 export declare function parseAzureRegionsPage(html: string): AzureRegionsResult;
@@ -748,6 +822,12 @@ export declare function parseEbayItem(answer: unknown, at: string): ParseResult;
 
 ### build/index.d.ts#parseEbaySearch
 export declare function parseEbaySearch(answer: unknown, at: string): ParseResult;
+
+### build/index.d.ts#parseKrogerProduct
+export declare function parseKrogerProduct(answer: unknown, at: string, locationId: string): ParseResult;
+
+### build/index.d.ts#parseKrogerProducts
+export declare function parseKrogerProducts(answer: unknown, at: string, locationId: string): ParseResult;
 
 ### build/index.d.ts#parsePlanLists
 export declare function parsePlanLists(provider: PlanProvider, answers: PlanAnswers, at: string): MeteredParseResult;
