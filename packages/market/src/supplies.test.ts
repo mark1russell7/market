@@ -706,22 +706,25 @@ describe("supplyCandidates", () => {
     ]);
     expect(result.candidates[0]!.price).toBeCloseTo(1.101 / 0.45359237, 10);
     expect(result.candidates[1]!.price).toBe(99);
-    expect(result.unpriced.map((item) => item.product)).toEqual(["water.jug-1gal", "food.oats-1kg"]);
-    expect(result.unpriced[0]!.why).toBe("The catalog gives no part for the offers of this product. The catalog gives no series of average prices for this product.");
-    expect(result.unpriced[1]!.why).toContain("no series of oats");
+    expect(result.unpriced).toHaveLength(SUPPLY_CATALOG.products.length - 2);
+    const why = (product: string) => result.unpriced.find((item) => item.product === product)?.why;
+    expect(why("water.jug-1gal")).toBe("The catalog gives no part for the offers of this product. The catalog gives no series of average prices for this product.");
+    expect(why("food.oats-1kg")).toContain("no series of oats");
   });
 
-  it("leaves out a product with a max of 0, and gives a no read, not 0, with no offer and no average price", () => {
-    const result = supplyCandidates(SUPPLY_CATALOG, [], { currency: "USD", max: max({ "power.anker-737": 1, "food.rice-white-1kg": 1 }) });
+  it("gives each product a no read, not 0, with no offer and no average price, and a max of 0 buys no unit", () => {
+    const result = supplyCandidates(SUPPLY_CATALOG, [], { currency: "USD", max: max({ "food.rice-white-1kg": 1 }) });
     expect(result.candidates).toEqual([]);
-    expect(result.unpriced.map((item) => item.product)).toEqual(["food.rice-white-1kg", "power.anker-737"]);
-    expect(result.unpriced[0]!.why).toContain("The prices have no average price of the series APU0000701312");
+    expect(result.unpriced.map((item) => item.product)).toEqual(SUPPLY_CATALOG.products.map((product) => product.id));
+    expect(result.unpriced[2]!.why).toContain("The prices have no average price of the series APU0000701312");
+    const none = supplyCandidates(SUPPLY_CATALOG, [bankOffer(99)], { currency: "USD", max: max({}) });
+    expect(none.candidates).toMatchObject([{ product: "power.anker-737", max: 0, basis: "offer" }]);
   });
 
   it("keeps an average price in another currency unpriced, and refuses a max that is not a whole number", () => {
     const result = supplyCandidates(SUPPLY_CATALOG, [], { currency: "EUR", max: max({ "food.rice-white-1kg": 1 }), averages: [ricePrice("2026-10", 1.101)] });
     expect(result.candidates).toEqual([]);
-    expect(result.unpriced[0]!.why).toContain("is in USD, not in EUR");
+    expect(result.unpriced.find((item) => item.product === "food.rice-white-1kg")?.why).toContain("is in USD, not in EUR");
     expect(() => supplyCandidates(SUPPLY_CATALOG, [], { currency: "USD", max: () => 1.5 })).toThrow(RangeError);
   });
 });

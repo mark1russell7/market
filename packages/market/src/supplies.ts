@@ -1319,7 +1319,7 @@ export interface SupplyCandidates {
 
 /** The options of `supplyCandidates`. */
 export interface SupplyCandidateOptions extends CandidateOptions {
-  /** The largest count of units of a product, for example from `kitMax`. A product with a max of 0 is not in the result. */
+  /** The largest count of units of a product, for example from `kitMax`. A candidate with a max of 0 buys no unit. */
   readonly max: (product: SupplyProduct) => number;
   /** The average prices, from one or more reads, for the products with a join to a series. The default is none. */
   readonly averages?: readonly AveragePrice[] | undefined;
@@ -1329,7 +1329,7 @@ export interface SupplyCandidateOptions extends CandidateOptions {
 
 /**
  * This function gives a candidate of a buy order for each product of the catalog with a price, in the order of the
- * catalog. It joins `buyCandidates` and `averageSupplyPrices`.
+ * catalog. It joins `buyCandidates` and `averageSupplyPrices`. Each product of the catalog is a candidate or unpriced.
  *
  * - A usable live offer gives the price, with the basis `offer`.
  * - With no usable offer, the average price of the join of the product gives the price, with the basis `average`.
@@ -1347,14 +1347,13 @@ export function supplyCandidates(catalog: SupplyCatalog, observations: readonly 
   for (const [product, count] of counts) {
     if (!(Number.isSafeInteger(count) && count >= 0)) throw new RangeError(`The max of the product ${product} is ${String(count)}. It must be a whole number of 0 or more.`);
   }
-  const wanted = (product: SupplyProduct) => (counts.get(product.id) ?? 0) > 0;
-  const offers = buyCandidates(supplyWants(catalog, max).filter((want) => (want.max ?? 1) > 0), observations, { currency, conditions });
+  const offers = buyCandidates(supplyWants(catalog, max), observations, { currency, conditions });
   const byOffer = new Map(offers.candidates.map((candidate) => [candidate.product, candidate]));
   const offerWhy = new Map(offers.unpriced.map((item) => [item.product, item.why]));
   const averages = new Map(averageSupplyPrices(catalog, options.averages ?? [], { since: options.since }).map((price) => [price.product, price]));
   const candidates: SupplyCandidate[] = [];
   const unpriced: { product: string; why: string }[] = [];
-  for (const product of catalog.products.filter(wanted)) {
+  for (const product of catalog.products) {
     const offer = byOffer.get(product.id);
     if (offer !== undefined) {
       candidates.push({ ...offer, basis: "offer" });
