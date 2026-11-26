@@ -92,7 +92,8 @@ function pack(count: Quantity, each: Quantity): ReadSize {
  */
 export function parseSize(text: string): Size {
   const refused = (why: string): UnreadSize => ({ ok: false, why: `The size ${JSON.stringify(text)} is not read: ${why}.` });
-  const times = /^\s*(\d+)\s*[x×]\s*(.+)$/i.exec(text);
+  // Each quantifier ends at a character that the next part does not match. Thus the match takes linear time.
+  const times = /^(\d+)\s*[x×]\s*(\S.*)$/i.exec(text.trim());
   if (times !== null) {
     const each = amountOf(times[2] ?? "");
     const count = Number(times[1]);

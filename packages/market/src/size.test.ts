@@ -45,6 +45,17 @@ describe("parseSize", () => {
   });
 });
 
+describe("parseSize on long texts", () => {
+  it("refuses a long text of spaces in linear time", () => {
+    // A pattern with two quantifiers over the same spaces takes polynomial time on such a text.
+    for (const text of [`0x${" ".repeat(50_000)}`, `0 ${" ".repeat(50_000)}x`, `1${" ".repeat(50_000)}/`, `${"1".repeat(50_000)} `]) {
+      const start = performance.now();
+      expect(parseSize(text).ok).toBe(false);
+      expect(performance.now() - start).toBeLessThan(1_000);
+    }
+  });
+});
+
 describe("sizePrice", () => {
   it("gives a price for each unit of the amount that a price reading accepts", () => {
     const reading = { offerId: "kroger:1@2", at: "2026-11-26T12:00:00Z", price: USD(3.99), shipping: { kind: "unknown" }, availability: "in-stock" } as const;
