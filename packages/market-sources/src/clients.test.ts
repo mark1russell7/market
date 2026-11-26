@@ -8,7 +8,7 @@ import { parseBestBuyOpenBox, parseBestBuyProduct, parseBestBuyProducts } from "
 import { SECRET_MARK, ApiError, instantOf, type Exchange, type Reply } from "./client.ts";
 import { createDigiKeyClient, DIGIKEY_PACE_MS, DIGIKEY_QUOTA, DIGIKEY_QUOTA_KEY } from "./digikey-client.ts";
 import { parseDigiKeyKeywordSearch, parseDigiKeyProductDetails } from "./digikey.ts";
-import { createEbayClient } from "./ebay-client.ts";
+import { createEbayClient, EBAY_QUOTA, EBAY_QUOTA_KEY } from "./ebay-client.ts";
 import { parseEbayItem, parseEbaySearch } from "./ebay.ts";
 import { failure, fakePace, fakeTransport, reply, type Sent } from "../test/fakes.ts";
 import {
@@ -309,6 +309,49 @@ describe("the eBay client", () => {
     const error = await failure(client.item("v1|110000000001|0"));
     expect(error.message).toBe(`eBay gave no answer to the token: failed with Basic ${SECRET_MARK}`);
     expect(error.message).not.toContain(basic);
+  });
+
+  const answer = (exchange: Exchange): Reply => (isToken(exchange) ? token("token-0001", 7200) : reply(200, ebayItem));
+
+  it("keeps a margin under the daily limit of 5,000: the gate refuses call 4,501 of a rolling day, and the token does not count", async () => {
+    expect(EBAY_QUOTA.limit - (EBAY_QUOTA.reserve ?? 0)).toBe(4_500);
+    const { pace, clock } = fakePace();
+    const { transport, sent } = fakeTransport(clock, answer);
+    const quota = quotaGate(EBAY_QUOTA, { key: EBAY_QUOTA_KEY, store: memoryQuotaStore(), now: clock.now });
+    const client = createEbayClient({ clientId: CLIENT_ID, clientSecret: CLIENT_SECRET, base64, transport, pace, quota });
+    await client.item("v1|110000000001|0");
+    // The token and one call went out, and only the call counts.
+    expect(sent).toHaveLength(2);
+    expect(quota.state()).toMatchObject({ used: 1 });
+    // The test takes the other 4,499 units of the window from the gate, not with 4,499 calls.
+    quota.take(4_499);
+    const error = await client.search("ssd").catch((caught: unknown) => caught);
+    expect(isQuotaError(error)).toBe(true);
+    expect(sent).toHaveLength(2);
+    expect((error as QuotaError).resetAt).toBeGreaterThanOrEqual(sent[1]!.at + 86_400_000);
+    expect((error as QuotaError).resetAt).toBeLessThanOrEqual(sent[1]!.at + 86_400_000 + 86_400_000 / 60);
+  });
+
+  it("refuses each call after a 429, until the window has units again", async () => {
+    const { client, sent, clock } = setup((exchange, index) => (index === 1 ? reply(429, {}, {}, "Too Many Requests") : answer(exchange)));
+    expect(await client.item("v1|110000000001|0")).toMatchObject({ ok: false });
+    const error = await client.search("ssd").catch((caught: unknown) => caught);
+    expect(isQuotaError(error)).toBe(true);
+    expect(sent).toHaveLength(2);
+    await clock.sleep((error as QuotaError).resetAt - clock.now());
+    expect(await client.item("v1|110000000001|0")).toMatchObject({ ok: true });
+  });
+
+  it("counts the calls of two clients of one pace in the default gate of the pace, and a new pace has its own gate", async () => {
+    const { pace, clock } = fakePace();
+    const { transport } = fakeTransport(clock, (exchange, index) => (index === 1 ? reply(429, {}, {}, "Too Many Requests") : answer(exchange)));
+    const options = { clientId: CLIENT_ID, clientSecret: CLIENT_SECRET, base64, transport, pace };
+    expect(await createEbayClient(options).item("v1|110000000001|0")).toMatchObject({ ok: false });
+    await expect(createEbayClient(options).item("v1|110000000001|0")).rejects.toSatisfy(isQuotaError);
+    const other = fakePace();
+    const fresh = fakeTransport(other.clock, answer);
+    const client = createEbayClient({ ...options, transport: fresh.transport, pace: other.pace });
+    expect(await client.item("v1|110000000001|0")).toMatchObject({ ok: true });
   });
 });
 

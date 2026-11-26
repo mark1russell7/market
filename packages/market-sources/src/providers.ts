@@ -26,6 +26,10 @@ export const VULTR_TERMS: SourceTerms = {
  * 2026-11-18. Each plan lists its regions, and the object `location_cost` has the prices that change with the region.
  * A plan has the on-demand term when `deploy_ondemand` is true, and the preemptible term when `deploy_preemptible` is true.
  * The list `GET /v2/regions` tells the country of each region.
+ *
+ * Vultr gives 30 requests each second for each IP address and no daily limit
+ * (https://docs.vultr.com/support/platform/api/what-rate-limits-apply-to-the-vultr-api, updated 2026-10-26, read on
+ * 2026-11-26). The pace of 2 s is under that limit, thus the record has no quota.
  */
 export const VULTR_PLANS: PlanProvider = {
   source: VULTR_SOURCE,
