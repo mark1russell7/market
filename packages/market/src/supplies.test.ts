@@ -58,6 +58,7 @@ describe("the reference catalog of supplies", () => {
       "supplies-no-read first-aid.kit",
       "supplies-no-read communication.noaa-radio",
       "supplies-no-read communication.noaa-radio",
+      "supplies-no-read communication.am-fm-radio",
       "supplies-no-read communication.frs-radio-pair",
       "supplies-no-read communication.mesh-text-node",
       "supplies-no-read communication.mesh-text-node",
@@ -78,7 +79,9 @@ describe("the reference catalog of supplies", () => {
     expect(errors(products("unknown"))).toEqual(["supplies-fact"]);
     expect(errors(products(undefined))).toEqual(["supplies-basis"]);
     expect(errors({ ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.id === radio.id ? { ...radio, basis: undefined, gives: SUPPLY_CATALOG.products.find((each) => each.id === "water.container-1gal")!.gives } : each)) })).toEqual([]);
-    const unused = checkSupplies(products(undefined)).filter((finding) => finding.code === "supplies-unused");
+    // Each product with the basis of the radio fact loses its basis. Then the fact has no use.
+    const noRadioBasis: SupplyCatalog = { ...SUPPLY_CATALOG, products: SUPPLY_CATALOG.products.map((each) => (each.basis === radio.basis ? { ...each, basis: undefined } : each)) };
+    const unused = checkSupplies(noRadioBasis).filter((finding) => finding.code === "supplies-unused");
     expect(unused.map((finding) => finding.id)).toEqual(["ready.kit-radio"]);
   });
 
@@ -172,6 +175,7 @@ describe("the reference catalog of supplies", () => {
       "heat.stove-butane-1-burner",
       "first-aid.kit",
       "communication.noaa-radio",
+      "communication.am-fm-radio",
       "communication.mesh-text-node",
       "power.anker-737",
     ]);
