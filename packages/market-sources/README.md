@@ -234,7 +234,7 @@ The parsers do not read the hours and the departments of a store.
 | Client | Methods | Pace | Access |
 | --- | --- | --- | --- |
 | `createDigiKeyClient` | `productDetails(productNumber)`, `keywordSearch(keywords, limit)` | 500 ms, and the quota `DIGIKEY_QUOTA`: 900 requests in a rolling 24 hours, under the limit of 1000 | OAuth 2.0 client credentials, the client id in a header |
-| `createEbayClient` | `item(itemId)`, `search(words, limit)` | 1 s | OAuth 2.0 client credentials with Basic, the scope `api_scope` |
+| `createEbayClient` | `item(itemId)`, `search(words, limit)` | 1 s, and the quota `EBAY_QUOTA`: 4,500 calls in a rolling 24 hours, under the limit of 5,000 | OAuth 2.0 client credentials with Basic, the scope `api_scope` |
 | `createBestBuyClient` | `product(sku)`, `search(words, pageSize)`, `openBox(sku)` | 1 s, and the quota `BEST_BUY_QUOTA`: 45,000 calls in a rolling 24 hours, under the limit of 50,000 | the API key in the query |
 | `createAzureClient` | `prices(filter, { pages, currency })`, `more(next, pages)` | 6 s | no key |
 | `createPlanClient` | `plans(provider, { pages })` | the pace of the record, 2 s for each record of the package | no key |
@@ -244,18 +244,19 @@ The parsers do not read the hours and the departments of a store.
 
 The BLS client counts its queries with a gate of `BLS_QUOTA` from `polite-crawler/api`. The gate refuses a query over the quota with a `QuotaError`, and it sends nothing. An answer that tells that the daily threshold is reached sets the count to the limit. The default gate is in memory, one for each pace: the clients of one pace count in one gate. Each process of one address can count in one record. For that, give the option `quota`: a `quotaGate` with a shared store, for example `SqliteHostStateStore` of `polite-crawler`.
 
-The Digi-Key client and the Best Buy client count their requests in the same way, with the option `quota` and a default gate for each pace:
+The Digi-Key, eBay, Best Buy and Kroger clients count their requests in the same way, with the option `quota` and a default gate for each pace:
 
 | Client | Quota | Key name | Answer that sets the count to the limit | Source of the limit |
 | --- | --- | --- | --- | --- |
 | `createDigiKeyClient` | `DIGIKEY_QUOTA`: 1000 requests of products each day, 100 in reserve | `DIGIKEY_QUOTA_KEY` | a 429 with the message `Daily Ratelimit exceeded` or `X-RateLimit-Remaining: 0`. The header `X-RateLimit-Reset` gives the reset. | the table "Rate Limits" of the [Digi-Key API documentation](https://developer.digikey.com/documentation), standard products |
+| `createEbayClient` | `EBAY_QUOTA`: 5,000 calls of the Browse API each day, 500 in reserve | `EBAY_QUOTA_KEY` | a 429. The table gives no status for an application over its limit. | the [table of eBay call limits](https://developer.ebay.com/develop/get-started/api-call-limits), the Browse API. The page refuses an automated read, so the value comes from a search index of the page on 2026-11-26. |
 | `createBestBuyClient` | `BEST_BUY_QUOTA`: 50,000 calls each day, 5,000 in reserve | `BEST_BUY_QUOTA_KEY` | a 403. Best Buy gives it for a key over its limit and for a key that is not valid. | the section "Rate Limit" of the [Best Buy API Operational Policy](https://developer.bestbuy.com/legal) |
 | `createKrogerLocationClient` | `KROGER_LOCATIONS_QUOTA`: 1,600 calls each day, 160 in reserve | `KROGER_LOCATIONS_QUOTA_KEY` | a 429, as the product client | the section "Rate Limit" of the [Kroger Locations API](https://developer.kroger.com/api-products/api/location-api-public) 1.2.3 |
 | `createKrogerClient` | `KROGER_QUOTA`: 10,000 calls each day, 1,000 in reserve | `KROGER_QUOTA_KEY` | a 429. The documentation gives no status for a client over its limit. | the section "Rate Limit" of the [Kroger Products API](https://developer.kroger.com/api-products/api/product-api-public) 1.3.0 |
 
-A request of a Digi-Key token or a Kroger token does not count. A Kroger client reads one location: give the option `locationId`. The location client finds it: `near({ zipCode })` or `near({ point })` gives the stores near a place. The clients of many stores share the gate of their pace.
+A request of a Digi-Key, eBay or Kroger token does not count. An application can get a higher limit after an Application Growth Check of eBay. Then give the option `quota` a gate of the raised limit. A Kroger client reads one location: give the option `locationId`. The location client finds it: `near({ zipCode })` or `near({ point })` gives the stores near a place. The clients of many stores share the gate of their pace.
 
-The burst limit of Digi-Key and the limit of 5 calls each second of Best Buy are under the pace. The provider counts the calls of each application or key. Thus give a gate with its own key name to each client of a different application or key on one pace.
+The burst limit of Digi-Key and the limit of 5 calls each second of Best Buy are under the pace. The limit of 30 requests each second of Vultr is also under the pace. The [Vultr documentation](https://docs.vultr.com/support/platform/api/what-rate-limits-apply-to-the-vultr-api) gives no daily limit, so the plan client has no quota. The provider counts the calls of each application or key. Thus give a gate with its own key name to each client of a different application or key on one pace.
 
 ```ts
 import { HostScheduler, realClock } from "polite-crawler/politeness";

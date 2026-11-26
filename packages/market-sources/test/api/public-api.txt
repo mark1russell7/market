@@ -73,6 +73,8 @@ type DigiKeyClientOptions: build/index.d.ts#DigiKeyClientOptions
 type DigiKeyLocale: build/index.d.ts#DigiKeyLocale
 EBAY_HOST: build/index.d.ts#EBAY_HOST
 EBAY_PACE_MS: build/index.d.ts#EBAY_PACE_MS
+EBAY_QUOTA: build/index.d.ts#EBAY_QUOTA
+EBAY_QUOTA_KEY: build/index.d.ts#EBAY_QUOTA_KEY
 EBAY_SANDBOX_HOST: build/index.d.ts#EBAY_SANDBOX_HOST
 EBAY_SCOPE: build/index.d.ts#EBAY_SCOPE
 EBAY_SEARCH_LIMIT: build/index.d.ts#EBAY_SEARCH_LIMIT
@@ -464,6 +466,12 @@ export declare const EBAY_HOST = "api.ebay.com";
 ### build/index.d.ts#EBAY_PACE_MS
 export declare const EBAY_PACE_MS = 1e3;
 
+### build/index.d.ts#EBAY_QUOTA
+export declare const EBAY_QUOTA: Quota;
+
+### build/index.d.ts#EBAY_QUOTA_KEY
+export declare const EBAY_QUOTA_KEY = "ebay:browse";
+
 ### build/index.d.ts#EBAY_SANDBOX_HOST
 export declare const EBAY_SANDBOX_HOST = "api.sandbox.ebay.com";
 
@@ -497,6 +505,7 @@ interface EbayClientOptions<S extends Signal> {
   readonly pace: Pace<S>;
   readonly sandbox?: boolean | undefined;
   readonly marketplace?: string | undefined;
+  readonly quota?: QuotaGate | undefined;
 }
 
 ### build/index.d.ts#KROGER_HOST

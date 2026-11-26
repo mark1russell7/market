@@ -104,6 +104,8 @@ export type { DigiKeyClient, DigiKeyClientOptions, DigiKeyLocale } from "./digik
 export {
   EBAY_HOST,
   EBAY_PACE_MS,
+  EBAY_QUOTA,
+  EBAY_QUOTA_KEY,
   EBAY_SANDBOX_HOST,
   EBAY_SCOPE,
   EBAY_SEARCH_LIMIT,
