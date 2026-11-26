@@ -866,6 +866,15 @@ export const SUPPLY_CATALOG: SupplyCatalog = {
       shelf: { read: false, why: "The source gives no shelf life." },
     },
     {
+      // This radio gets the news of the local AM and FM stations. It is not a receiver of the tone alerts of the weather service, so it has no device need.
+      id: "communication.am-fm-radio",
+      title: "An AM and FM radio on batteries or a hand crank",
+      kind: "communication",
+      basis: "ready.kit-radio",
+      gives: [],
+      shelf: { read: false, why: "The source gives no shelf life." },
+    },
+    {
       id: "communication.frs-radio-pair",
       title: "A pair of FRS handheld two-way radios, with no license",
       kind: "communication",

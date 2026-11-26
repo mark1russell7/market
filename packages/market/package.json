@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package",
   "name": "@mark1russell7/market",
-  "version": "0.11.7",
+  "version": "0.11.8",
   "description": "The records of a market: a product, an offer of a seller and a price reading, with their checks, the GTIN check, match keys, the cost of an order, the storage rules of a source, the best offer of a part, a board of current prices within the terms of each source, a buy plan: the Pareto front of the baskets of a need, and metered prices of cloud resources with tiers, free amounts, terms and their cost.",
   "license": "MIT",
   "repository": {
