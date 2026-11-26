@@ -1,4 +1,4 @@
-import type { Quantity } from "@mark1russell7/quantity";
+import { atomAbove, parseUnit, UnitError, type Quantity } from "@mark1russell7/quantity";
 import { quantitySchema } from "@mark1russell7/quantity/schema";
 import { z } from "zod";
 import { parseGtin } from "./gtin.ts";
@@ -94,6 +94,13 @@ export interface PriceReading {
   readonly available?: number | undefined;
   readonly minimumQuantity?: number | undefined;
   readonly priceBreaks?: readonly PriceBreak[] | undefined;
+  /**
+   * The price for each unit of an amount of the item, for example `{ "value": 2.49, "unit": "USD/lb" }` for an item
+   * sold by weight. A buyer compares items of different sizes with it.
+   */
+  readonly amountPrice?: Quantity | undefined;
+  /** True when the price is an estimate. For an item sold by weight, the final price depends on the weight. */
+  readonly estimate?: true | undefined;
 }
 
 /** This schema accepts a text with a character that is not a space, and with no space at an end. */
@@ -113,6 +120,47 @@ export const gtinSchema: z.ZodType<string> = z
 
 /** This schema accepts an amount of money of zero or more, for example `{ "value": 129.99, "unit": "USD" }`. */
 export const moneySchema: z.ZodType<Quantity, Quantity> = quantitySchema("money", { nonnegative: true });
+
+/**
+ * This function reads the unit of a price for each unit of an amount of an item. The unit has one unit of money
+ * above. Below, it has a unit of an amount that is not money and not a pure time, for example `USD/lb`, `USD/L` or `USD/kWh`.
+ * A count below must have an annotation, for example `USD/{each}`. Thus `USD/%` and `USD/h` are not prices of an item.
+ */
+function unitPriceProblem(unit: string): string | undefined {
+  const refused = `The unit ${unit} is not a price for each unit of an amount, for example USD/lb.`;
+  let parsed: ReturnType<typeof parseUnit>;
+  try {
+    parsed = parseUnit(unit);
+  } catch (error) {
+    if (error instanceof UnitError) return refused;
+    throw error;
+  }
+  if (atomAbove(parsed, "money") === undefined) return refused;
+  const below = parsed.components.filter((component) => component.exponent < 0);
+  const amountOf = (component: (typeof below)[number]): boolean => {
+    const dimensions = component.atom?.vector;
+    if (dimensions === undefined) return component.annotation !== undefined;
+    const names = Object.keys(dimensions);
+    const pureTime = names.length === 1 && names[0] === "time";
+    return names.length > 0 && !names.includes("money") && !pureTime;
+  };
+  if (below.length === 0 || !below.every(amountOf)) return refused;
+  return undefined;
+}
+
+/**
+ * This function gives the symbol of the money of a price for each unit of an amount, for example `USD` for `USD/lb`.
+ * It gives undefined for each other unit.
+ */
+export function moneyOf(unit: string): string | undefined {
+  return unitPriceProblem(unit) === undefined ? atomAbove(unit, "money") : undefined;
+}
+
+/** This schema accepts a price of more than 0 for each unit of an amount, for example `{ "value": 1.101, "unit": "USD/lb" }`. */
+export const unitPriceSchema: z.ZodType<Quantity, Quantity> = quantitySchema(undefined, { positive: true }).superRefine((price, context) => {
+  const problem = unitPriceProblem(price.unit);
+  if (problem !== undefined) context.addIssue({ code: "custom", message: problem });
+});
 
 /** This schema accepts an instant in UTC in the ISO 8601 form, for example `2026-11-12T18:00:00Z`. */
 export const instantSchema: z.ZodType<string> = z.iso.datetime();
@@ -206,6 +254,8 @@ export const priceReadingSchema: z.ZodType<PriceReading> = z
     available: z.int().nonnegative().optional(),
     minimumQuantity: z.int().min(1).optional(),
     priceBreaks: z.array(priceBreakSchema).optional(),
+    amountPrice: unitPriceSchema.optional(),
+    estimate: z.literal(true).optional(),
   })
   .superRefine((reading, context) => {
     let last = reading.minimumQuantity ?? 1;

@@ -1,7 +1,8 @@
-import { atomAbove, parseUnit, UnitError, type Quantity } from "@mark1russell7/quantity";
-import { quantitySchema } from "@mark1russell7/quantity/schema";
+import type { Quantity } from "@mark1russell7/quantity";
 import { z } from "zod";
-import { instantSchema, sourceSchema, textSchema } from "./records.ts";
+import { instantSchema, sourceSchema, textSchema, unitPriceSchema } from "./records.ts";
+
+export { moneyOf, unitPriceSchema } from "./records.ts";
 
 /*
  * This module has the average prices of a market. An average price is not an offer of a seller. It is the mean price
@@ -34,47 +35,6 @@ export interface AveragePrice {
 export function averagePriceId(source: string, series: string, period: string): string {
   return `${source}:${series}:${period}`;
 }
-
-/**
- * This function reads the unit of a price for each unit of an amount of an item. The unit has one unit of money
- * above. Below, it has a unit of an amount that is not money and not a pure time, for example `USD/lb`, `USD/L` or `USD/kWh`.
- * A count below must have an annotation, for example `USD/{each}`. Thus `USD/%` and `USD/h` are not prices of an item.
- */
-function unitPriceProblem(unit: string): string | undefined {
-  const refused = `The unit ${unit} is not a price for each unit of an amount, for example USD/lb.`;
-  let parsed: ReturnType<typeof parseUnit>;
-  try {
-    parsed = parseUnit(unit);
-  } catch (error) {
-    if (error instanceof UnitError) return refused;
-    throw error;
-  }
-  if (atomAbove(parsed, "money") === undefined) return refused;
-  const below = parsed.components.filter((component) => component.exponent < 0);
-  const amountOf = (component: (typeof below)[number]): boolean => {
-    const dimensions = component.atom?.vector;
-    if (dimensions === undefined) return component.annotation !== undefined;
-    const names = Object.keys(dimensions);
-    const pureTime = names.length === 1 && names[0] === "time";
-    return names.length > 0 && !names.includes("money") && !pureTime;
-  };
-  if (below.length === 0 || !below.every(amountOf)) return refused;
-  return undefined;
-}
-
-/**
- * This function gives the symbol of the money of a price for each unit of an amount, for example `USD` for `USD/lb`.
- * It gives undefined for each other unit.
- */
-export function moneyOf(unit: string): string | undefined {
-  return unitPriceProblem(unit) === undefined ? atomAbove(unit, "money") : undefined;
-}
-
-/** This schema accepts a price of more than 0 for each unit of an amount, for example `{ "value": 1.101, "unit": "USD/lb" }`. */
-export const unitPriceSchema: z.ZodType<Quantity, Quantity> = quantitySchema(undefined, { positive: true }).superRefine((price, context) => {
-  const problem = unitPriceProblem(price.unit);
-  if (problem !== undefined) context.addIssue({ code: "custom", message: problem });
-});
 
 /** This schema accepts a month in the form `YYYY-MM`, from `0001-01` to `9999-12`. */
 export const monthSchema: z.ZodType<string> = z.string().regex(/^(?!0000)\d{4}-(0[1-9]|1[0-2])$/, "The month is not in the form YYYY-MM.");

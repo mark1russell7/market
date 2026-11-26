@@ -1,7 +1,8 @@
 import { checkSources, checkUnits, type CitedUnit, type Finding, type FindingCode, type GateOptions, type Source } from "@mark1russell7/guidebook";
 import { canonicalUnit, convertible, divide, kindOf, multiply, quantity, rationals, UnitError, valueIn, whyNotConvertible, type Quantity } from "@mark1russell7/quantity";
 import { isRecord } from "@mark1russell7/optional/read";
-import { latestAverages, moneyOf, monthSchema, type AveragePrice } from "./average.ts";
+import { latestAverages, monthSchema, type AveragePrice } from "./average.ts";
+import { moneyOf } from "./records.ts";
 import type { PartWant } from "./offers.ts";
 import type { ProductWant } from "./order.ts";
 
