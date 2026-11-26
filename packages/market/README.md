@@ -247,6 +247,8 @@ The entry `@mark1russell7/market/supplies` has the format and the gate of a cata
 - The start of 21 °C is the general test convention of the maker blog for most makers. The spec page of this stove gives no start of its own. A field figure with `bound: "least"` brings its own start.
 - The canister stove burns `fuel.isobutane-mix`. The mix of a canister differs between makers, and the read page gives no mix. Thus this fuel has no fuel energy, and a converter gives a no read for its energy.
 - The product ids of the stoves name no maker. The source records name the maker and the model.
+- Since 0.11.5, the catalog has a fuel product: a screw-on canister of 227 g of `fuel.isobutane-mix`. The fuel rate and the boil yield of the canister stove cite this canister mass.
+- The canister cites the camp stove of Ready.gov as its basis, because the camp stove needs this fuel.
 - A cup is 236.6 mL in `@mark1russell7/quantity` and in FoodData Central. A cup on a label can be 240 mL, a difference of 1.4%.
 - The oats have no series of average prices. The pasta has its own resource `food.pasta-dry`, because the cook drains its water, and rice and oats absorb their water. The dry beans, the pasta and the flour join the BLS series `APU0000714233`, `APU0000701322` and `APU0000701111` in `USD/lb`. The rice joins the BLS series `APU0000701312` in `USD/lb`, so 1 kg of rice costs 2.2046 times the price of 1 lb.
 

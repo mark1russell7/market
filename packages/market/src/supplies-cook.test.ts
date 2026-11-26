@@ -1,6 +1,6 @@
 import { canonicalUnit, divide, quantity, valueIn } from "@mark1russell7/quantity";
 import { describe, expect, it } from "vitest";
-import { checkSupplies, cookWater, fuelEnergyPerMass, quickSoakWater, soakWater, unsoakedCookWater, type CitedRate, type CitedSpan, type QuickSoak, type SupplyCatalog, type SupplyProduct, type SupplyResource } from "./supplies.ts";
+import { checkSupplies, cookWater, fuelEnergyPerMass, giftsOf, quickSoakWater, soakWater, unsoakedCookWater, type CitedRate, type CitedSpan, type QuickSoak, type SupplyCatalog, type SupplyProduct, type SupplyResource } from "./supplies.ts";
 import { SUPPLY_CATALOG } from "./supplies-data.ts";
 
 const errors = (catalog: SupplyCatalog): string[] =>
@@ -192,6 +192,19 @@ describe("the stoves of the reference catalog", () => {
       expect(record?.checked, fact).toBe("2026-11-24");
     }
     expect(SUPPLY_CATALOG.sources.find((each) => each.id === "ready.food")?.license).toBe("us-public-domain");
+  });
+
+  it("gives the fuel of the canister stove from a canister of 227 g, the mass of its cited rate", () => {
+    const canister = product("fuel.isobutane-canister-227g");
+    expect(canister.kind).toBe("heat");
+    expect(canister.basis).toBe("ready.food-camp-stove");
+    expect(canister.size).toEqual({ read: true, amount: 227, unit: "g", fact: "msr.pocketrocket-2-rate" });
+    const [gift] = giftsOf(SUPPLY_CATALOG, canister.id, 2);
+    expect(gift?.resource).toBe("fuel.isobutane-mix");
+    expect(gift?.read && gift.unit).toBe("kg");
+    expect(gift?.read && gift.amount).toBeCloseTo(0.454, 12);
+    expect(canister.gives[0]?.resource).toBe(product("heat.stove-canister-1-burner").stove?.fuel);
+    expect(errors(SUPPLY_CATALOG)).toEqual([]);
   });
 
   it("gives a fuel energy to propane and butane, and none to the canister mix, so its energy is a no read", () => {

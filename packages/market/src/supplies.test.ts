@@ -54,6 +54,7 @@ describe("the reference catalog of supplies", () => {
       "supplies-no-read heat.stove-canister-1-burner",
       "supplies-no-read heat.stove-propane-2-burner",
       "supplies-no-read heat.stove-butane-1-burner",
+      "supplies-no-read fuel.isobutane-canister-227g",
       "supplies-no-read first-aid.kit",
       "supplies-no-read communication.noaa-radio",
       "supplies-no-read communication.noaa-radio",
